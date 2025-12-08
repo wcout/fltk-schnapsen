@@ -52,10 +52,13 @@
 std::map<std::string, std::string> config = {};
 
 // Very simple logging interface
-std::string LOG_PREFIX = "\033[38;5;0m";
-std::string DBG_PREFIX = "\033[38;5;240m";
-#define LOG(x) { if (atoi(config["loglevel"].c_str()) > 0) std::cout << LOG_PREFIX << x; }
-#define DBG(x) { if (atoi(config["loglevel"].c_str()) > 1) std::cout << DBG_PREFIX << x; }
+std::string DBG_PREFIX = "\033[38;5;240m";  // light grey
+std::string LOG_PREFIX = "\033[1m";         // bold
+//std::string LOG_PREFIX = "\033[38;5;0m";    // black
+std::string RESET_ATTR = "\033[0m";
+#define OUT(x) { std::cout << x; }
+#define LOG(x) { if (atoi(config["loglevel"].c_str()) > 0) std::cout << LOG_PREFIX << x << RESET_ATTR; }
+#define DBG(x) { if (atoi(config["loglevel"].c_str()) > 1) std::cout << DBG_PREFIX << x << RESET_ATTR; }
 
 const char APPLICATION[] = "fltk-schnapsen";
 const char VERSION[] = "1.0";
@@ -407,7 +410,6 @@ public:
 		Fl_SVG_Image *svg = new Fl_SVG_Image(pathname_.c_str());
 		if (!svg || svg->w() <= 0 || svg->h() <= 0)
 		{
-			fl_message_title(message(TITLE).c_str());
 			fl_alert("Card image '%s' not found!", pathname_.c_str());
 		}
 		assert(svg && svg->w() > 0 && svg->h() > 0);
@@ -449,7 +451,7 @@ public:
 			}
 #endif
 			delete quer_image;
-			LOG("rotate image '" << id_ << "'\n");
+			DBG("rotate image '" << id_ << "'\n");
 			_images[id_+"_quer"] = rotate_90_CCW(*svg);
 		}
 		quer_image = _images[id_+"_quer"];
@@ -482,14 +484,9 @@ public:
 			if (cardset.empty())
 				cardset = "English_pattern";
 			root += cardset + "/";
-			std::string cardname = root;
-			cardname += face_name();
-			cardname += "_of_";
-			cardname += suite_name();
-			cardname += ".svg";
-			_pathname = cardname;
-			DBG("load '" << cardname << "'\n");
-			_images.image(name(), cardname);
+			_pathname = root + filename();
+			DBG("load '" << _pathname << "'\n");
+			_images.image(name(), _pathname);
 		}
 	}
 	Fl_RGB_Image *image() const { return _images.image(name()); }
@@ -503,6 +500,7 @@ public:
 	std::string face_abbr() const { return card_abbr[face()]; }
 	std::string suite_name() const { return suite_names[suite()]; }
 	std::string name() const { return face_name() + " of " + suite_name(); }
+	std::string filename() const { return face_name() + "_of_" + suite_name() + ".svg"; }
 	int suite_weight() const { return suite_weights[suite()]; }
 	std::string suite_symbol() const { return suite_symbols[suite()]; }
 	static std::string suite_symbol(CardSuite suite_) { return suite_symbols[suite_]; }
@@ -2198,14 +2196,14 @@ public:
 		}
 		else if (cmd_.find("cip") == 0)
 		{
-			std::cout << Card::suite_symbol(HEART) << ": " << cards_in_play(HEART) << " (" << max_cards_player(HEART) << ")\n";
-			std::cout << Card::suite_symbol(SPADE) << ": " << cards_in_play(SPADE) << " (" << max_cards_player(SPADE) << ")\n";
-			std::cout << Card::suite_symbol(DIAMOND) << ": " << cards_in_play(DIAMOND) << " (" << max_cards_player(DIAMOND) << ")\n";
-			std::cout << Card::suite_symbol(CLUB) << ": " << cards_in_play(CLUB) << " (" << max_cards_player(CLUB) << ")\n";
+			OUT(Card::suite_symbol(HEART) << ": " << cards_in_play(HEART) << " (" << max_cards_player(HEART) << ")\n");
+			OUT(Card::suite_symbol(SPADE) << ": " << cards_in_play(SPADE) << " (" << max_cards_player(SPADE) << ")\n");
+			OUT(Card::suite_symbol(DIAMOND) << ": " << cards_in_play(DIAMOND) << " (" << max_cards_player(DIAMOND) << ")\n");
+			OUT(Card::suite_symbol(CLUB) << ": " << cards_in_play(CLUB) << " (" << max_cards_player(CLUB) << ")\n");
 		}
 		else if (cmd_=="help")
 		{
-			std::cout << "debug/error/gb/cip\n";
+			OUT("debug/error/gb/cip\n");
 		}
 		redraw();
 	}
@@ -2377,7 +2375,6 @@ public:
 				ascore += s.second;
 			}
 			LOG("match score PL:AI: " << pscore << ":" << ascore << "\n");
-			fl_message_title(message(TITLE).c_str());
 			if (pscore >= 7)
 			{
 				LOG("You win match " << pscore << ":" << ascore << "\n");
@@ -2774,35 +2771,35 @@ private:
 void list_decks()
 {
 	std::string svg_cards(homeDir()+cardDir);
-	std::cout << "\navailaible cardsets:\n";
+	OUT("\navailaible cardsets:\n");
 	for (auto const &dir_entry : std::filesystem::directory_iterator(svg_cards))
 	{
 		std::filesystem::path card(dir_entry.path());
-		card /= "queen_of_hearts.svg";
+		card /= Card(QUEEN, HEART).filename();
 		if (dir_entry.is_directory() && std::filesystem::exists(card))
-			std::cout << "\t" << dir_entry.path().filename() << "\n";
+			OUT("\t" << dir_entry.path().filename() << "\n");
 	}
 	std::filesystem::path back(homeDir()+cardDir+"/back");
-	std::cout << "\navailaible card backs:\n";
+	OUT("\navailaible card backs:\n");
 	for (auto const &dir_entry : std::filesystem::directory_iterator(back))
 	{
 		if (dir_entry.is_regular_file())
-			std::cout << "\t" << dir_entry.path().filename() << "\n";
+			OUT("\t" << dir_entry.path().filename() << "\n");
 	}
 }
 
 void help(const std::map<std::string, std::string> &la_, const std::map<std::string, std::string> &sa_)
 {
-	std::cout << APPLICATION << " " << VERSION << "\n\n";
-	std::cout << "Usage:\n";
+	OUT(APPLICATION << " " << VERSION << "\n\n");
+	OUT("Usage:\n");
 	for (auto a : la_)
 	{
-		std::cout << "--" << a.first << "\t" << a.second << "\n";
+		OUT("--" << a.first << "\t" << a.second << "\n");
 	}
-	std::cout << "\n";
+	OUT("\n");
 	for (auto a : sa_)
 	{
-		std::cout << "-" << a.first << "\t" << a.second << "\n";
+		OUT("-" << a.first << "\t" << a.second << "\n");
 	}
 	list_decks();
 }
@@ -2810,7 +2807,7 @@ void help(const std::map<std::string, std::string> &la_, const std::map<std::str
 bool process_arg(const std::string &arg_, const std::string &value_)
 {
 //	printf("process_arg('%s' '%s')\n", arg_.c_str(), value_.c_str());
-	static std::map<std::string, std::string> long_args =
+	static const std::map<std::string, std::string> long_args =
 	{
 		{ "lang", "\t{id}\t\tset language [de,en]" },
 		{ "loglevel", "{level}\t\tset loglevel [0-2]" },
@@ -2818,7 +2815,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 		{ "cardset", "{directory}\tuse cardset [name]" },
 		{ "cardback", "{file}\t\tuse cardback image [svg]" }
 	};
-	static std::map<std::string, std::string> short_args =
+	static const std::map<std::string, std::string> short_args =
 	{
 		{ "C", "default config values" },
 		{ "d", "enable debug" },
@@ -2856,7 +2853,6 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 	}
 	else
 	{
-		fl_message_title(message(TITLE).c_str());
 		fl_alert("Invalid argument '%s'!", arg_.c_str());
 		return false;
 	}
@@ -2886,14 +2882,16 @@ void parse_arg(int argc_, char *argv_[])
 
 int main(int argc_, char *argv_[])
 {
+	fl_message_title_default(message(TITLE).c_str());
 	load_config();
 	parse_arg(argc_, argv_);
+	fl_message_title_default(message(TITLE).c_str());
 	srand(time(nullptr));
 	Deck deck;
 	deck.show();
+	fl_message_title_default(message(TITLE).c_str());
 	if (welcome.size())
 	{
-		fl_message_title(message(TITLE).c_str());
 		fl_alert("%s", welcome.c_str());
 	}
 	return deck.run();
