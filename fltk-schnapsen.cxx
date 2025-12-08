@@ -197,7 +197,7 @@ std::map<Message, std::string> messages_de = {
 	{NO_CLOSE, "Zudrehen nicht mehr erlaubt"},
 	{NO_CHANGE, "Tauschen nicht mehr erlaubt"},
 	{REDEAL, "MISCHEN"},
-	{WELCOME, "Servas Oida!\n\nHast Lust auf a Bummerl?"}
+	{WELCOME, "Servas Oida!\n\nHast Lust auf\na Bummerl?"}
 };
 
 std::map<Message, std::string> messages_en = {
@@ -225,7 +225,7 @@ std::map<Message, std::string> messages_en = {
 	{NO_CLOSE, "You can't close any more"},
 	{NO_CHANGE, "You can't change any more"},
 	{REDEAL, "REDEAL"},
-	{WELCOME, "Hi chap!\n\nDo you want a 'bummerl'?"}
+	{WELCOME, "Hey dude!\n\nDo you want\na 'bummerl'?"}
 };
 
 // only for testing
@@ -356,6 +356,39 @@ Fl_RGB_Image *rotate_90_CCW(const Fl_RGB_Image &svg_)
 	rotated_image->alloc_array = 1;
 	return rotated_image;
 }
+
+void draw_color_text(const std::string &text_, int x_, int y_, std::map<char, Fl_Color> &colors_)
+{
+	std::string text(text_);
+	Fl_Color def_color = fl_color();
+	while (text.size())
+	{
+		size_t pos = text.find('^');
+		if (pos != std::string::npos)
+		{
+			std::string t = text.substr(0, pos);
+			if (t.size())
+			{
+				fl_draw(t.c_str(), x_, y_);
+				x_ += fl_width(t.c_str());
+			}
+			if (pos+1 >= text.size()) break;
+			char c = text[pos+1];
+			auto it = colors_.find(c);
+			if (it == colors_.end())
+				fl_color(def_color);
+			else
+				fl_color(it->second);
+			text = text.substr(pos + 2);
+		}
+		else
+		{
+			fl_draw(text.c_str(), x_, y_);
+			break;
+		}
+	}
+}
+
 
 class Cmd : public Fl_Input
 {
@@ -1709,38 +1742,6 @@ public:
 		return ret;
 	}
 
-	void draw_color_text(const std::string &text_, int x_, int y_, std::map<char, Fl_Color> &colors_)
-	{
-		std::string text(text_);
-		Fl_Color def_color = fl_color();
-		while (text.size())
-		{
-			size_t pos = text.find('^');
-			if (pos != std::string::npos)
-			{
-				std::string t = text.substr(0, pos);
-				if (t.size())
-				{
-					fl_draw(t.c_str(), x_, y_);
-					x_ += fl_width(t.c_str());
-				}
-				if (pos+1 >= text.size()) break;
-				char c = text[pos+1];
-				auto it = colors_.find(c);
-				if (it == colors_.end())
-					fl_color(def_color);
-				else
-					fl_color(it->second);
-				text = text.substr(pos + 2);
-			}
-			else
-			{
-				fl_draw(text.c_str(), x_, y_);
-				break;
-			}
-		}
-	}
-
 	void draw_game_book(int x_, int y_)
 	{
 		fl_color(fl_lighter(fl_lighter(FL_YELLOW)));
@@ -1858,9 +1859,9 @@ public:
 	void draw_suite_symbol(CardSuite suite_, int x_, int y_, const std::string &prefix_="")
 	{
 //		printf("draw_suite_symbol %d/%d\n", x_, y_);
-		Card c(ACE, suite_);
 		fl_font(FL_HELVETICA, _CH/7);
 		fl_color(FL_BLACK);
+		Card c(ACE, suite_);
 		std::ostringstream os;
 		os << prefix_;
 		if (c.is_red_suite())
@@ -2121,6 +2122,18 @@ public:
 		fl_draw(buf, 0, fl_height()-fl_descent());
 	}
 
+	void draw_grayout()
+	{
+		if (Fl::first_window() != this)
+		{
+			// use shadow image to "gray out" deck
+			_shadow.image()->scale(_CW, _CH, 0, 1);
+			for (int x=0; x < w(); x += _CW/2)
+				for (int y=0; y < h(); y += _CH/2)
+					_shadow.image()->draw(x, y, _CW/2, _CH/2, _CW/4, _CH/4);
+		}
+	}
+
 	void draw()
 	{
 		// measure a "standard card"
@@ -2128,7 +2141,6 @@ public:
 		_CW = _card_template.image()->w();
 		_CH = _card_template.image()->h();
 //		printf("CWxCH=%dx%d\n", _CW, _CH);
-
 		draw_table();
 		draw_game_book(w()/40+_CW/2, h()/2);
 		draw_suite_symbol(_trump, w()/3-_CW/4, h()-h()/2 + _CH/2+_CH/5);
@@ -2148,6 +2160,7 @@ public:
 		if (!_disabled && _redeal_button && _redeal_button->visible())
 			_redeal_button->draw();
 		draw_version();
+		draw_grayout();
 	}
 
 	void collect()
@@ -2880,6 +2893,70 @@ void parse_arg(int argc_, char *argv_[])
 	}
 }
 
+class Welcome : public Fl_Double_Window
+{
+public:
+	Welcome(int w_, int h_) : Fl_Double_Window(w_, h_)
+	{
+		clear_border();
+		set_modal();
+		color(FL_WHITE);
+		Fl::add_timeout(0.2, redraw_timer, this);
+	}
+	~Welcome()
+	{
+		Fl::remove_timeout(redraw_timer, this);
+	}
+	static void redraw_timer(void *d_)
+	{
+		(static_cast<Welcome *>(d_))->redraw();
+		Fl::add_timeout(0.2, redraw_timer, d_);
+	}
+	int handle(int e_)
+	{
+		if (e_ == FL_NO_EVENT) return 1;
+		if (e_ == FL_PUSH || e_ == FL_KEYDOWN)
+		{
+			Fl::delete_widget(this);
+			Fl::first_window()->redraw();
+		}
+		return Fl_Double_Window::handle(e_);
+	}
+	void draw()
+	{
+		fl_draw_box(FL_UP_BOX, 0, 0, w(), h(), FL_WHITE);
+		fl_push_clip(2, 2, w()-3, h()-3);
+		fl_font(FL_HELVETICA_BOLD, h()/7);
+		for (int i = 0; i < 30; i++)
+		{
+			static std::vector<CardSuite> suites = { HEART, SPADE, DIAMOND, CLUB };
+			int x = random()%w();
+			int y = random()%h();
+			auto s = random()%suites.size();
+			if (suites[s]==HEART || suites[s]==DIAMOND)
+				fl_color(fl_lighter(fl_lighter(FL_RED)));
+			else
+				fl_color(fl_lighter(fl_lighter(FL_BLACK)));
+			fl_draw(suite_symbols[suites[s]].c_str(), x, y+fl_height());
+		}
+		Card c(QUEEN, HEART);
+		c.image()->scale(w()/2-w()/10, h(), 1, 1);
+		c.image()->draw(w()/40, h()/4);
+		fl_font(FL_HELVETICA_BOLD, w()/10);
+		fl_color(FL_BLACK);
+		static std::string title("^rF^B^rL^BT^rK^B ^rS^BC^rH^BN^rA^BP^rS^BE^rN^B");
+		draw_color_text(title, (w()-fl_width("FLTK SCHNAPSEN"))/2, h()/7, text_colors);
+		fl_color(FL_BLUE);
+		fl_font(FL_HELVETICA_BOLD, w()/24);
+		static std::string cr("(c) 2025 Christian Grabner <wcout@gmx.net>");
+		fl_draw(cr.c_str(), (w()-fl_width(cr.c_str()))/2, h()/7 + h()/14);
+		fl_color(FL_BLACK);
+		fl_font(FL_HELVETICA_BOLD, h()/16);
+		fl_draw(message(WELCOME).c_str(), w()/2+w()/60, h()/2);
+		fl_pop_clip();
+	}
+};
+
 int main(int argc_, char *argv_[])
 {
 	fl_message_title_default(message(TITLE).c_str());
@@ -2889,10 +2966,12 @@ int main(int argc_, char *argv_[])
 	srand(time(nullptr));
 	Deck deck;
 	deck.show();
+	deck.wait_for_expose();
 	fl_message_title_default(message(TITLE).c_str());
 	if (welcome.size())
 	{
-		fl_alert("%s", welcome.c_str());
+		auto wc = new Welcome(deck.w()/2, deck.h()/4*3);
+		wc->show();
 	}
 	return deck.run();
 }
