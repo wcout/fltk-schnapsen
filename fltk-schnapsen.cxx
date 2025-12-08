@@ -321,7 +321,7 @@ Fl_RGB_Image *rotate_90_CCW(const Fl_RGB_Image &svg_)
 	int h = svg_.h();
 	int d = svg_.d();
 	assert(w > 0 && h > 0 && d >=3);
-   uchar alpha = 0;
+	uchar alpha = 0;
 	uchar *rot_data = new uchar[w*h*d];
 
 	const auto data = svg_.data()[0];
@@ -488,7 +488,7 @@ public:
 			cardname += ".svg";
 			_pathname = cardname;
 			DBG("load '" << cardname << "'\n");
-			_images.image(name(), cardname.c_str());
+			_images.image(name(), cardname);
 		}
 	}
 	Fl_RGB_Image *image() const { return _images.image(name()); }
@@ -1120,7 +1120,7 @@ public:
 		return result;
 	}
 
-	bool must_give_color(const Card &c_, Cards &cards_) const
+	bool must_give_color(const Card &c_, const Cards &cards_) const
 	{
 		return has_suite(cards_, c_.suite());
 	}
@@ -2770,7 +2770,7 @@ private:
 	Button *_redeal_button;
 };
 
-void help(std::map<std::string, std::string> &la_, std::map<std::string, std::string> &sa_)
+void help(const std::map<std::string, std::string> &la_, const std::map<std::string, std::string> &sa_)
 {
 	std::cout << APPLICATION << " " << VERSION << "\n\n";
 	std::cout << "Usage:\n";
