@@ -2785,6 +2785,62 @@ void help(const std::map<std::string, std::string> &la_, const std::map<std::str
 	}
 }
 
+bool process_arg(const std::string &arg_, const std::string &value_)
+{
+//	printf("process_arg('%s' '%s')\n", arg_.c_str(), value_.c_str());
+	static std::map<std::string, std::string> long_args =
+	{
+		{ "lang", "\t{id}\t\tset language [de,en]" },
+		{ "loglevel", "{level}\t\tset loglevel [0-2]" },
+		{ "background", "{name/number}\tset background image or color [imagepath/[0-255]]" },
+		{ "cardset", "{directory}\tuse cardset [name]" },
+		{ "cardback", "{file}\t\tuse cardback image [svg]" }
+	};
+	static std::map<std::string, std::string> short_args =
+	{
+		{ "C", "default config values" },
+		{ "d", "enable debug" },
+		{ "f", "run fullscreen" },
+		{ "w", "show welcome screen" },
+		{ "h", "this help" }
+	};
+	if (value_.size() && long_args.find(arg_.substr(2)) != long_args.end())
+	{
+		config[arg_.substr(2)] = value_;
+	}
+	else if (arg_.size() == 2 && arg_[0] == '-' && short_args.find(arg_.substr(1)) != short_args.end())
+	{
+		switch (arg_[1])
+		{
+			case 'd':
+				debug = true;
+				break;
+			case 'f':
+			config["fullscreen"] = "1";
+			break;
+			case 'w':
+				welcome = message(WELCOME);
+				break;
+			case 'h':
+				help(long_args, short_args);
+				return false;
+			case 'C':
+				config.clear();
+		}
+	}
+	else if (arg_[0] != '-')
+	{
+		welcome = arg_;
+	}
+	else
+	{
+		fl_message_title(message(TITLE).c_str());
+		fl_alert("Invalid argument '%s'!", arg_.c_str());
+		return false;
+	}
+	return true;
+}
+
 void parse_arg(int argc_, char *argv_[])
 {
 	for (int i=1; i<argc_; i++)
@@ -2793,61 +2849,15 @@ void parse_arg(int argc_, char *argv_[])
 		std::string value;
 		if (arg.find("--") == 0)
 		{
-			if (i+1 >=argc_) continue;
-			i++;
-			value = argv_[i];
-			arg.erase(0,2);
-		}
-//		printf("arg: '%s' value: '%s'\n", arg.c_str(), value.c_str());
-		static std::map<std::string, std::string> long_args =
-		{
-			{ "lang", "\t{id}\t\tset language [de,en]" },
-			{ "loglevel", "{level}\t\tset loglevel [0-2]" },
-			{ "background", "{name/number}\tset background image or color [imagepath/[0-255]]" },
-			{ "cardset", "{directory}\tuse cardset [name]" },
-			{ "cardback", "{file}\t\tuse cardback image [svg]" }
-		};
-		static std::map<std::string, std::string> short_args =
-		{
-			{ "C", "default config values" },
-			{ "d", "enable debug" },
-			{ "f", "run fullscreen" },
-			{ "w", "show welcome screen" },
-			{ "h", "this help" }
-		};
-		if (value.size() && long_args.find(arg) != long_args.end())
-		{
-			config[arg] = value;
-		}
-		else if (arg.size() == 2 && arg[0] == '-' && short_args.find(arg.substr(1)) != short_args.end())
-		{
-			switch (arg[1])
+			if (i+1 < argc_)
 			{
-				case 'd':
-					debug = true;
-					break;
-				case 'f':
-					config["fullscreen"] = "1";
-				break;
-				case 'w':
-					welcome = message(WELCOME);
-					break;
-				case 'h':
-					help(long_args, short_args);
-					exit(0);
-				case 'C':
-					config.clear();
+				i++;
+				value = argv_[i];
 			}
 		}
-		else if (arg[0] != '-')
+		if (process_arg(arg, value) == false)
 		{
-			welcome = arg;
-		}
-		else
-		{
-			fl_message_title(message(TITLE).c_str());
-			fl_alert("Invalid argument '%s'!", arg.c_str());
-			break;
+			exit(0);
 		}
 	}
 }
