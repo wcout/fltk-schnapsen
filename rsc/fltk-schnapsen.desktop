@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=fltk-schnapsen
+Comment=FLTK Schnapsen Kartenspiel
+Exec=fltk-schnapsen %F
+Icon=$HOME/.fltk-schnapsen/rsc/fltk-schnapsen.svg
+StartupWMClass=fltk-schnapsen
+Categories=Game
