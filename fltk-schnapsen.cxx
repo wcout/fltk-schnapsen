@@ -20,6 +20,7 @@
 #include <sstream>
 #include <deque>
 #include <map>
+#include <filesystem>
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
@@ -2770,6 +2771,26 @@ private:
 	Button *_redeal_button;
 };
 
+void list_decks()
+{
+	std::string svg_cards(homeDir()+cardDir);
+	std::cout << "\navailaible cardsets:\n";
+	for (auto const &dir_entry : std::filesystem::directory_iterator(svg_cards))
+	{
+		std::filesystem::path card(dir_entry.path());
+		card /= "queen_of_hearts.svg";
+		if (dir_entry.is_directory() && std::filesystem::exists(card))
+			std::cout << "\t" << dir_entry.path().filename() << "\n";
+	}
+	std::filesystem::path back(homeDir()+cardDir+"/back");
+	std::cout << "\navailaible card backs:\n";
+	for (auto const &dir_entry : std::filesystem::directory_iterator(back))
+	{
+		if (dir_entry.is_regular_file())
+			std::cout << "\t" << dir_entry.path().filename() << "\n";
+	}
+}
+
 void help(const std::map<std::string, std::string> &la_, const std::map<std::string, std::string> &sa_)
 {
 	std::cout << APPLICATION << " " << VERSION << "\n\n";
@@ -2783,6 +2804,7 @@ void help(const std::map<std::string, std::string> &la_, const std::map<std::str
 	{
 		std::cout << "-" << a.first << "\t" << a.second << "\n";
 	}
+	list_decks();
 }
 
 bool process_arg(const std::string &arg_, const std::string &value_)
