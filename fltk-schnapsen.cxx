@@ -230,7 +230,6 @@ std::map<Message, std::string> messages_en = {
 
 // only for testing
 bool debug = false;
-std::string welcome;
 
 const std::string &cardDir = "svg_cards";
 
@@ -2851,7 +2850,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 			config["fullscreen"] = "1";
 			break;
 			case 'w':
-				welcome = message(WELCOME);
+				config["welcome"] = "1";
 				break;
 			case 'h':
 				help(long_args, short_args);
@@ -2859,10 +2858,6 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 			case 'C':
 				config.clear();
 		}
-	}
-	else if (arg_[0] != '-')
-	{
-		welcome = arg_;
 	}
 	else
 	{
@@ -2944,7 +2939,7 @@ public:
 		c.image()->draw(w()/40, h()/4);
 		fl_font(FL_HELVETICA_BOLD, w()/10);
 		fl_color(FL_BLACK);
-		static std::string title("^rF^B^rL^BT^rK^B ^rS^BC^rH^BN^rA^BP^rS^BE^rN^B");
+		static std::string title("^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B");
 		draw_color_text(title, (w()-fl_width("FLTK SCHNAPSEN"))/2, h()/7, text_colors);
 		fl_color(FL_BLUE);
 		fl_font(FL_HELVETICA_BOLD, w()/24);
@@ -2968,7 +2963,7 @@ int main(int argc_, char *argv_[])
 	deck.show();
 	deck.wait_for_expose();
 	fl_message_title_default(message(TITLE).c_str());
-	if (welcome.size())
+	if (atoi(config["welcome"].c_str()))
 	{
 		auto wc = new Welcome(deck.w()/2, deck.h()/4*3);
 		wc->show();
