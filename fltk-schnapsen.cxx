@@ -2962,6 +2962,7 @@ public:
 
 int main(int argc_, char *argv_[])
 {
+	Fl::keyboard_screen_scaling(0);
 	fl_message_title_default(message(TITLE).c_str());
 	load_config();
 	parse_arg(argc_, argv_);
