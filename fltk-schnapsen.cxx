@@ -2919,12 +2919,12 @@ public:
 	}
 	void draw()
 	{
-		fl_draw_box(FL_UP_BOX, 0, 0, w(), h(), FL_WHITE);
-		fl_push_clip(2, 2, w()-3, h()-3);
+		fl_draw_box(FL_UP_BOX, 0, 0, w(), h(), color());
+		fl_push_clip(2, 2, w()-4, h()-4);
 		fl_font(FL_HELVETICA_BOLD, h()/7);
 		for (int i = 0; i < 30; i++)
 		{
-			static std::vector<CardSuite> suites = { HEART, SPADE, DIAMOND, CLUB };
+			static const std::vector<CardSuite> suites = { HEART, SPADE, DIAMOND, CLUB };
 			int x = random()%w();
 			int y = random()%h();
 			auto s = random()%suites.size();
@@ -2942,7 +2942,7 @@ public:
 		static std::string title("^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B");
 		draw_color_text(title, (w()-fl_width("FLTK SCHNAPSEN"))/2, h()/7, text_colors);
 		fl_color(FL_BLUE);
-		fl_font(FL_HELVETICA_BOLD, w()/24);
+		fl_font(FL_HELVETICA_BOLD, w()/26);
 		static std::string cr("(c) 2025 Christian Grabner <wcout@gmx.net>");
 		fl_draw(cr.c_str(), (w()-fl_width(cr.c_str()))/2, h()/7 + h()/14);
 		fl_color(FL_BLACK);
