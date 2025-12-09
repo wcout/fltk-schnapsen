@@ -430,6 +430,12 @@ struct Rect
 	int y;
 	int w;
 	int h;
+	Rect (const Fl_Widget& wgt_, Fl_Boxtype box_=FL_NO_BOX) :
+		x(wgt_.x() + Fl::box_dx(box_)),
+		y(wgt_.y() + Fl::box_dy(box_)),
+		w(wgt_.w() - Fl::box_dw(box_)),
+		h(wgt_.h() - Fl::box_dh(box_))
+	{}
 	bool includes(int x_, int y_) const { return x_ >= x && y_ >= y && x_ < x + w && y_ < y + h; }
 };
 
@@ -2895,6 +2901,7 @@ public:
 	{
 		clear_border();
 		set_modal();
+		box(FL_UP_BOX);
 		color(FL_WHITE);
 		Fl::add_timeout(0.2, redraw_timer, this);
 	}
@@ -2919,8 +2926,9 @@ public:
 	}
 	void draw()
 	{
-		fl_draw_box(FL_UP_BOX, 0, 0, w(), h(), color());
-		fl_push_clip(2, 2, w()-4, h()-4);
+		fl_draw_box(box(), 0, 0, w(), h(), color());
+		Rect r(*this, box());
+		fl_push_clip(r.x-x(), r.y-y(), r.w, r.h);
 		fl_font(FL_HELVETICA_BOLD, h()/7);
 		for (int i = 0; i < 30; i++)
 		{
