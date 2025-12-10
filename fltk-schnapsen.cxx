@@ -446,9 +446,10 @@ public:
 	{
 		assert(_images.find(id_) == _images.end());
 		Fl_SVG_Image *svg = new Fl_SVG_Image(pathname_.c_str());
-		if (!svg || svg->w() <= 0 || svg->h() <= 0)
+		if ((!svg || svg->w() <= 0 || svg->h() <= 0) && !::debug)
 		{
 			fl_alert("Card image '%s' not found!", pathname_.c_str());
+			exit(EXIT_FAILURE);
 		}
 		assert(svg && svg->w() > 0 && svg->h() > 0);
 		_images[id_] = svg;
@@ -1789,9 +1790,11 @@ public:
 		if (ai_score >= 7 || player_score >= 7)
 		{
 			// draw "bummerl"
-			fl_color(FL_BLACK);
-			int D=player_score>=7 ? W/4+_CW/20 : -W/4;
-			fl_pie(X + W/2-_CW/20+D, Y+_CW/20, _CW/10,_CW/10, 0., 360.);
+			char buf[40];
+			Y += _CH/11;
+			snprintf(buf, sizeof(buf),"   %s       %s",
+				(ai_score >= 7 ? "⬤" :" "), (player_score >= 7 ? "⬤" : " "));
+			draw_color_text(buf, X, Y, text_colors);
 		}
 	}
 
@@ -2786,40 +2789,42 @@ private:
 	Button *_redeal_button;
 };
 
-void list_decks()
+void list_decks(std::ostringstream &os_)
 {
 	std::string svg_cards(homeDir()+cardDir);
-	OUT("\navailaible cardsets:\n");
+	os_ << "\navailaible cardsets:\n";
 	for (auto const &dir_entry : std::filesystem::directory_iterator(svg_cards))
 	{
 		std::filesystem::path card(dir_entry.path());
 		card /= Card(QUEEN, HEART).filename();
 		if (dir_entry.is_directory() && std::filesystem::exists(card))
-			OUT("\t" << dir_entry.path().filename() << "\n");
+			os_ << "\t" << dir_entry.path().filename() << "\n";
 	}
 	std::filesystem::path back(homeDir()+cardDir+"/back");
-	OUT("\navailaible card backs:\n");
+	os_ << "\navailaible card backs:\n";
 	for (auto const &dir_entry : std::filesystem::directory_iterator(back))
 	{
 		if (dir_entry.is_regular_file())
-			OUT("\t" << dir_entry.path().filename() << "\n");
+			os_ << "\t" << dir_entry.path().filename() << "\n";
 	}
 }
 
-void help(const std::map<std::string, std::string> &la_, const std::map<std::string, std::string> &sa_)
+std::string make_help(const std::map<std::string, std::string> &la_, const std::map<std::string, std::string> &sa_)
 {
-	OUT(APPLICATION << " " << VERSION << "\n\n");
-	OUT("Usage:\n");
+	std::ostringstream os;
+	os << APPLICATION << " " << VERSION << "\n\n";
+	os << "Usage:\n";
 	for (auto a : la_)
 	{
-		OUT("--" << a.first << "\t" << a.second << "\n");
+		os << "--" << a.first << "\t" << a.second << "\n";
 	}
-	OUT("\n");
+	os << "\n";
 	for (auto a : sa_)
 	{
-		OUT("-" << a.first << "\t" << a.second << "\n");
+		os << "-" << a.first << "\t" << a.second << "\n";
 	}
-	list_decks();
+	list_decks(os);
+	return os.str();
 }
 
 bool process_arg(const std::string &arg_, const std::string &value_)
@@ -2841,6 +2846,8 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 		{ "w", "show welcome screen" },
 		{ "h", "this help" }
 	};
+	static const std::string help_text(make_help(long_args, short_args));
+
 	if (value_.size() && long_args.find(arg_.substr(2)) != long_args.end())
 	{
 		config[arg_.substr(2)] = value_;
@@ -2859,7 +2866,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 				config["welcome"] = "1";
 				break;
 			case 'h':
-				help(long_args, short_args);
+				OUT(help_text);
 				return false;
 			case 'C':
 				config.clear();
@@ -2867,7 +2874,8 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 	}
 	else
 	{
-		fl_alert("Invalid argument '%s'!", arg_.c_str());
+		fl_message_font_ = FL_COURIER;
+		fl_alert("Invalid argument '%s'!\n\n%s", arg_.c_str(), help_text.c_str());
 		return false;
 	}
 	return true;
