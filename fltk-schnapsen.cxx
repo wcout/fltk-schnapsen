@@ -51,6 +51,9 @@
 // config values (from fltk-schnapsen.cfg)
 std::map<std::string, std::string> config = {};
 
+// statistic values (from fltk-schnapsen.cfg)
+std::map<std::string, std::string> stats = {};
+
 // Very simple logging interface
 std::string DBG_PREFIX = "\033[38;5;240m";  // light grey
 std::string LOG_PREFIX = "\033[1m";         // bold
@@ -134,7 +137,9 @@ enum class Message
 	NO_CLOSE,
 	NO_CHANGE,
 	REDEAL,
-	WELCOME
+	WELCOME,
+	GAMES_WON,
+	MATCHES_WON
 };
 
 enum class Marriage
@@ -197,7 +202,9 @@ std::map<Message, std::string> messages_de = {
 	{NO_CLOSE, "Zudrehen nicht mehr erlaubt"},
 	{NO_CHANGE, "Tauschen nicht mehr erlaubt"},
 	{REDEAL, "MISCHEN"},
-	{WELCOME, "Servas Oida!\n\nHast Lust auf\na Bummerl?"}
+	{WELCOME, "Servas Oida!\n\nHast Lust auf\na Bummerl?"},
+	{GAMES_WON, "Spiele gewonnen (PL/AI): "},
+	{MATCHES_WON, "Partien: "}
 };
 
 std::map<Message, std::string> messages_en = {
@@ -225,7 +232,9 @@ std::map<Message, std::string> messages_en = {
 	{NO_CLOSE, "You can't close any more"},
 	{NO_CHANGE, "You can't change any more"},
 	{REDEAL, "REDEAL"},
-	{WELCOME, "Hey dude!\n\nDo you want\na 'bummerl'?"}
+	{WELCOME, "Hey dude!\n\nDo you want\na 'bummerl'?"},
+	{GAMES_WON, "Games won (PL/AI): "},
+	{MATCHES_WON, "Matches: "}
 };
 
 // only for testing
@@ -272,24 +281,37 @@ const std::string &homeDir()
 	return home;
 }
 
-void load_config()
+void load_values_from_file(std::ifstream &if_,
+                           std::map<std::string, std::string> &values_,
+                           const std::string& id_)
 {
-	std::ifstream cfg(homeDir() + APPLICATION + ".cfg");
 	std::string line;
-	while (std::getline(cfg, line))
+	while (std::getline(if_, line))
 	{
 		size_t pos = line.find("=");
 		if (pos != std::string::npos)
 		{
 			std::string name = line.substr(0, pos);
 			std::string value = line.substr(pos+1);
-			if (name.size() && value.size() && config[name] == "")
+			if (name.size() && value.size() && values_[name] == "")
 			{
-				DBG("[load cfg] " << name << " = " << value << "\n");
-				config[name] = value;
+				DBG("[load " << id_ << "] " << name << " = " << value << "\n");
+				values_[name] = value;
 			}
 		}
 	}
+}
+
+void load_config()
+{
+	std::ifstream cfg(homeDir() + APPLICATION + ".cfg");
+	load_values_from_file(cfg, config, "cfg");
+}
+
+void load_stats()
+{
+	std::ifstream stat(homeDir() + APPLICATION + ".sta");
+	load_values_from_file(stat, stats, "stat");
 }
 
 const std::string &message(const Message m_)
@@ -776,6 +798,21 @@ inline std::ostream &operator<<(std::ostream &os_, const Cards &cards_)
 	return cards_.printOn(os_);
 }
 
+class Deck;
+
+class Welcome : public Fl_Double_Window
+{
+public:
+	Welcome(const Deck &deck_);
+	~Welcome();
+	static void redraw_timer(void *d_);
+	int handle(int e_);
+	void draw_stats();
+	void draw();
+private:
+	const Deck &_deck;
+};
+
 class Deck : public Fl_Double_Window
 {
 public:
@@ -804,7 +841,12 @@ public:
 		_CW(0),
 		_CH(0),
 		_cmd(nullptr),
-		_redeal_button(nullptr)
+		_redeal_button(nullptr),
+		_player_games_won(atoi(stats["player_games_won"].c_str())),
+		_ai_games_won(atoi(stats["ai_games_won"].c_str())),
+		_player_matches_won(atoi(stats["player_matches_won"].c_str())),
+		_ai_matches_won(atoi(stats["ai_matches_won"].c_str())),
+		_welcome(nullptr)
 	{
 		copy_label(message(TITLE).c_str());
 		fl_register_images();
@@ -969,7 +1011,7 @@ public:
 			{
 				LOG("closed by AI!\n");
 				_closed = BY_AI;
-				ai_message(AI_CLOSED);
+				ai_message(AI_CLOSED, true);
 				redraw();
 				wait(1.5);
 				return true;
@@ -978,10 +1020,15 @@ public:
 		return false;
 	}
 
+	bool idle() const
+	{
+		return _moveCard == NONE && _moveAiCard == NONE;
+	}
+
 	bool test_close(int x_, int y_)
 	{
 		// test if player wants close and is allowed to
-		if (_closed == NOT && _moveCard == NONE && _moveAiCard == NONE &&
+		if (_closed == NOT && idle() &&
 		    _cards.front().rect().includes(x_, y_))
 		{
 		   if (_cards.size() < 4)
@@ -1621,7 +1668,11 @@ public:
 		{
 			debug();
 		}
-		else if (Fl::event_key(FL_F+1) && ::debug) // just for testing -> cmd
+		else if (Fl::event_key(FL_F+1) && idle())
+		{
+			welcome();
+		}
+		else if (Fl::event_key(FL_F+12) && ::debug) // just for testing -> cmd
 		{
 			cmd();
 		}
@@ -2399,6 +2450,8 @@ public:
 			if (pscore >= 7)
 			{
 				LOG("You win match " << pscore << ":" << ascore << "\n");
+				_player_matches_won++;
+				stats["player_matches_won"] = std::to_string(_player_matches_won);
 				std::string m(message(YOU_WIN));
 				fl_alert("%s", m.c_str());
 				_gamebook.clear();
@@ -2406,6 +2459,8 @@ public:
 			else if (ascore >= 7)
 			{
 				LOG("AI wins match " << ascore << ":" << pscore << "\n");
+				_ai_matches_won++;
+				stats["ai_matches_won"] = std::to_string(_ai_matches_won);
 				std::string m(message(YOU_LOST));
 				fl_alert("%s", m.c_str());
 				_gamebook.clear();
@@ -2413,21 +2468,35 @@ public:
 			}
 		}
 		save_config();
+		save_stats();
 		return 0;
 	}
 
-	void save_config()
+	void save_values_to_file(std::ofstream &of_,
+                            const std::map<std::string, std::string> values_,
+                            const std::string &id_) const
+	{
+		for (auto c : values_)
+		{
+			std::string name = c.first;
+			std::string value = c.second;
+			DBG("[save " << id_ << "] " << name << " = " << value << "\n");
+			of_ << name << "=" << value << "\n";
+		}
+	}
+
+	void save_config() const
 	{
 		std::ofstream cfg(homeDir() + APPLICATION + ".cfg");
 		config["width"] = std::to_string(w());
 		config["height"] = std::to_string(h());
-		for (auto c : config)
-		{
-			std::string name = c.first;
-			std::string value = c.second;
-			DBG("[save cfg] " << name << " = " << value << "\n");
-			cfg << name << "=" << value << "\n";
-		}
+		save_values_to_file(cfg, config, "cfg");
+	}
+
+	void save_stats() const
+	{
+		std::ofstream stat(homeDir() + APPLICATION + ".sta");
+		save_values_to_file(stat, stats, "stat");
 	}
 
 	void deal()
@@ -2490,7 +2559,7 @@ public:
 			DBG("AI cards can change Jack!\n")
 	}
 
-	void bell()
+	void bell() const
 	{
 		fl_beep();
 	}
@@ -2503,6 +2572,8 @@ public:
 			LOG("Player wins!\n");
 			player_message(YOUR_GAME, true);
 			ai_message(NO_MESSAGE);
+			_player_games_won++;
+			stats["player_games_won"] = std::to_string(_player_games_won);
 			wait(2.0);
 			return true;
 		}
@@ -2511,6 +2582,8 @@ public:
 			LOG("AI wins\n");
 			ai_message(AI_GAME, true);
 			player_message(NO_MESSAGE);
+			_ai_games_won++;
+			stats["ai_games_won"] = std::to_string(_ai_games_won);
 			wait(2.0);
 			return true;
 		}
@@ -2679,12 +2752,16 @@ public:
 				LOG("Player wins because AI closed and has not enough\n");
 				player_message(YOUR_GAME, true);
 				ai_message(AI_NOT_ENOUGH);
+				_player_games_won++;
+				stats["player_games_won"] = std::to_string(_player_games_won);
 			}
 			else if (_closed == BY_PLAYER && _player_score < 66)
 			{
 				LOG("AI wins by last trick!\n");
 				ai_message(AI_GAME, true);
 				player_message(YOU_NOT_ENOUGH);
+				_ai_games_won++;
+				stats["ai_games_won"] = std::to_string(_ai_games_won);
 			}
 		}
 		else if (_move == PLAYER)
@@ -2694,12 +2771,16 @@ public:
 				LOG("AI wins because player closed and has not enough\n");
 				ai_message(AI_GAME, true);
 				player_message(YOU_NOT_ENOUGH);
+				_ai_games_won++;
+				stats["ai_games_won"] = std::to_string(_ai_games_won);
 			}
 			else if (_closed == BY_AI && _ai_score < 66)
 			{
 				LOG("Player wins by last trick!\n");
 				player_message(YOUR_GAME, true);
 				ai_message(AI_NOT_ENOUGH);
+				_player_games_won++;
+				stats["player_games_won"] = std::to_string(_player_games_won);
 			}
 		}
 
@@ -2726,6 +2807,14 @@ public:
 		_disabled = false;
 	}
 
+	std::string make_stats() const
+	{
+		std::ostringstream os;
+		os << message(GAMES_WON) << _player_games_won << " / " << _ai_games_won;
+		os << "\t" << message(MATCHES_WON) <<  _player_matches_won << " / " << _ai_matches_won;
+		return os.str();
+	}
+
 	void unit_tests()
 	{
 		_trump = SPADE;
@@ -2750,6 +2839,13 @@ public:
 		res = _cards - c2;
 		assert(res.size() == 18);
 	}
+
+	void welcome()
+	{
+		_welcome = new Welcome(*this);
+		_welcome->show();
+	}
+
 private:
 	CardImage _back;
 	CardImage _shadow;
@@ -2787,6 +2883,11 @@ private:
 	std::vector<std::pair<int, int>> _gamebook;
 	Cmd *_cmd;
 	Button *_redeal_button;
+	int _player_games_won;
+	int _ai_games_won;
+	int _player_matches_won;
+	int _ai_matches_won;
+	Welcome *_welcome;
 };
 
 void list_decks(std::ostringstream &os_)
@@ -2902,77 +3003,92 @@ void parse_arg(int argc_, char *argv_[])
 	}
 }
 
-class Welcome : public Fl_Double_Window
+Welcome::Welcome(const Deck &deck_) : Fl_Double_Window(deck_.w()/2, deck_.h()/4*3),
+	_deck(deck_)
 {
-public:
-	Welcome(int w_, int h_) : Fl_Double_Window(w_, h_)
+	printf("Welcome %p\n", this);
+	clear_border();
+	set_modal();
+	box(FL_UP_BOX);
+	color(FL_WHITE);
+	Fl::add_timeout(0.2, redraw_timer, this);
+}
+
+Welcome::~Welcome()
+{
+	printf("~Welcome %p\n", this);
+	Fl::remove_timeout(redraw_timer, this);
+}
+
+/*static*/ void Welcome::redraw_timer(void *d_)
+{
+	(static_cast<Welcome *>(d_))->redraw();
+	Fl::add_timeout(0.2, redraw_timer, d_);
+}
+
+int Welcome::handle(int e_)
+{
+	if (e_ == FL_NO_EVENT) return 1;
+	if (e_ == FL_PUSH || e_ == FL_KEYDOWN)
 	{
-		clear_border();
-		set_modal();
-		box(FL_UP_BOX);
-		color(FL_WHITE);
-		Fl::add_timeout(0.2, redraw_timer, this);
+		Fl::delete_widget(this);
+		Fl::first_window()->redraw();
 	}
-	~Welcome()
+	return Fl_Double_Window::handle(e_);
+}
+
+void Welcome::draw_stats()
+{
+	fl_draw_box(FL_FLAT_BOX, 0, h()-h()/32-fl_descent(), w(), h()/32+fl_descent()-2, fl_lighter(fl_lighter(FL_YELLOW)));
+	fl_font(FL_COURIER_BOLD, h()/40);
+	fl_color(FL_BLACK);
+	std::string stat(_deck.make_stats());
+	fl_draw(stat.c_str(), (w()-fl_width(stat.c_str()))/2, h()-fl_descent()-fl_descent());
+}
+
+void Welcome::draw()
+{
+	fl_draw_box(box(), 0, 0, w(), h(), color());
+	Rect r(*this, box());
+	fl_push_clip(r.x-x(), r.y-y(), r.w, r.h);
+	fl_font(FL_HELVETICA_BOLD, h()/7);
+	for (int i = 0; i < 30; i++)
 	{
-		Fl::remove_timeout(redraw_timer, this);
+		static const std::vector<CardSuite> suites = { HEART, SPADE, DIAMOND, CLUB };
+		int x = random()%w();
+		int y = random()%h();
+		auto s = random()%suites.size();
+		if (suites[s]==HEART || suites[s]==DIAMOND)
+			fl_color(fl_lighter(fl_lighter(FL_RED)));
+		else
+			fl_color(fl_lighter(fl_lighter(FL_BLACK)));
+		fl_draw(suite_symbols[suites[s]].c_str(), x, y+fl_height());
 	}
-	static void redraw_timer(void *d_)
-	{
-		(static_cast<Welcome *>(d_))->redraw();
-		Fl::add_timeout(0.2, redraw_timer, d_);
-	}
-	int handle(int e_)
-	{
-		if (e_ == FL_NO_EVENT) return 1;
-		if (e_ == FL_PUSH || e_ == FL_KEYDOWN)
-		{
-			Fl::delete_widget(this);
-			Fl::first_window()->redraw();
-		}
-		return Fl_Double_Window::handle(e_);
-	}
-	void draw()
-	{
-		fl_draw_box(box(), 0, 0, w(), h(), color());
-		Rect r(*this, box());
-		fl_push_clip(r.x-x(), r.y-y(), r.w, r.h);
-		fl_font(FL_HELVETICA_BOLD, h()/7);
-		for (int i = 0; i < 30; i++)
-		{
-			static const std::vector<CardSuite> suites = { HEART, SPADE, DIAMOND, CLUB };
-			int x = random()%w();
-			int y = random()%h();
-			auto s = random()%suites.size();
-			if (suites[s]==HEART || suites[s]==DIAMOND)
-				fl_color(fl_lighter(fl_lighter(FL_RED)));
-			else
-				fl_color(fl_lighter(fl_lighter(FL_BLACK)));
-			fl_draw(suite_symbols[suites[s]].c_str(), x, y+fl_height());
-		}
-		Card c(QUEEN, HEART);
-		c.image()->scale(w()/2-w()/10, h(), 1, 1);
-		c.image()->draw(w()/40, h()/4);
-		fl_font(FL_HELVETICA_BOLD, w()/10);
-		fl_color(FL_BLACK);
-		static std::string title("^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B");
-		draw_color_text(title, (w()-fl_width("FLTK SCHNAPSEN"))/2, h()/7, text_colors);
-		fl_color(FL_BLUE);
-		fl_font(FL_HELVETICA_BOLD, w()/26);
-		static std::string cr("(c) 2025 Christian Grabner <wcout@gmx.net>");
-		fl_draw(cr.c_str(), (w()-fl_width(cr.c_str()))/2, h()/7 + h()/14);
-		fl_color(FL_BLACK);
-		fl_font(FL_HELVETICA_BOLD, h()/16);
-		fl_draw(message(WELCOME).c_str(), w()/2+w()/60, h()/2);
-		fl_pop_clip();
-	}
-};
+	Card c(QUEEN, HEART);
+	c.image()->scale(w()/2-w()/10, h(), 1, 1);
+	c.image()->draw(w()/40, h()/4);
+	fl_font(FL_HELVETICA_BOLD, w()/10);
+	fl_color(FL_BLACK);
+	static std::string title("^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B");
+	draw_color_text(title, (w()-fl_width("FLTK SCHNAPSEN"))/2, h()/7, text_colors);
+	fl_color(FL_BLUE);
+	fl_font(FL_HELVETICA_BOLD, w()/26);
+	static std::string cr("(c) 2025 Christian Grabner <wcout@gmx.net>");
+	fl_draw(cr.c_str(), (w()-fl_width(cr.c_str()))/2, h()/7 + h()/14);
+	fl_color(FL_BLACK);
+	fl_font(FL_HELVETICA_BOLD, h()/16);
+	fl_draw(message(WELCOME).c_str(), w()/2+w()/60, h()/2);
+	draw_stats();
+	fl_pop_clip();
+}
+
 
 int main(int argc_, char *argv_[])
 {
 	Fl::keyboard_screen_scaling(0);
 	fl_message_title_default(message(TITLE).c_str());
 	load_config();
+	load_stats();
 	parse_arg(argc_, argv_);
 	fl_message_title_default(message(TITLE).c_str());
 	srand(time(nullptr));
@@ -2982,8 +3098,7 @@ int main(int argc_, char *argv_[])
 	fl_message_title_default(message(TITLE).c_str());
 	if (atoi(config["welcome"].c_str()))
 	{
-		auto wc = new Welcome(deck.w()/2, deck.h()/4*3);
-		wc->show();
+		deck.welcome();
 	}
 	return deck.run();
 }
