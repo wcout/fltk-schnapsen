@@ -3006,7 +3006,6 @@ void parse_arg(int argc_, char *argv_[])
 Welcome::Welcome(const Deck &deck_) : Fl_Double_Window(deck_.w()/2, deck_.h()/4*3),
 	_deck(deck_)
 {
-	printf("Welcome %p\n", this);
 	clear_border();
 	set_modal();
 	box(FL_UP_BOX);
@@ -3016,11 +3015,11 @@ Welcome::Welcome(const Deck &deck_) : Fl_Double_Window(deck_.w()/2, deck_.h()/4*
 
 Welcome::~Welcome()
 {
-	printf("~Welcome %p\n", this);
 	Fl::remove_timeout(redraw_timer, this);
 }
 
-/*static*/ void Welcome::redraw_timer(void *d_)
+/*static*/
+void Welcome::redraw_timer(void *d_)
 {
 	(static_cast<Welcome *>(d_))->redraw();
 	Fl::add_timeout(0.2, redraw_timer, d_);
