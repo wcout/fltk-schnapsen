@@ -48,11 +48,13 @@
 #endif
 #define _access access
 
-// config values (from fltk-schnapsen.cfg)
-std::map<std::string, std::string> config = {};
+typedef std::map<std::string, std::string> StringMap;
 
-// statistic values (from fltk-schnapsen.cfg)
-std::map<std::string, std::string> stats = {};
+// config values (from fltk-schnapsen.cfg)
+StringMap config = {};
+
+// statistic values (from fltk-schnapsen.sta)
+StringMap stats = {};
 
 // Very simple logging interface
 std::string DBG_PREFIX = "\033[38;5;240m";  // light grey
@@ -281,9 +283,7 @@ const std::string &homeDir()
 	return home;
 }
 
-void load_values_from_file(std::ifstream &if_,
-                           std::map<std::string, std::string> &values_,
-                           const std::string& id_)
+void load_values_from_file(std::ifstream &if_, StringMap &values_, const std::string& id_)
 {
 	std::string line;
 	while (std::getline(if_, line))
@@ -409,7 +409,6 @@ void draw_color_text(const std::string &text_, int x_, int y_, std::map<char, Fl
 		}
 	}
 }
-
 
 class Cmd : public Fl_Input
 {
@@ -2472,9 +2471,7 @@ public:
 		return 0;
 	}
 
-	void save_values_to_file(std::ofstream &of_,
-                            const std::map<std::string, std::string> values_,
-                            const std::string &id_) const
+	void save_values_to_file(std::ofstream &of_, const StringMap &values_, const std::string &id_) const
 	{
 		for (auto c : values_)
 		{
@@ -2910,7 +2907,7 @@ void list_decks(std::ostringstream &os_)
 	}
 }
 
-std::string make_help(const std::map<std::string, std::string> &la_, const std::map<std::string, std::string> &sa_)
+std::string make_help(const StringMap &la_, const StringMap &sa_)
 {
 	std::ostringstream os;
 	os << APPLICATION << " " << VERSION << "\n\n";
@@ -2931,7 +2928,7 @@ std::string make_help(const std::map<std::string, std::string> &la_, const std::
 bool process_arg(const std::string &arg_, const std::string &value_)
 {
 //	printf("process_arg('%s' '%s')\n", arg_.c_str(), value_.c_str());
-	static const std::map<std::string, std::string> long_args =
+	static const StringMap long_args =
 	{
 		{ "lang", "\t{id}\t\tset language [de,en]" },
 		{ "loglevel", "{level}\t\tset loglevel [0-2]" },
@@ -2939,7 +2936,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 		{ "cardset", "{directory}\tuse cardset [name]" },
 		{ "cardback", "{file}\t\tuse cardback image [svg]" }
 	};
-	static const std::map<std::string, std::string> short_args =
+	static const StringMap short_args =
 	{
 		{ "C", "default config values" },
 		{ "d", "enable debug" },
