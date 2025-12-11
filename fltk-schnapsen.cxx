@@ -480,7 +480,7 @@ public:
 	Fl_RGB_Image *image(const std::string &id_) const
 	{
 		auto image = _images.find(id_);
-		if (image  == _images.end())
+		if (image == _images.end())
 			return nullptr;
 		return image->second;
 	}
@@ -1632,7 +1632,7 @@ public:
 		assert(move != NO_MOVE);
 		_ai_card = _ai_cards[move];
 
-		_ai_cards.erase(_ai_cards.begin()+move);
+		_ai_cards.erase(_ai_cards.begin() + move);
 		_moveAiCard = ON_TABLE;
 		LOG("AI move: " << _ai_card << "\n");
 		return move;
@@ -2821,8 +2821,8 @@ public:
 		temp.push_front(Card(TEN, CLUB));
 		temp.push_front(Card(ACE, SPADE));
 		Card c(ACE, CLUB);
-		assert(can_trick_with_suite(c, temp)==false);
-		assert(can_trick(c, temp)==true);
+		assert(can_trick_with_suite(c, temp) == false);
+		assert(can_trick(c, temp) == true);
 		Cards res(_cards);
 		res += _cards;
 		assert(res.size() == 40);
