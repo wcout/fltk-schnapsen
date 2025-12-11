@@ -345,9 +345,9 @@ Fl_RGB_Image *rotate_90_CCW(const Fl_RGB_Image &svg_)
 	int w = svg_.w();
 	int h = svg_.h();
 	int d = svg_.d();
-	assert(w > 0 && h > 0 && d >=3);
+	assert(w > 0 && h > 0 && d >= 3);
 	uchar alpha = 0;
-	uchar *rot_data = new uchar[w*h*d];
+	uchar *rot_data = new uchar[w * h * d];
 
 	const auto data = svg_.data()[0];
 	for (int y = 0; y < h; y++)
@@ -365,11 +365,11 @@ Fl_RGB_Image *rotate_90_CCW(const Fl_RGB_Image &svg_)
 			if (d > 3)
 				alpha = data[offset + 3];
 
-			offset = get_offset(h, w, h-y-1, x, d);
+			offset = get_offset(h, w, h - y - 1, x, d);
 			rot_data[offset]     = r;
 			rot_data[offset + 1] = g;
 			rot_data[offset + 2] = b;
-			if (d >3)
+			if (d > 3)
 				rot_data[offset + 3] = alpha;
 		}
 	}
@@ -394,7 +394,7 @@ void draw_color_text(const std::string &text_, int x_, int y_, std::map<char, Fl
 				x_ += fl_width(t.c_str());
 			}
 			if (pos+1 >= text.size()) break;
-			char c = text[pos+1];
+			char c = text[pos + 1];
 			auto it = colors_.find(c);
 			if (it == colors_.end())
 				fl_color(def_color);
@@ -415,21 +415,21 @@ class Cmd : public Fl_Input
 public:
 	Cmd(int x_, int y_, int w_, int h_) : Fl_Input(x_, y_, w_, h_)
 	{
-		textsize(h()/3*2);
+		textsize(h() / 3 * 2);
 	}
 public:
 	void draw() { Fl_Input::draw_box(); Fl_Input::draw(); }
 	void resize(int x_, int y_, int w_, int h_)
 	{
 		Fl_Input::resize(x_, y_, w_, h_);
-		textsize(h()/3*2);
+		textsize(h() / 3 * 2);
 	}
 };
 
 class Button : public Fl_Button
 {
 public:
-	Button(int x_, int y_, int w_, int h_, const char *l_=nullptr) :
+	Button(int x_, int y_, int w_, int h_, const char *l_ = nullptr) :
 		Fl_Button(x_, y_, w_, h_, l_)
 	{
 		labelfont(FL_HELVETICA_BOLD);
@@ -440,7 +440,7 @@ public:
 	void resize(int x_, int y_, int w_, int h_)
 	{
 		Fl_Button::resize(x_, y_, w_, h_);
-		labelsize(h()/2);
+		labelsize(h() / 2);
 	}
 };
 
@@ -451,7 +451,7 @@ struct Rect
 	int y;
 	int w;
 	int h;
-	Rect (const Fl_Widget& wgt_, Fl_Boxtype box_=FL_NO_BOX) :
+	Rect (const Fl_Widget& wgt_, Fl_Boxtype box_ = FL_NO_BOX) :
 		x(wgt_.x() + Fl::box_dx(box_)),
 		y(wgt_.y() + Fl::box_dy(box_)),
 		w(wgt_.w() - Fl::box_dw(box_)),
@@ -580,7 +580,7 @@ private:
 	CardImage _images;
 	Rect _rect;
 };
-inline std::ostream &operator<<(std::ostream &os_, const Card &c_)
+inline std::ostream &operator << (std::ostream &os_, const Card &c_)
 {
 	return c_.printOn(os_);
 }
@@ -700,7 +700,7 @@ public:
 	}
 	std::optional<size_t> find_pos(const Card &c_) const
 	{
-		for (size_t i=0; i < size(); i++)
+		for (size_t i = 0; i < size(); i++)
 		{
 			if (at(i).face() == c_.face() && at(i).suite() == c_.suite())
 				return i;
@@ -718,10 +718,10 @@ public:
 	{
 		LOG("shuffle\n");
 		assert(size());
-		for (int i=0; i<rand()%100+100; i++)
+		for (int i = 0; i < rand() % 100 + 100; i++)
 		{
-			size_t idx1 = random()%size();
-			size_t idx2 = random()%size();
+			size_t idx1 = random() % size();
+			size_t idx2 = random() % size();
 			Card c = at(idx1);
 			erase(begin() + idx1);
 			insert(begin() + idx2, c);
@@ -1297,7 +1297,7 @@ public:
 		int lowest_value_trump = 20;
 		size_t lowest = NO_MOVE;
 		size_t lowest_trump = NO_MOVE;
-		for (size_t i=0; i<cards_.size(); i++)
+		for (size_t i=0; i < cards_.size(); i++)
 		{
 			if (cards_[i].suite() == _trump)
 			{
@@ -1324,7 +1324,7 @@ public:
 	{
 		int lowest_value = 999;
 		size_t lowest = NO_MOVE;
-		for (size_t i=0; i<cards_.size(); i++)
+		for (size_t i = 0; i < cards_.size(); i++)
 		{
 			if (card_tricks(cards_[i], c_))
 			{
@@ -1353,9 +1353,9 @@ public:
 		for (const auto &c : _ai_cards)
 		{
 			if (suite_ != ANY_SUITE && c.suite() != suite_) continue;
-			for (size_t i=0; i < player_cards.size(); i++)
+			for (size_t i = 0; i < player_cards.size(); i++)
 			{
-				const Card &pc=player_cards[i];
+				const Card &pc = player_cards[i];
 				if (pc.suite() != c.suite()) continue;
 				if (card_tricks(pc, c)) break;
 				res.push_back(c);
@@ -1378,7 +1378,7 @@ public:
 	{
 		int highest_value = 0;
 		size_t highest = NO_MOVE;
-		for (size_t i=0; i<cards_.size(); i++)
+		for (size_t i = 0; i < cards_.size(); i++)
 		{
 			if (card_tricks(cards_[i], c_))
 			{
@@ -1667,15 +1667,15 @@ public:
 		{
 			debug();
 		}
-		else if (Fl::event_key(FL_F+1) && idle())
+		else if (Fl::event_key(FL_F + 1) && idle())
 		{
 			welcome();
 		}
-		else if (Fl::event_key(FL_F+12) && ::debug) // just for testing -> cmd
+		else if (Fl::event_key(FL_F + 12) && ::debug) // just for testing -> cmd
 		{
 			cmd();
 		}
-		else if (Fl::event_key(FL_F+10)) // toggle fullscreen
+		else if (Fl::event_key(FL_F + 10)) // toggle fullscreen
 		{
 			toggle_fullscreen();
 		}
@@ -1712,7 +1712,7 @@ public:
 			}
 
 			if (_closed == NOT && _cards.size() && _moveAiCard == NONE &&
-		    _cards.back().rect().includes(Fl::event_x(),Fl::event_y()))
+		    _cards.back().rect().includes(Fl::event_x(), Fl::event_y()))
 			{
 				test_change();
 				return;
@@ -1765,7 +1765,7 @@ public:
 			if (c.rect().includes(Fl::event_x(), Fl::event_y()))
 			{
 				_player_card = _player_cards[i];
-				_player_cards.erase(_player_cards.begin()+i);
+				_player_cards.erase(_player_cards.begin() + i);
 				_moveCard = MOVING;
 				LOG("PL move: " << _player_card << "\n");
 			}
@@ -1801,25 +1801,25 @@ public:
 	void draw_game_book(int x_, int y_)
 	{
 		fl_color(fl_lighter(fl_lighter(FL_YELLOW)));
-		x_ -= _CW/2;
-		y_ -= _CH/2;
+		x_ -= _CW / 2;
+		y_ -= _CH / 2;
 		fl_rectf(x_, y_, _CW, _CH);
 		fl_color(FL_GRAY);
 		fl_rect(x_, y_, _CW, _CH);
 		fl_color(FL_BLACK);
 		fl_font(FL_COURIER, _CH/14);
-		int X = x_ + _CW/20;
-		int Y = y_ + _CW/20+fl_height();
+		int X = x_ + _CW / 20;
+		int Y = y_ + _CW / 20 + fl_height();
 		draw_color_text(message(GAMEBOOK), X, Y, text_colors);
 		fl_line_style(FL_SOLID, 2);
-		fl_line(X, Y+fl_descent(), X+_CW-_CW/10, Y+fl_descent());
-		Y += _CH/10;
+		fl_line(X, Y + fl_descent(), X + _CW - _CW / 10, Y + fl_descent());
+		Y += _CH / 10;
 		draw_color_text(message(GB_HEADLINE), X, Y, text_colors);
-		int H = _CH - _CH/5;
+		int H = _CH - _CH / 5;
 		fl_line_style(FL_SOLID, 1);
-		int W = _CW-_CW/10;
-		fl_line(X, Y+fl_descent(), X+W, Y+fl_descent());
-		fl_line(X+W/2, Y-fl_height(), X+W/2, Y+H-fl_descent());
+		int W = _CW - _CW / 10;
+		fl_line(X, Y + fl_descent(), X + W, Y + fl_descent());
+		fl_line(X + W / 2, Y-fl_height(), X + W / 2, Y + H - fl_descent());
 		int player_score = 0;
 		int ai_score = 0;
 		for (auto s : _gamebook)
@@ -1834,14 +1834,14 @@ public:
 			snprintf(abuf, sizeof(abuf), "%d", ai_score);
 			if (!s.second || abuf[0] == '0') abuf[0] = '-';
 			snprintf(buf, sizeof(buf),"   %s       %s", pbuf, abuf);
-			Y += _CH/11;
+			Y += _CH / 11;
 			draw_color_text(buf, X, Y, text_colors);
 		}
 		if (ai_score >= 7 || player_score >= 7)
 		{
 			// draw "bummerl"
 			char buf[40];
-			Y += _CH/11;
+			Y += _CH / 11;
 			snprintf(buf, sizeof(buf),"   %s       %s",
 				(ai_score >= 7 ? "⬤" :" "), (player_score >= 7 ? "⬤" : " "));
 			draw_color_text(buf, X, Y, text_colors);
@@ -1851,12 +1851,12 @@ public:
 	void draw_deck_info(int x_, int y_, const Cards &deck_, int max_tricks_=8)
 	{
 		fl_color(fl_lighter(fl_lighter(FL_YELLOW)));
-		fl_rectf(x_, y_, w()/10, w()/7);
+		fl_rectf(x_, y_, w() / 10, w() / 7);
 		fl_color(FL_GRAY);
-		fl_rect(x_, y_, w()/10, w()/7);
+		fl_rect(x_, y_, w() / 10, w() / 7);
 		fl_color(FL_BLACK);
-		fl_font(FL_COURIER, w()/50);
-		for (size_t i=0; i < deck_.size(); i +=2)
+		fl_font(FL_COURIER, w() / 50);
+		for (size_t i = 0; i < deck_.size(); i +=2)
 		{
 			max_tricks_--;
 			if (max_tricks_ < 0) break;
@@ -1875,7 +1875,7 @@ public:
 				os << "^B";
 			os << deck_[i+1];
 			std::string s = os.str();
-			draw_color_text(s, x_+w()/80, y_+w()/50+i*w()/100, text_colors);
+			draw_color_text(s, x_ + w() / 80, y_ + w() / 50 + i * w() / 100, text_colors);
 		}
 	}
 
@@ -1897,27 +1897,27 @@ public:
 		if (_moveCard == ON_TABLE)
 		{
 			Rect r(_player_card.rect());
-			x_ = r.x + r.w/2 ;
-			y_ = r.y + r.h/2;
+			x_ = r.x + r.w / 2 ;
+			y_ = r.y + r.h / 2;
 		}
 		else if (_moveAiCard == ON_TABLE)
 		{
 			Rect r(_ai_card.rect());
-			x_ = r.x + r.w/2 ;
-			y_ = r.y + r.h/2;
+			x_ = r.x + r.w / 2 ;
+			y_ = r.y + r.h / 2;
 		}
-		int D = h()/10;
+		int D = h() / 10;
 		fl_color(c_);
-		fl_pie(x_-D/2, y_-D/2, D, D, 0., 360.);
+		fl_pie(x_-D / 2, y_- D / 2, D, D, 0., 360.);
 		fl_color(FL_WHITE);
-		fl_font(FL_HELVETICA|FL_BOLD, D/2);
-		fl_draw(text_, x_-fl_width(text_)/2, y_+fl_height()/2-fl_descent());
+		fl_font(FL_HELVETICA|FL_BOLD, D / 2);
+		fl_draw(text_, x_ - fl_width(text_) / 2, y_ + fl_height() / 2 - fl_descent());
 	}
 
-	void draw_suite_symbol(CardSuite suite_, int x_, int y_, const std::string &prefix_="")
+	void draw_suite_symbol(CardSuite suite_, int x_, int y_, const std::string &prefix_ = "")
 	{
 //		printf("draw_suite_symbol %d/%d\n", x_, y_);
-		fl_font(FL_HELVETICA, _CH/7);
+		fl_font(FL_HELVETICA, _CH / 7);
 		fl_color(FL_BLACK);
 		Card c(ACE, suite_);
 		std::ostringstream os;
@@ -1928,12 +1928,12 @@ public:
 			os << "^B";
 		os << c.suite_symbol();
 		std::string text = os.str();
-		draw_color_text(text, x_-fl_width(text.c_str())/2, y_, text_colors);
+		draw_color_text(text, x_ - fl_width(text.c_str()) / 2, y_, text_colors);
 	}
 
 	std::string background_image()
 	{
-		std::string def_image(homeDir()+"rsc/deck.gif");
+		std::string def_image(homeDir() + "rsc/deck.gif");
 		std::string image = config["background"];
 		if (image == "NONE") return "";
 		if (image == "") return def_image;
@@ -1969,25 +1969,25 @@ public:
 		if (_player_message != NO_MESSAGE)
 		{
 			std::string player_message = message(_player_message);
-			fl_font(FL_HELVETICA, h()/(player_message.back()=='!' ? 15 : 25));
+			fl_font(FL_HELVETICA, h()/(player_message.back() == '!' ? 15 : 25));
 			fl_color(FL_RED);
-			fl_draw(player_message.c_str(), w()/4 - fl_width(player_message.c_str())/2, h()-h()/8);
+			fl_draw(player_message.c_str(), w() / 4 - fl_width(player_message.c_str()) / 2, h() - h() / 8);
 		}
 		if (_ai_message != NO_MESSAGE)
 		{
 			std::string ai_message = message(_ai_message);
-			fl_font(FL_HELVETICA, h()/(ai_message.back()=='!' ? 15 : 25));
+			fl_font(FL_HELVETICA, h() / (ai_message.back() == '!' ? 15 : 25));
 			fl_color(FL_RED);
-			fl_draw(ai_message.c_str(), w()/4 - fl_width(ai_message.c_str())/2, h()/8);
+			fl_draw(ai_message.c_str(), w() / 4 - fl_width(ai_message.c_str()) / 2, h() / 8);
 		}
 		if (_error_message != NO_MESSAGE)
 		{
 			std::string error_message = message(_error_message);
 			fl_color(FL_RED);
-			fl_rectf(0, h()-h()/40, w(), h()/40);
-			fl_font(FL_HELVETICA|FL_BOLD, h()/50);
+			fl_rectf(0, h() - h() / 40, w(), h() / 40);
+			fl_font(FL_HELVETICA|FL_BOLD, h() / 50);
 			fl_color(FL_WHITE);
-			fl_draw(error_message.c_str(), w()/2 - fl_width(error_message.c_str())/2, h()-fl_descent());
+			fl_draw(error_message.c_str(), w() / 2 - fl_width(error_message.c_str()) / 2, h() - fl_descent());
 		}
 	}
 
@@ -2011,11 +2011,11 @@ public:
 
 		for (size_t i = 0; i < _player_20_40.size(); i++)
 		{
-			draw_suite_symbol(_player_20_40[i], w()-w()/30*(i+1), h()-6);
+			draw_suite_symbol(_player_20_40[i], w() - w() / 30 * (i + 1), h() - 6);
 		}
 		for (size_t i = 0; i < _ai_20_40.size(); i++)
 		{
-			draw_suite_symbol(_ai_20_40[i], w()-w()/30*(i+1), _CH/6);
+			draw_suite_symbol(_ai_20_40[i], w() - w() / 30 * (i + 1), _CH / 6);
 		}
 	}
 
@@ -2023,20 +2023,20 @@ public:
 	{
 		for (size_t i = 0; i < _ai_cards.size(); i++)
 		{
-			int X= ((i+1)*w())/20 + w()/2-w()/24;
+			int X= ((i + 1) * w()) / 20 + w() / 2 - w() / 24;
 			int Y= h()/40;
-			_back.image()->scale(_CW, _CH/3, 0, 1);
+			_back.image()->scale(_CW, _CH / 3, 0, 1);
 			_back.image()->draw(X, Y);
 		}
 		for (size_t i = 0; i < _player_cards.size(); i++)
 		{
 			Fl_RGB_Image *image = _player_cards[i].image();
-			int X= ((i+1)*w())/20 + w()/2-w()/24;
-			int Y= h() - _CH - h()/40;
+			int X= ((i + 1) * w()) / 20 + w() / 2 - w() / 24;
+			int Y= h() - _CH - h() / 40;
 			image->scale(_CW, _CH, 0, 1);
 			image->draw(X, Y);
-			int D = _CH/20;
-			_player_cards[i].rect(Rect(X, Y+D, i==_player_cards.size()-1 ? image->w() : w()/20, _CH-2*D));
+			int D = _CH / 20;
+			_player_cards[i].rect(Rect(X, Y + D, i == _player_cards.size() - 1 ? image->w() : w() / 20, _CH - 2 * D));
 		}
 	}
 
@@ -2049,8 +2049,8 @@ public:
 		if (_cards.size())
 		{
 			_cards.back().image()->scale(_CW, _CH, 0, 1);
-			int X = w()/3-_CW+_CW/4;
-			int Y = (h()-_CW)/2;
+			int X = w() / 3 - _CW + _CW/4;
+			int Y = (h() - _CW) / 2;
 			if (_closed == NOT)
 			{
 				_cards.back().quer_image()->draw(X, Y);
@@ -2058,21 +2058,21 @@ public:
 			}
 
 			// deck position
-			X = w()/3-_CW/4-_CW;
-			Y = (h()-_CH)/2;
+			X = w() / 3 - _CW / 4 - _CW;
+			Y = (h() - _CH) / 2;
 			if (_cards.size())
 			{
-				for (size_t i=0; i<_cards.size()-1;i++)
+				for (size_t i = 0; i < _cards.size() - 1; i++)
 				{
 					// NOTE: 200 is a 'realistic' value for card the 'height'
 					//       of the full card pack with 20 cards.
 					//       But the pack with 10 cards after dealing just look
 					//       better, when single cards are visible.
 					//       So a compromise...
-					double h = (double)_CW/(_cards.size()==20 ? 200 : 100);
+					double h = (double)_CW / (_cards.size() == 20 ? 200 : 100);
 					if (h > 1.) h = (int)h;
-					double x = (double)X-i*h+.5;
-					double y = (double)Y-i*h+.5;
+					double x = (double)X - i * h +.5;
+					double y = (double)Y - i * h + .5;
 					_back.image()->draw(floor(x), floor(y));
 				}
 				if (_closed == NOT)
@@ -2084,17 +2084,17 @@ public:
 		else
 		{
 			// draw an outline of pack
-			int X = w()/3-_CW-_CW/4;
-			int Y = (h()-_CH)/2;
+			int X = w() / 3 - _CW - _CW / 4;
+			int Y = (h() -_CH) / 2;
 			_outline.image()->scale(_CW, _CH, 0, 1);
 				_outline.image()->draw(X, Y);
 		}
 
 		if (_closed != NOT && _cards.size())
 		{
-			int X = w()/3-_CW+_CW/4;
-			int Y = (h()-_CW)/2;
-			_back.quer_image()->draw(X-w()/16,Y);
+			int X = w() / 3 - _CW + _CW / 4;
+			int Y = (h() - _CW) / 2;
+			_back.quer_image()->draw(X - w() /16, Y);
 		}
 	}
 
@@ -2102,24 +2102,24 @@ public:
 	{
 		// show played pack
 		int X = w() - _CW - 2;
-		int Y = h() - _CH - h()/10;
-		for (size_t i=0; i<_player_deck.size();i++)
+		int Y = h() - _CH - h() / 10;
+		for (size_t i = 0; i < _player_deck.size(); i++)
 		{
-			_back.image()->draw(X-i*w()/800, Y-i*w()/800);
+			_back.image()->draw(X - i * w() / 800, Y - i *w() / 800);
 		}
-		for (size_t i=0; i<_ai_deck.size();i++)
+		for (size_t i = 0; i < _ai_deck.size(); i++)
 		{
-			_back.image()->draw(X-i*w()/800, h()/10-(i+1)*w()/800);
+			_back.image()->draw(X - i * w() / 800, h() /10 - (i + 1) * w() /800);
 		}
 		if (_player_deck.size())
 		{
 			// click region for deck display ("tooltip")
-			_player_deck.front().rect(Rect(X,Y,_CW,_CH));
+			_player_deck.front().rect(Rect(X, Y, _CW, _CH));
 		}
 		if (_ai_deck.size())
 		{
 			// click region for deck display ("tooltip")
-			_ai_deck.front().rect(Rect(X,h()/10,_CW, _CH));
+			_ai_deck.front().rect(Rect(X, h() / 10, _CW, _CH));
 		}
 	}
 
@@ -2130,7 +2130,7 @@ public:
 		{
 			Fl_RGB_Image *image = _ai_card.image();
 			image->scale(_CW, _CH, 0, 1);
-			int X =  w() - w()/ 3;
+			int X =  w() - w() / 3;
 			int Y =  h() / 5;
 			image->draw(X, Y);
 			_ai_card.rect(Rect(X, Y, image->w(), image->h()));
@@ -2139,10 +2139,10 @@ public:
 		{
 			Fl_RGB_Image *image = _player_card.image();
 			image->scale(_CW, _CH, 0, 1);
-			int X = _moveCard == MOVING ? Fl::event_x() - image->w()/2 : w() - w()/ 2;
-			int Y = _moveCard == MOVING ? Fl::event_y() - image->h()/2 : h() / 4 - h()/40;
+			int X = _moveCard == MOVING ? Fl::event_x() - image->w() / 2 : w() - w() / 2;
+			int Y = _moveCard == MOVING ? Fl::event_y() - image->h() / 2 : h() / 4 - h() / 40;
 			if (_moveCard == MOVING)
-				_shadow.image()->draw(X+image->w()/12, Y+image->w()/12);
+				_shadow.image()->draw(X + image->w() / 12, Y + image->w() / 12);
 			image->draw(X, Y);
 			_player_card.rect(Rect(X, Y, image->w(), image->h()));
 		}
@@ -2155,29 +2155,29 @@ public:
 	{
 		if (_player_score)
 		{
-			fl_font(FL_HELVETICA, h()/25);
+			fl_font(FL_HELVETICA, h() / 25);
 			fl_color(FL_BLUE);
 			char buf[20];
 			snprintf(buf, sizeof(buf), "%d", _player_score);
-			fl_draw(buf, w()-fl_width(buf), h()-fl_descent());
+			fl_draw(buf, w() - fl_width(buf), h() - fl_descent());
 		}
-		if (_ai_score && (_display_ai_score|::debug))
+		if (_ai_score && (_display_ai_score | ::debug))
 		{
-			fl_font(FL_HELVETICA, h()/25);
+			fl_font(FL_HELVETICA, h() / 25);
 			fl_color(FL_BLUE);
 			char buf[20];
 			snprintf(buf, sizeof(buf), "%d", _ai_score);
-			fl_draw(buf, w()-fl_width(buf), fl_height()-fl_descent());
+			fl_draw(buf, w() - fl_width(buf), fl_height() - fl_descent());
 		}
 	}
 
 	void draw_version()
 	{
-		fl_font(FL_HELVETICA, _CH/20);
+		fl_font(FL_HELVETICA, _CH / 20);
 		fl_color(FL_YELLOW);
 		char buf[30];
 		snprintf(buf, sizeof(buf), " v%s", VERSION);
-		fl_draw(buf, 0, fl_height()-fl_descent());
+		fl_draw(buf, 0, fl_height() - fl_descent());
 	}
 
 	void draw_grayout()
@@ -2186,22 +2186,22 @@ public:
 		{
 			// use shadow image to "gray out" deck
 			_shadow.image()->scale(_CW, _CH, 0, 1);
-			for (int x=0; x < w(); x += _CW/2)
-				for (int y=0; y < h(); y += _CH/2)
-					_shadow.image()->draw(x, y, _CW/2, _CH/2, _CW/4, _CH/4);
+			for (int x = 0; x < w(); x += _CW / 2)
+				for (int y = 0; y < h(); y += _CH / 2)
+					_shadow.image()->draw(x, y, _CW / 2, _CH / 2, _CW / 4, _CH / 4);
 		}
 	}
 
 	void draw()
 	{
 		// measure a "standard card"
-		_card_template.image()->scale(w()/8, w()/2, 1, 1);
+		_card_template.image()->scale(w() / 8, w() / 2, 1, 1);
 		_CW = _card_template.image()->w();
 		_CH = _card_template.image()->h();
 //		printf("CWxCH=%dx%d\n", _CW, _CH);
 		draw_table();
-		draw_game_book(w()/40+_CW/2, h()/2);
-		draw_suite_symbol(_trump, w()/3-_CW/4, h()-h()/2 + _CH/2+_CH/5);
+		draw_game_book(w() / 40 + _CW / 2, h() / 2);
+		draw_suite_symbol(_trump, w() / 3 -_CW / 4, h() - h() / 2 + _CH / 2 + _CH / 5);
 		draw_messages();
 		draw_20_40_suites();
 		draw_cards();
@@ -2272,7 +2272,7 @@ public:
 			OUT(Card::suite_symbol(DIAMOND) << ": " << cards_in_play(DIAMOND) << " (" << max_cards_player(DIAMOND) << ")\n");
 			OUT(Card::suite_symbol(CLUB) << ": " << cards_in_play(CLUB) << " (" << max_cards_player(CLUB) << ")\n");
 		}
-		else if (cmd_=="help")
+		else if (cmd_ == "help")
 		{
 			OUT("debug/error/gb/cip\n");
 		}
@@ -2302,7 +2302,7 @@ public:
 			return;
 		}
 		begin();
-		_cmd = new Cmd(_CW/20, h()-_CW/5-_CW/20, _CW, _CW/5);
+		_cmd = new Cmd(_CW / 20, h() - _CW / 5 - _CW / 20, _CW, _CW / 5);
 		end();
 		_cmd->take_focus();
 		redraw();
@@ -2320,14 +2320,14 @@ public:
 		LOG("AI cards: " << _ai_cards);
 		LOG("\tscore: " << _ai_score << " pending: " << _ai_pending);
 		LOG("\t20/40: ");
-		for ([[maybe_unused]]auto s :  _ai_20_40)
+		for ([[maybe_unused]]auto s : _ai_20_40)
 			LOG(Card::suite_symbol(s));
 		LOG("\n");
 
 		LOG("PL cards: " << _player_cards);
 		LOG("\tscore: " << _player_score << " pending: " << _player_pending);
 		LOG("\t20/40: ");
-		for ([[maybe_unused]]auto s :  _player_20_40)
+		for ([[maybe_unused]]auto s : _player_20_40)
 			LOG(Card::suite_symbol(s));
 		LOG("\n");
 	}
@@ -2499,14 +2499,14 @@ public:
 	void deal()
 	{
 		// 3 cards to player
-		for (int i=0; i<3; i++)
+		for (int i = 0; i < 3; i++)
 		{
 			Card c = _cards.front();
 			_move == PLAYER ? _player_cards.push_front(c) : _ai_cards.push_front(c);
 			_cards.pop_front();
 		}
 		// 3 cards to ai
-		for (int i=0; i<3; i++)
+		for (int i = 0; i < 3; i++)
 		{
 			Card c = _cards.front();
 			_move == PLAYER ? _ai_cards.push_front(c) : _player_cards.push_front(c);
@@ -2520,14 +2520,14 @@ public:
 		LOG("trump: " << suite_symbols[_trump] << "\n");
 
 		// 2 cards to player
-		for (int i=0; i<2; i++)
+		for (int i = 0; i < 2; i++)
 		{
 			Card c = _cards.front();
 			_move == PLAYER ? _player_cards.push_front(c) : _ai_cards.push_front(c);
 			_cards.pop_front();
 		}
 		// 2 cards to ai
-		for (int i=0; i<2; i++)
+		for (int i = 0; i < 2; i++)
 		{
 			Card c = _cards.front();
 			_move == PLAYER ? _ai_cards.push_front(c) : _player_cards.push_front(c);
@@ -2564,7 +2564,7 @@ public:
 	bool check_end()
 	{
 		debug();
-		if (_move == PLAYER && _player_score >= 66 && _closed!=BY_AI)
+		if (_move == PLAYER && _player_score >= 66 && _closed != BY_AI)
 		{
 			LOG("Player wins!\n");
 			player_message(YOUR_GAME, true);
@@ -2574,7 +2574,7 @@ public:
 			wait(2.0);
 			return true;
 		}
-		else if (_move == AI && _ai_score >= 66 && _closed!=BY_PLAYER)
+		else if (_move == AI && _ai_score >= 66 && _closed != BY_PLAYER)
 		{
 			LOG("AI wins\n");
 			ai_message(AI_GAME, true);
@@ -2684,7 +2684,7 @@ public:
 				redraw();
 				_moveCard = NONE;
 				if (_player_cards.empty()) break;
-				player_message(_moveAiCard==NONE ? YOU_LEAD : YOUR_TURN);
+				player_message(_moveAiCard == NONE ? YOU_LEAD : YOUR_TURN);
 				while (Fl::first_window() && _moveCard != ON_TABLE)
 				{
 					Fl::wait();
@@ -2715,7 +2715,7 @@ public:
 				player_message(NO_MESSAGE);
 				if (_ai_cards.empty()) break;
 				_moveAiCard = MOVING;
-				ai_message(_moveCard==NONE ? AI_LEADS : AI_TURN);
+				ai_message(_moveCard == NONE ? AI_LEADS : AI_TURN);
 				cursor(FL_CURSOR_WAIT);
 				wait(2.0);
 				if (!Fl::first_window()) break;
@@ -2763,7 +2763,7 @@ public:
 		}
 		else if (_move == PLAYER)
 		{
-			if (_closed == BY_PLAYER && _player_score <66)
+			if (_closed == BY_PLAYER && _player_score < 66)
 			{
 				LOG("AI wins because player closed and has not enough\n");
 				ai_message(AI_GAME, true);
@@ -2889,7 +2889,7 @@ private:
 
 void list_decks(std::ostringstream &os_)
 {
-	std::string svg_cards(homeDir()+cardDir);
+	std::string svg_cards(homeDir() + cardDir);
 	os_ << "\navailaible cardsets:\n";
 	for (auto const &dir_entry : std::filesystem::directory_iterator(svg_cards))
 	{
@@ -2898,7 +2898,7 @@ void list_decks(std::ostringstream &os_)
 		if (dir_entry.is_directory() && std::filesystem::exists(card))
 			os_ << "\t" << dir_entry.path().filename() << "\n";
 	}
-	std::filesystem::path back(homeDir()+cardDir+"/back");
+	std::filesystem::path back(homeDir() + cardDir + "/back");
 	os_ << "\navailaible card backs:\n";
 	for (auto const &dir_entry : std::filesystem::directory_iterator(back))
 	{
@@ -2958,7 +2958,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 				debug = true;
 				break;
 			case 'f':
-			config["fullscreen"] = "1";
+				config["fullscreen"] = "1";
 			break;
 			case 'w':
 				config["welcome"] = "1";
@@ -2981,13 +2981,13 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 
 void parse_arg(int argc_, char *argv_[])
 {
-	for (int i=1; i<argc_; i++)
+	for (int i = 1; i < argc_; i++)
 	{
 		std::string arg = argv_[i];
 		std::string value;
 		if (arg.find("--") == 0)
 		{
-			if (i+1 < argc_)
+			if (i + 1 < argc_)
 			{
 				i++;
 				value = argv_[i];
@@ -3000,7 +3000,7 @@ void parse_arg(int argc_, char *argv_[])
 	}
 }
 
-Welcome::Welcome(const Deck &deck_) : Fl_Double_Window(deck_.w()/2, deck_.h()/4*3),
+Welcome::Welcome(const Deck &deck_) : Fl_Double_Window(deck_.w() / 2, deck_.h() / 4 * 3),
 	_deck(deck_)
 {
 	clear_border();
@@ -3035,49 +3035,48 @@ int Welcome::handle(int e_)
 
 void Welcome::draw_stats()
 {
-	fl_draw_box(FL_FLAT_BOX, 0, h()-h()/32-fl_descent(), w(), h()/32+fl_descent()-2, fl_lighter(fl_lighter(FL_YELLOW)));
-	fl_font(FL_COURIER_BOLD, h()/40);
+	fl_draw_box(FL_FLAT_BOX, 0, h() - h() / 32 - fl_descent(), w(), h() / 32 + fl_descent() - 2, fl_lighter(fl_lighter(FL_YELLOW)));
+	fl_font(FL_COURIER_BOLD, h() / 40);
 	fl_color(FL_BLACK);
 	std::string stat(_deck.make_stats());
-	fl_draw(stat.c_str(), (w()-fl_width(stat.c_str()))/2, h()-fl_descent()-fl_descent());
+	fl_draw(stat.c_str(), (w() - fl_width(stat.c_str())) / 2, h() - fl_descent() - fl_descent());
 }
 
 void Welcome::draw()
 {
 	fl_draw_box(box(), 0, 0, w(), h(), color());
 	Rect r(*this, box());
-	fl_push_clip(r.x-x(), r.y-y(), r.w, r.h);
-	fl_font(FL_HELVETICA_BOLD, h()/7);
+	fl_push_clip(r.x - x(), r.y - y(), r.w, r.h);
+	fl_font(FL_HELVETICA_BOLD, h() / 7);
 	for (int i = 0; i < 30; i++)
 	{
 		static const std::vector<CardSuite> suites = { HEART, SPADE, DIAMOND, CLUB };
-		int x = random()%w();
-		int y = random()%h();
-		auto s = random()%suites.size();
-		if (suites[s]==HEART || suites[s]==DIAMOND)
+		int x = random() % w();
+		int y = random() % h();
+		auto s = random() % suites.size();
+		if (suites[s] == HEART || suites[s] == DIAMOND)
 			fl_color(fl_lighter(fl_lighter(FL_RED)));
 		else
 			fl_color(fl_lighter(fl_lighter(FL_BLACK)));
-		fl_draw(suite_symbols[suites[s]].c_str(), x, y+fl_height());
+		fl_draw(suite_symbols[suites[s]].c_str(), x, y + fl_height());
 	}
 	Card c(QUEEN, HEART);
-	c.image()->scale(w()/2-w()/10, h(), 1, 1);
-	c.image()->draw(w()/40, h()/4);
-	fl_font(FL_HELVETICA_BOLD, w()/10);
+	c.image()->scale(w() / 2 - w() / 10, h(), 1, 1);
+	c.image()->draw(w() / 40, h() / 4);
+	fl_font(FL_HELVETICA_BOLD, w() / 10);
 	fl_color(FL_BLACK);
 	static std::string title("^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B");
 	draw_color_text(title, (w()-fl_width("FLTK SCHNAPSEN"))/2, h()/7, text_colors);
 	fl_color(FL_BLUE);
-	fl_font(FL_HELVETICA_BOLD, w()/26);
+	fl_font(FL_HELVETICA_BOLD, w() / 26);
 	static std::string cr("(c) 2025 Christian Grabner <wcout@gmx.net>");
-	fl_draw(cr.c_str(), (w()-fl_width(cr.c_str()))/2, h()/7 + h()/14);
+	fl_draw(cr.c_str(), (w() - fl_width(cr.c_str())) / 2, h() / 7 + h() / 14);
 	fl_color(FL_BLACK);
-	fl_font(FL_HELVETICA_BOLD, h()/16);
-	fl_draw(message(WELCOME).c_str(), w()/2+w()/60, h()/2);
+	fl_font(FL_HELVETICA_BOLD, h() / 16);
+	fl_draw(message(WELCOME).c_str(), w() / 2 + w() / 60, h() / 2);
 	draw_stats();
 	fl_pop_clip();
 }
-
 
 int main(int argc_, char *argv_[])
 {

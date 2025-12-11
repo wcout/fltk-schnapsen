@@ -1,6 +1,6 @@
 # FLTK Schnapsen
 
-Schnapsen is an implementation of the popular (Austrian) card game "Schnapsen" for [FLTK](https://www.fltk.org/).
+Schnapsen is an implementation of the popular (Austrian) card game ["Schnapsen"](https://en.wikipedia.org/wiki/Schnapsen) for [FLTK](https://www.fltk.org/).
 You play against the computer.
 
 ![Screenshot of FLTK Schnapsen](rsc/fltk-schnapsen.png "Screenshot of FLTK Schnapsen")
