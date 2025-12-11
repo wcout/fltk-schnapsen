@@ -1059,11 +1059,9 @@ public:
 					if (c.suite() == _trump)
 					{
 						_marriage = MARRIAGE_40;
-//						printf("40 detected\n");
 					}
 					else
 					{
-//						printf("20 for %s detected\n", suite_names[c.suite()].c_str());
 						_marriage = MARRIAGE_20;
 					}
 					return true;
@@ -1200,7 +1198,6 @@ public:
 		{
 			result = true;
 		}
-//		printf("%s %s %s\n", c1_.name().c_str(), (result ? "tricks" : "not tricks"), c2_.name().c_str());
 		return result;
 	}
 
@@ -1688,7 +1685,6 @@ public:
 			_disabled = false;
 			return;
 		}
-//		printf("FL_PUSH: _moveCard = %d, _moveAiCard = %d\n", (int)_moveCard, (int)_moveAiCard);
 		_marriage = NO_MARRIAGE;
 		if (test_close(Fl::event_x(), Fl::event_y()) == true)
 		{
@@ -1916,7 +1912,6 @@ public:
 
 	void draw_suite_symbol(CardSuite suite_, int x_, int y_, const std::string &prefix_ = "")
 	{
-//		printf("draw_suite_symbol %d/%d\n", x_, y_);
 		fl_font(FL_HELVETICA, _CH / 7);
 		fl_color(FL_BLACK);
 		Card c(ACE, suite_);
@@ -2198,7 +2193,6 @@ public:
 		_card_template.image()->scale(w() / 8, w() / 2, 1, 1);
 		_CW = _card_template.image()->w();
 		_CH = _card_template.image()->h();
-//		printf("CWxCH=%dx%d\n", _CW, _CH);
 		draw_table();
 		draw_game_book(w() / 40 + _CW / 2, h() / 2);
 		draw_suite_symbol(_trump, w() / 3 -_CW / 4, h() - h() / 2 + _CH / 2 + _CH / 5);
@@ -2927,7 +2921,6 @@ std::string make_help(const StringMap &la_, const StringMap &sa_)
 
 bool process_arg(const std::string &arg_, const std::string &value_)
 {
-//	printf("process_arg('%s' '%s')\n", arg_.c_str(), value_.c_str());
 	static const StringMap long_args =
 	{
 		{ "lang", "\t{id}\t\tset language [de,en]" },
