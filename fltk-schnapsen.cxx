@@ -1038,7 +1038,7 @@ public:
 			{
 				LOG("closed by player!\n");
 				_closed = BY_PLAYER;
-				player_message(YOU_CLOSED);
+				player_message(YOU_CLOSED, true);
 				return true;
 			}
 		}
@@ -2269,6 +2269,10 @@ public:
 		else if (cmd_ == "help")
 		{
 			OUT("debug/error/gb/cip\n");
+		}
+		else
+		{
+			bell();
 		}
 		redraw();
 	}
