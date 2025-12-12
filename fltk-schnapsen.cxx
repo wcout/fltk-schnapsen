@@ -3001,7 +3001,6 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 
 	if (value_.size() && long_args.find(arg_.substr(2)) != long_args.end())
 	{
-		printf("'%s' = '%s'\n", arg_.substr(2).c_str(), value_.c_str());
 		config[arg_.substr(2)] = value_;
 	}
 	else if (arg_.size() == 2 && arg_[0] == '-' && short_args.find(arg_.substr(1)) != short_args.end())
