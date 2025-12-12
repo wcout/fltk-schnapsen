@@ -936,7 +936,7 @@ public:
 		delete _cmd;
 	}
 
-	void ai_message(Message m_, bool bell_=false)
+	void ai_message(Message m_, bool bell_ = false)
 	{
 		if (bell_) bell();
 		_ai_message = m_;
@@ -944,7 +944,7 @@ public:
 		DBG("ai_message(" << m << ")\n")
 	}
 
-	void player_message(Message m_, bool bell_=false)
+	void player_message(Message m_, bool bell_ = false)
 	{
 		if (bell_) bell();
 		_player_message = m_;
@@ -1382,7 +1382,7 @@ public:
 		return lowest;
 	}
 
-	Cards cards_to_claim(CardSuite suite_=ANY_SUITE) const
+	Cards cards_to_claim(CardSuite suite_ = ANY_SUITE) const
 	{
 		Cards res;
 		// in use at end game playout ("allowed" to use _player_cards)
@@ -1888,7 +1888,7 @@ public:
 		}
 	}
 
-	void draw_deck_info(int x_, int y_, const Cards &deck_, int max_tricks_=8)
+	void draw_deck_info(int x_, int y_, const Cards &deck_, int max_tricks_ = 8)
 	{
 		fl_color(fl_lighter(fl_lighter(FL_YELLOW)));
 		fl_rectf(x_, y_, w() / 10, w() / 7);
