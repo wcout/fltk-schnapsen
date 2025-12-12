@@ -2894,6 +2894,8 @@ public:
 	{
 		_welcome = new Welcome(*this);
 		_welcome->show();
+		_welcome->wait_for_expose();
+		redraw();
 	}
 
 private:
