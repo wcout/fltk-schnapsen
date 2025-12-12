@@ -714,17 +714,61 @@ public:
 			return at(card.value());
 		return {};
 	}
+	Cards parse_cards(const std::string &s_)
+	{
+		// parse card-string in format: '|T♣|Q♦|T♦|Q♣|J♦|Q♠|T♠|Q♥|J♠|A♦|K♥|J♣|K♠|J♥|T♥|A♥|A♣|A♠|K♣|K♦|'
+		Cards cards;
+		std::string s(s_);
+		while (s.size())
+		{
+			assert(s[0] == '|');
+			s.erase(0, 1);
+			size_t next_card = s.find("|");
+			if (next_card == std::string::npos) break;
+			std::string c = s.substr(0, next_card);
+			assert(c.size() > 1);
+			std::string face_str = c.substr(0, 1);
+			std::string suite_str = c.substr(1);
+			s.erase(0, next_card);
+			for (auto sym : suite_symbols)
+			{
+				if (sym.second == suite_str)
+				{
+					CardSuite suite = sym.first;
+					for (auto f : card_abbr)
+					{
+						if (f.second == face_str)
+						{
+							CardFace face = f.first;
+							cards.push_back(Card(face, suite));
+							break;
+						}
+					}
+				}
+			}
+		}
+		return cards;
+	}
 	void shuffle()
 	{
 		LOG("shuffle\n");
 		assert(size());
-		for (int i = 0; i < rand() % 100 + 100; i++)
+		std::string cards = config["cards"];
+		if (cards.size() == 101)
 		{
-			size_t idx1 = random() % size();
-			size_t idx2 = random() % size();
-			Card c = at(idx1);
-			erase(begin() + idx1);
-			insert(begin() + idx2, c);
+			*this = parse_cards(cards);
+			LOG("Using predefind card set!\n");
+		}
+		else
+		{
+			for (int i = 0; i < rand() % 100 + 100; i++)
+			{
+				size_t idx1 = random() % size();
+				size_t idx2 = random() % size();
+				Card c = at(idx1);
+				erase(begin() + idx1);
+				insert(begin() + idx2, c);
+			}
 		}
 		check();
 	}
@@ -2313,8 +2357,17 @@ public:
 		});
 	}
 
-	void debug()
+	void dump_cards(const Cards &cards_, const std::string &title_) const
 	{
+		LOG(title_ << " (" << cards_.size() << " cards):" << "\n");
+		LOG(cards_);
+		LOG("\n");
+	}
+
+	void debug() const
+	{
+		if (_cards.size() == 20 || _cards.size() == 10)
+			dump_cards(_cards, "Deck");
 		LOG("AI cards: " << _ai_cards);
 		LOG("\tscore: " << _ai_score << " pending: " << _ai_pending);
 		LOG("\t20/40: ");
@@ -2356,6 +2409,7 @@ public:
 		_ai_deck_info = false;
 		_cards.shuffle();
 		assert(_cards.size() == 20);
+		debug();
 		deal();
 		assert(_player_cards.size() == 5);
 		assert(_ai_cards.size() == 5);
@@ -2482,6 +2536,7 @@ public:
 
 	void save_config() const
 	{
+		config.erase("cards"); // don't save cards string!
 		std::ofstream cfg(homeDir() + APPLICATION + ".cfg");
 		config["width"] = std::to_string(w());
 		config["height"] = std::to_string(h());
@@ -2931,7 +2986,8 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 		{ "loglevel", "{level}\t\tset loglevel [0-2]" },
 		{ "background", "{name/number}\tset background image or color [imagepath/[0-255]]" },
 		{ "cardset", "{directory}\tuse cardset [name]" },
-		{ "cardback", "{file}\t\tuse cardback image [svg]" }
+		{ "cardback", "{file}\t\tuse cardback image [svg]" },
+		{ "cards", "{cards-string}\t\tuse this cards to play (for debugging only)" }
 	};
 	static const StringMap short_args =
 	{
@@ -2945,6 +3001,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 
 	if (value_.size() && long_args.find(arg_.substr(2)) != long_args.end())
 	{
+		printf("'%s' = '%s'\n", arg_.substr(2).c_str(), value_.c_str());
 		config[arg_.substr(2)] = value_;
 	}
 	else if (arg_.size() == 2 && arg_[0] == '-' && short_args.find(arg_.substr(1)) != short_args.end())
