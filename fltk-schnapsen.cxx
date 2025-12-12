@@ -3032,11 +3032,11 @@ int Welcome::handle(int e_)
 
 void Welcome::draw_stats()
 {
-	fl_draw_box(FL_FLAT_BOX, 0, h() - h() / 32 - fl_descent(), w(), h() / 32 + fl_descent() - 2, fl_lighter(fl_lighter(FL_YELLOW)));
-	fl_font(FL_COURIER_BOLD, h() / 40);
+	fl_font(FL_COURIER_BOLD, h() / 42);
+	fl_draw_box(FL_FLAT_BOX, 0, h() - h() / 38 - fl_descent(), w(), h() / 38 + fl_descent(), fl_lighter(fl_lighter(FL_YELLOW)));
 	fl_color(FL_BLACK);
 	std::string stat(_deck.make_stats());
-	fl_draw(stat.c_str(), (w() - fl_width(stat.c_str())) / 2, h() - fl_descent() - fl_descent());
+	fl_draw(stat.c_str(), (w() - fl_width(stat.c_str())) / 2, h() - h() / 38 + fl_height() - fl_descent() - 2);
 }
 
 void Welcome::draw()
