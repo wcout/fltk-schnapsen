@@ -493,7 +493,7 @@ public:
 	{
 		Fl_RGB_Image *svg = image(id_);
 		assert(svg && svg->w() > 0 && svg->h() > 0);
-		Fl_RGB_Image *quer_image = _images[id_+"_quer"];
+		Fl_RGB_Image *quer_image = _images[id_ + "_quer"];
 		svg->as_svg_image()->resize(svg->w(), svg->h());
 		if (!quer_image
 			|| quer_image->w() != svg->h() || quer_image->h() != svg->w())
@@ -512,9 +512,9 @@ public:
 #endif
 			delete quer_image;
 			DBG("rotate image '" << id_ << "'\n");
-			_images[id_+"_quer"] = rotate_90_CCW(*svg);
+			_images[id_ + "_quer"] = rotate_90_CCW(*svg);
 		}
-		quer_image = _images[id_+"_quer"];
+		quer_image = _images[id_ + "_quer"];
 		assert(quer_image);
 		return quer_image;
 	}
@@ -855,7 +855,7 @@ public:
 			cardback = "Card_back_red.svg";
 		_back.image("card_back", root + "/back/" + cardback);
 		_shadow.image("card_shadow", homeDir() + cardDir + "/Card_shadow.svg");
-		_outline.image("card_outline", homeDir() + cardDir+"/Card_outline.svg");
+		_outline.image("card_outline", homeDir() + cardDir + "/Card_outline.svg");
 		_cards = Cards::fullcards();
 		_cards.check();
 		_card_template = _cards[0];
