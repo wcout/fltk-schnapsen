@@ -3137,6 +3137,7 @@ int main(int argc_, char *argv_[])
 	fl_message_title_default(message(TITLE).c_str());
 	load_config();
 	load_stats();
+	LOG("homeDir: " << homeDir() << "\n");
 	parse_arg(argc_, argv_);
 	fl_message_title_default(message(TITLE).c_str());
 	srand(time(nullptr));
