@@ -2632,6 +2632,7 @@ public:
 			ai_message(NO_MESSAGE);
 			_player_games_won++;
 			stats["player_games_won"] = std::to_string(_player_games_won);
+			_display_ai_score = true;
 			wait(2.0);
 			return true;
 		}
@@ -2642,6 +2643,7 @@ public:
 			player_message(NO_MESSAGE);
 			_ai_games_won++;
 			stats["ai_games_won"] = std::to_string(_ai_games_won);
+			_display_ai_score = true;
 			wait(2.0);
 			return true;
 		}
@@ -2803,6 +2805,7 @@ public:
 		}
 		if (!Fl::first_window()) return;
 
+		_display_ai_score = true; // display ai score after game
 		if (_move == AI)
 		{
 			if (_closed == BY_AI && _ai_score < 66)
@@ -2843,7 +2846,6 @@ public:
 		}
 
 		_marriage = NO_MARRIAGE;
-		_display_ai_score = true; // display ai score after game
 		wait(2.0);
 	}
 
