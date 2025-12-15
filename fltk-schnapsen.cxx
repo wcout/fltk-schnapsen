@@ -159,6 +159,7 @@ using enum Message;
 using enum Closed;
 using enum Marriage;
 
+// TODO: make const?
 std::map<CardFace, std::string> card_names = { {TEN, "10"}, {JACK, "jack"}, {QUEEN, "queen"}, {KING, "king"}, {ACE, "ace"} };
 std::map<CardFace, std::string> card_abbr = { {TEN, "T"}, {JACK, "J"}, {QUEEN, "Q"}, {KING, "K"}, {ACE, "A"} };
 std::map<CardSuite, std::string> suite_names = { {CLUB, "clubs"}, {DIAMOND, "diamonds"}, {HEART, "hearts"}, {SPADE, "spades"} };
@@ -889,7 +890,8 @@ public:
 		_ai_games_won(atoi(stats["ai_games_won"].c_str())),
 		_player_matches_won(atoi(stats["player_matches_won"].c_str())),
 		_ai_matches_won(atoi(stats["ai_matches_won"].c_str())),
-		_welcome(nullptr)
+		_welcome(nullptr),
+		_grayout(false)
 	{
 		copy_label(message(TITLE).c_str());
 		fl_register_images();
@@ -2221,7 +2223,7 @@ public:
 
 	void draw_grayout()
 	{
-		if (Fl::first_window() != this)
+		if (Fl::first_window() != this || _grayout)
 		{
 			// use shadow image to "gray out" deck
 			_shadow.image()->scale(_CW, _CH, 0, 1);
@@ -2614,9 +2616,10 @@ public:
 			DBG("AI cards can change Jack!\n")
 	}
 
-	void bell() const
+	void bell()
 	{
 		fl_beep();
+		flicker();
 	}
 
 	bool check_end()
@@ -2903,6 +2906,18 @@ public:
 		redraw();
 	}
 
+	void flicker()
+	{
+		for (int i = 0; i < 2; i++)
+		{
+			_grayout = !_grayout;
+			redraw();
+			wait(0.1);
+		}
+		_grayout = false;
+		redraw();
+	}
+
 private:
 	CardImage _back;
 	CardImage _shadow;
@@ -2945,6 +2960,7 @@ private:
 	int _player_matches_won;
 	int _ai_matches_won;
 	Welcome *_welcome;
+	bool _grayout;
 	std::string _cmd;
 };
 
@@ -2995,7 +3011,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 		{ "background", "{name/number}\tset background image or color [imagepath/[0-255]]" },
 		{ "cardset", "{directory}\tuse cardset [name]" },
 		{ "cardback", "{file}\t\tuse cardback image [svg]" },
-		{ "cards", "{cards-string}\t\tuse this cards to play (for debugging only)" }
+		{ "cards", "\t{cards-string}\tuse this cards to play (for debugging only)" }
 	};
 	static const StringMap short_args =
 	{
