@@ -410,10 +410,10 @@ void draw_color_text(const std::string &text_, int x_, int y_, std::map<char, Fl
 	}
 }
 
-class Cmd : public Fl_Input
+class Cmd_Input : public Fl_Input
 {
 public:
-	Cmd(int x_, int y_, int w_, int h_) : Fl_Input(x_, y_, w_, h_)
+	Cmd_Input(int x_, int y_, int w_, int h_) : Fl_Input(x_, y_, w_, h_)
 	{
 		textsize(h() / 3 * 2);
 	}
@@ -883,7 +883,7 @@ public:
 		_card_template(QUEEN, SPADE),
 		_CW(0),
 		_CH(0),
-		_cmd(nullptr),
+		_cmd_input(nullptr),
 		_redeal_button(nullptr),
 		_player_games_won(atoi(stats["player_games_won"].c_str())),
 		_ai_games_won(atoi(stats["ai_games_won"].c_str())),
@@ -933,7 +933,7 @@ public:
 	~Deck()
 	{
 		delete _redeal_button;
-		delete _cmd;
+		delete _cmd_input;
 	}
 
 	void ai_message(Message m_, bool bell_ = false)
@@ -1714,7 +1714,7 @@ public:
 		}
 		else if (Fl::event_key(FL_F + 12) && ::debug) // just for testing -> cmd
 		{
-			cmd();
+			toggle_cmd_input();
 		}
 		else if (Fl::event_key(FL_F + 10)) // toggle fullscreen
 		{
@@ -2251,8 +2251,8 @@ public:
 			draw_player_deck_info(Fl::event_x(), Fl::event_y());
 		if (_ai_deck_info)
 			draw_ai_deck_info(Fl::event_x(), Fl::event_y());
-		if (_cmd)
-			_cmd->draw();
+		if (_cmd_input)
+			_cmd_input->draw();
 		if (!_disabled && _redeal_button && _redeal_button->visible())
 			_redeal_button->draw();
 		draw_version();
@@ -2284,16 +2284,16 @@ public:
 		_cards.check();
 	}
 
-	void onCmd(const std::string &cmd_)
+	void onCmd()
 	{
-		DBG("Your command: '" << cmd_ << "'\n")
-		if (cmd_.find("debug") == 0)
+		DBG("Your command: '" << _cmd << "'\n")
+		if (_cmd.find("debug") == 0)
 			debug();
-		else if (cmd_.find("error=") == 0)
-			error_message((Message)atoi(cmd_.substr(6).c_str()));
-		else if (cmd_.find("gb=") == 0)
+		else if (_cmd.find("error=") == 0)
+			error_message((Message)atoi(_cmd.substr(6).c_str()));
+		else if (_cmd.find("gb=") == 0)
 		{
-			std::string args = cmd_.substr(3);
+			std::string args = _cmd.substr(3);
 			if (args.empty())
 				_gamebook.clear();
 			else if(args.size() >= 3)
@@ -2303,14 +2303,14 @@ public:
 				_gamebook.push_back(std::make_pair(first, second));
 			}
 		}
-		else if (cmd_.find("cip") == 0)
+		else if (_cmd.find("cip") == 0)
 		{
 			OUT(Card::suite_symbol(HEART) << ": " << cards_in_play(HEART) << " (" << max_cards_player(HEART) << ")\n");
 			OUT(Card::suite_symbol(SPADE) << ": " << cards_in_play(SPADE) << " (" << max_cards_player(SPADE) << ")\n");
 			OUT(Card::suite_symbol(DIAMOND) << ": " << cards_in_play(DIAMOND) << " (" << max_cards_player(DIAMOND) << ")\n");
 			OUT(Card::suite_symbol(CLUB) << ": " << cards_in_play(CLUB) << " (" << max_cards_player(CLUB) << ")\n");
 		}
-		else if (cmd_ == "help")
+		else if (_cmd == "help")
 		{
 			OUT("debug/error/gb/cip\n");
 		}
@@ -2334,26 +2334,31 @@ public:
 		config["fullscreen"] = fullscreen_active() ? "1" : "0";
 	}
 
-	void cmd()
+	void toggle_cmd_input()
 	{
-		if (_cmd)
+		if (_cmd_input)
 		{
-			delete _cmd;
-			_cmd = nullptr;
+			delete _cmd_input;
+			_cmd_input = nullptr;
 			redraw();
 			return;
 		}
 		begin();
-		_cmd = new Cmd(_CW / 20, h() - _CW / 5 - _CW / 20, _CW, _CW / 5);
+		_cmd_input = new Cmd_Input(_CW / 20, h() - _CW / 5 - _CW / 20, _CW, _CW / 5);
 		end();
-		_cmd->take_focus();
+		_cmd_input->take_focus();
 		redraw();
-		_cmd->when(FL_WHEN_ENTER_KEY|FL_WHEN_NOT_CHANGED);
-		_cmd->callback([](Fl_Widget *w_, void *)
+		_cmd_input->when(FL_WHEN_ENTER_KEY|FL_WHEN_NOT_CHANGED);
+		_cmd_input->callback([](Fl_Widget *w_, void *)
 		{
-			std::string c((static_cast<Cmd *>(w_))->value());
-			Deck *deck = static_cast<Deck *>((static_cast<Cmd *>(w_))->window());
-			deck->onCmd(c);
+			std::string c((static_cast<Cmd_Input *>(w_))->value());
+			Deck *deck = static_cast<Deck *>((static_cast<Cmd_Input *>(w_))->window());
+			deck->_cmd = c; // store cmd for onCmd()
+			Fl::add_timeout(0.0, [](void *d_)
+			{
+				Deck *deck = static_cast<Deck *>(d_);
+				deck->onCmd();
+			}, deck);
 		});
 	}
 
@@ -2933,13 +2938,14 @@ private:
 	int _CW;					// card pixel width (used as "unit" for UI)
 	int _CH;					// card pixel height
 	std::vector<std::pair<int, int>> _gamebook;
-	Cmd *_cmd;
+	Cmd_Input *_cmd_input;
 	Button *_redeal_button;
 	int _player_games_won;
 	int _ai_games_won;
 	int _player_matches_won;
 	int _ai_matches_won;
 	Welcome *_welcome;
+	std::string _cmd;
 };
 
 void list_decks(std::ostringstream &os_)
