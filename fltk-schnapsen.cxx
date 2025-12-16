@@ -2117,6 +2117,24 @@ public:
 			fl_color(FL_WHITE);
 			fl_draw(error_message.c_str(), w() / 2 - fl_width(error_message.c_str()) / 2, h() - fl_descent());
 		}
+		if (_closed != NOT && _display_ai_score == false)
+		{
+			fl_font(FL_HELVETICA, _CH / 7);
+			fl_color(FL_GRAY);
+			static const std::string closed_sym = "⛒";
+			if (_closed == BY_AI)
+			{
+				int X = w() / 4 - fl_width(closed_sym.c_str()) / 2;
+				int Y = h() / 8 - _CH / 7;
+				fl_draw(closed_sym.c_str(), X, Y);
+			}
+			if (_closed == BY_PLAYER)
+			{
+				int X = w() / 4 - fl_width(closed_sym.c_str()) / 2;
+				int Y = h() - h() / 16;
+				fl_draw(closed_sym.c_str(), X, Y);
+			}
+		}
 	}
 
 	void draw_20_40_suites()
@@ -2152,15 +2170,15 @@ public:
 		_back.image()->scale(_CW, _CH, 0, 1);
 		for (size_t i = 0; i < _ai_cards.size(); i++)
 		{
-			int X= ((i + 1) * w()) / 20 + w() / 2 - w() / 24;
-			int Y= h()/40;
+			int X = ((i + 1) * w()) / 20 + w() / 2 - w() / 24;
+			int Y = h()/40;
 			_back.skewed_image()->draw(X, Y);
 		}
 		for (size_t i = 0; i < _player_cards.size(); i++)
 		{
 			Fl_RGB_Image *image = _player_cards[i].image();
-			int X= ((i + 1) * w()) / 20 + w() / 2 - w() / 24;
-			int Y= h() - _CH - h() / 40;
+			int X = ((i + 1) * w()) / 20 + w() / 2 - w() / 24;
+			int Y = h() - _CH - h() / 40;
 			image->scale(_CW, _CH, 0, 1);
 			image->draw(X, Y);
 			int D = _CH / 20;
@@ -2213,7 +2231,7 @@ public:
 		{
 			// draw an outline of pack
 			int X = w() / 3 - _CW - _CW / 4;
-			int Y = (h() -_CH) / 2;
+			int Y = (h() - _CH) / 2;
 			_outline.image()->scale(_CW, _CH, 0, 1);
 				_outline.image()->draw(X, Y);
 		}
@@ -2328,7 +2346,7 @@ public:
 		_CH = _card_template.image()->h();
 		draw_table();
 		draw_game_book(w() / 40 + _CW / 2, h() / 2);
-		draw_suite_symbol(_trump, w() / 3 -_CW / 4, h() - h() / 2 + _CH / 2 + _CH / 5);
+		draw_suite_symbol(_trump, w() / 3 - _CW / 4, h() - h() / 2 + _CH / 2 + _CH / 5);
 		draw_messages();
 		draw_20_40_suites();
 		draw_cards();
