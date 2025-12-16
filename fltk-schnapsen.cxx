@@ -523,6 +523,23 @@ public:
 		assert(_last_id.size());
 		return image(_last_id);
 	}
+	Fl_RGB_Image *skewed_image(const std::string &id_)
+	{
+		Fl_RGB_Image *svg = image(id_);
+		assert(svg && svg->w() > 0 && svg->h() > 0);
+		Fl_RGB_Image *skewed_image = _images[id_ + "_skewed"];
+		svg->as_svg_image()->resize(svg->w(), svg->h());
+		if (!skewed_image
+			|| skewed_image->w() != svg->w() || skewed_image->h() != svg->h()/3)
+		{
+			delete skewed_image;
+			skewed_image = static_cast<Fl_RGB_Image *>(svg->copy());
+			skewed_image->scale(svg->w(), svg->h()/3, 0, 1);
+			_images[id_ + "_skewed"] = skewed_image;
+		}
+		assert(skewed_image);
+		return skewed_image;
+	}
 	Fl_RGB_Image *quer_image(const std::string &id_)
 	{
 		Fl_RGB_Image *svg = image(id_);
@@ -556,6 +573,11 @@ public:
 	{
 		assert(_last_id.size());
 		return quer_image(_last_id);
+	}
+	Fl_RGB_Image *skewed_image()
+	{
+		assert(_last_id.size());
+		return skewed_image(_last_id);
 	}
 private:
 	std::string _last_id;
@@ -2127,12 +2149,12 @@ public:
 
 	void draw_cards()
 	{
+		_back.image()->scale(_CW, _CH, 0, 1);
 		for (size_t i = 0; i < _ai_cards.size(); i++)
 		{
 			int X= ((i + 1) * w()) / 20 + w() / 2 - w() / 24;
 			int Y= h()/40;
-			_back.image()->scale(_CW, _CH / 3, 0, 1);
-			_back.image()->draw(X, Y);
+			_back.skewed_image()->draw(X, Y);
 		}
 		for (size_t i = 0; i < _player_cards.size(); i++)
 		{
