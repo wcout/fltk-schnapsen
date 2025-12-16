@@ -5,6 +5,11 @@ find_package(FLTK CONFIG REQUIRED components images)
 
 add_executable(${PROJECT_NAME} fltk-schnapsen.cxx)
 
+if(EXISTS "${CMAKE_SOURCE_DIR}/miniaudio.h")
+set(cxxflags "-DUSE_MINIAUDIO")
+else()
+endif()
+
 # --- Add Compiler Switches Here ---
 
 # 1. Add general C++ standard options (Recommended way)
@@ -21,6 +26,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -Wall
     -Wextra
     # Add other common flags like -O2 for release builds if desired
+    ${cxxflags}
 )
 
 # 3. Add a specific, non-portable flag (e.g., specific to GCC/Clang)

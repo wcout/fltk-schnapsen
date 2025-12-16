@@ -14,6 +14,7 @@
 #include <FL/fl_draw.H>
 #include <FL/fl_ask.H>
 #include <FL/filename.H>
+#include <FL/names.h>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -29,6 +30,10 @@
 #include <utility>
 #include <locale>
 #include <math.h>
+#ifdef USE_MINIAUDIO
+#define MA_IMPLEMENTATION
+#include "miniaudio.h"
+#endif
 
 #if ( defined APPLE ) || ( defined __linux__ ) || ( defined __MING32__ )
 #include <unistd.h>
@@ -141,7 +146,12 @@ enum class Message
 	REDEAL,
 	WELCOME,
 	GAMES_WON,
-	MATCHES_WON
+	MATCHES_WON,
+	YOU_MARRIAGE_20,
+	YOU_MARRIAGE_40,
+	AI_MARRIAGE_20,
+	AI_MARRIAGE_40,
+	SHUFFLE
 };
 
 enum class Marriage
@@ -167,7 +177,7 @@ std::map<CardFace, int> card_value = { {TEN, 10}, {JACK, 2}, {QUEEN, 3}, {KING, 
 std::map<CardSuite, int> suite_weights = { {SPADE, 4}, {HEART,3}, {DIAMOND,2}, {CLUB,1} };
 std::map<CardSuite, std::string> suite_symbols = { {SPADE, "♠"}, {HEART, "♥"}, {DIAMOND, "♦"}, {CLUB, "♣"} };
 
-std::map<char, Fl_Color> text_colors = {
+const std::map<char, Fl_Color> text_colors = {
 	{ 'r', FL_RED },
 	{ 'g', FL_GREEN },
 	{ 'b', FL_BLUE },
@@ -238,6 +248,29 @@ std::map<Message, std::string> messages_en = {
 	{WELCOME, "Hey dude!\n\nDo you want\na 'bummerl'?"},
 	{GAMES_WON, "Games won (PL/AI): "},
 	{MATCHES_WON, "Matches: "}
+};
+
+std::map<Message, std::string> sound = {
+	{NO_MESSAGE, "ding"},
+	{YOU_CHANGED, "change"},
+	{AI_CHANGED, "change"},
+	{YOU_CLOSED, "close"},
+	{AI_CLOSED, "close"},
+	{YOU_MARRIAGE_20, "marriage"},
+	{YOU_MARRIAGE_40, "marriage"},
+	{AI_MARRIAGE_20, "marriage"},
+	{AI_MARRIAGE_40, "marriage"},
+	{YOUR_GAME, "your_game"},
+	{AI_GAME, "ai_game"},
+	{YOU_WIN, "you_win"},
+	{YOU_LOST, "you_lost"},
+	{NO_CLOSE, "not_allowed"},
+	{NO_CHANGE, "not_allowed"},
+	{INVALID_SUITE, "not_allowed"},
+	{MUST_TRICK_WITH_TRUMP, "not_allowed"},
+	{MUST_TRICK_WITH_SUITE, "not_allowed"},
+	{WELCOME, "welcome"},
+	{SHUFFLE, "shuffle"}
 };
 
 // only for testing
@@ -379,7 +412,7 @@ Fl_RGB_Image *rotate_90_CCW(const Fl_RGB_Image &svg_)
 	return rotated_image;
 }
 
-void draw_color_text(const std::string &text_, int x_, int y_, std::map<char, Fl_Color> &colors_)
+void draw_color_text(const std::string &text_, int x_, int y_, const std::map<char, Fl_Color> &colors_)
 {
 	std::string text(text_);
 	Fl_Color def_color = fl_color();
@@ -857,6 +890,33 @@ private:
 	const Deck &_deck;
 };
 
+#ifdef USE_MINIAUDIO
+class Audio
+{
+public:
+	Audio()
+	{
+		// Initialize the engine
+		if (ma_engine_init(NULL, &_engine) != MA_SUCCESS)
+		{
+			OUT("Failed to initialize audio engine.\n");
+		}
+	}
+	void play(const std::string &filename_)
+	{
+		// Play the sound asynchronously.
+		// This function returns immediately.
+		ma_engine_play_sound(&_engine, filename_.c_str(), NULL);
+	}
+	~Audio()
+	{
+		ma_engine_stop(&_engine);
+	}
+private:
+	ma_engine _engine;
+};
+#endif
+
 class Deck : public Fl_Double_Window
 {
 public:
@@ -940,7 +1000,7 @@ public:
 
 	void ai_message(Message m_, bool bell_ = false)
 	{
-		if (bell_) bell();
+		if (bell_) bell(m_);
 		_ai_message = m_;
 		std::string m(message(m_));
 		DBG("ai_message(" << m << ")\n")
@@ -948,14 +1008,15 @@ public:
 
 	void player_message(Message m_, bool bell_ = false)
 	{
-		if (bell_) bell();
+		if (bell_) bell(m_);
 		_player_message = m_;
 		std::string m(message(m_));
 		DBG("player_message(" << m << ")\n")
 	}
 
-	void error_message(Message m_)
+	void error_message(Message m_, bool bell_ = false)
 	{
+		if (bell_) bell(m_);
 		_error_message = m_;
 		std::string m(message(m_));
 		DBG("error_message(" << m << ")\n")
@@ -1008,7 +1069,7 @@ public:
 		{
 			if (_cards.size() < 4)
 			{
-				error_message(NO_CHANGE);
+				error_message(NO_CHANGE, true);
 				return false;
 			}
 			// make change
@@ -1078,7 +1139,7 @@ public:
 		{
 		   if (_cards.size() < 4)
 			{
-				error_message(NO_CLOSE);
+				error_message(NO_CLOSE, true);
 			}
 			else
 			{
@@ -1189,13 +1250,13 @@ public:
 					// if player cards has suite it must use
 					if (card_.suite() != _ai_card.suite())
 					{
-						error_message(INVALID_SUITE);
+						error_message(INVALID_SUITE, true);
 						return false;
 					}
 					// if player can trick with suite, he must
 					if (can_trick_with_suite(_ai_card, temp) && !card_tricks(card_, _ai_card))
 					{
-						error_message(MUST_TRICK_WITH_SUITE);
+						error_message(MUST_TRICK_WITH_SUITE, true);
 						return false;
 					}
 					// otherwise a lower card of suite is accepted
@@ -1204,7 +1265,7 @@ public:
 				// if player can trick (with trump now), he must
 				if (can_trick(_ai_card, temp) && !card_tricks(card_, _ai_card))
 				{
-					error_message(MUST_TRICK_WITH_TRUMP);
+					error_message(MUST_TRICK_WITH_TRUMP, true);
 					return false;
 				}
 			}
@@ -1495,6 +1556,7 @@ public:
 		{
 			// ai has 40, play out queen
 			_marriage = MARRIAGE_40;
+			bell(AI_MARRIAGE_40);
 			size_t trump_queen = find(Card(QUEEN, _trump), _ai_cards);
 			move = trump_queen;
 			LOG("AI declares 40 with " << _ai_cards[move] << "\n");
@@ -1511,6 +1573,7 @@ public:
 		else if ((suites = have_20(_ai_cards)).size())
 		{
 			_marriage = MARRIAGE_20;
+			bell(AI_MARRIAGE_20);
 			size_t first_suite_queen = find(Card(QUEEN, suites[0]), _ai_cards);
 			move = first_suite_queen;
 			LOG("AI declares 20 with " << _ai_cards[move] << "\n");
@@ -1770,6 +1833,7 @@ public:
 				{
 					LOG("Player declares 20 with " << _player_card << "\n");
 					_player_20_40.push_front(_player_card.suite());
+					bell(YOU_MARRIAGE_20);
 					if (_player_deck.empty())
 					{
 						// must make at least one trick, before
@@ -1785,6 +1849,7 @@ public:
 				{
 					LOG("Player declares 40 with " << _player_card << "\n");
 					_player_20_40.push_front(_player_card.suite());
+					bell(YOU_MARRIAGE_40);
 					if (_player_deck.empty())
 					{
 						// must make at least one trick, before
@@ -2416,6 +2481,7 @@ public:
 		_ai_deck_info = false;
 		_cards.shuffle();
 		assert(_cards.size() == 20);
+		bell(SHUFFLE);
 		debug();
 		deal();
 		assert(_player_cards.size() == 5);
@@ -2511,6 +2577,7 @@ public:
 				_player_matches_won++;
 				stats["player_matches_won"] = std::to_string(_player_matches_won);
 				std::string m(message(YOU_WIN));
+				bell(YOU_WIN);
 				fl_alert("%s", m.c_str());
 				_gamebook.clear();
 			}
@@ -2520,6 +2587,7 @@ public:
 				_ai_matches_won++;
 				stats["ai_matches_won"] = std::to_string(_ai_matches_won);
 				std::string m(message(YOU_LOST));
+				bell(YOU_LOST);
 				fl_alert("%s", m.c_str());
 				_gamebook.clear();
 				redraw();
@@ -2616,9 +2684,29 @@ public:
 			DBG("AI cards can change Jack!\n")
 	}
 
-	void bell()
+	void bell([[maybe_unused]]Message m_ = NO_MESSAGE)
 	{
+#ifdef USE_MINIAUDIO
+		std::string snd = sound[m_];
+		if (snd.size())
+		{
+			snd = homeDir() + "/rsc/" + snd + ".mp3";
+			DBG("play '" << snd << "'\n");
+			if (std::filesystem::exists(snd))
+				_audio.play(snd);
+			else
+				snd.erase();
+		}
+		if (snd.empty())
+		{
+			fl_beep();
+		}
+#else
+		// NOTE: under Wayland fl_beep() outputs a \007 character to stderr.
+		//       This does not work for application run from gnome dock,
+		//       most likely because stderr/stdout are redirected or disabled.
 		fl_beep();
+#endif
 		flicker();
 	}
 
@@ -2732,6 +2820,7 @@ public:
 	void game(Player playout_)
 	{
 		init();
+		wait(1.0);
 		_move = playout_;
 		_moveCard = NONE;
 		_moveAiCard = NONE;
@@ -2900,12 +2989,21 @@ public:
 		assert(res.size() == 18);
 	}
 
-	void welcome()
+	void create_welcome()
 	{
 		_welcome = new Welcome(*this);
 		_welcome->show();
 		_welcome->wait_for_expose();
 		redraw();
+		bell(WELCOME);
+	}
+
+	void welcome()
+	{
+		Fl::add_timeout(0.0, [](void *d_)
+		{
+			(static_cast<Deck *>(d_))->create_welcome();
+		}, this);
 	}
 
 	void flicker()
@@ -2963,6 +3061,9 @@ private:
 	int _ai_matches_won;
 	Welcome *_welcome;
 	bool _grayout;
+#ifdef USE_MINIAUDIO
+	Audio _audio;
+#endif
 	std::string _cmd;
 };
 
@@ -3104,6 +3205,7 @@ void Welcome::redraw_timer(void *d_)
 int Welcome::handle(int e_)
 {
 	if (e_ == FL_NO_EVENT) return 1;
+	LOG("handle " << fl_eventnames[e_] << "\n");
 	if (e_ == FL_PUSH || e_ == FL_KEYDOWN)
 	{
 		Fl::delete_widget(this);
