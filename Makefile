@@ -20,3 +20,6 @@ clean:
 
 fetch-miniaudio:
 	wget https://raw.githubusercontent.com/mackron/miniaudio/master/miniaudio.h
+
+cppcheck:
+	cppcheck --std=c++20 --max-configs=4 --enable=all --disable=missingInclude --disable=information --check-level=exhaustive $(APPLICATION).cxx
