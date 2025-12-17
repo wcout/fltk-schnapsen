@@ -2822,11 +2822,11 @@ public:
 			// closed
 			if (_closed == BY_PLAYER && _move == PLAYER && _player_score >= 66)
 			{
-				return ai_wins("Player wins!\n");
+				return ai_wins("Player wins closed game!\n");
 			}
 			else if (_closed == BY_AI && _move == AI && _ai_score >= 66)
 			{
-				return ai_wins("AI wins!\n");
+				return ai_wins("AI wins closed game!\n");
 			}
 			else if (no_cards_in_play())
 			{
