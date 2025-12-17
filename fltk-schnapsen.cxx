@@ -467,7 +467,7 @@ public:
 		Fl_Button(x_, y_, w_, h_, l_)
 	{
 		labelfont(FL_HELVETICA_BOLD);
-		labelsize(h()/2);
+		labelsize(h() / 2);
 		visible_focus(0);
 	}
 	void draw() { Fl_Button::draw_box(); Fl_Button::draw(); }
@@ -1845,7 +1845,7 @@ public:
 				return;
 			}
 			// beware of unwanted (unsucessfull) click on change
-			if (Fl::event_x() < w()/2)
+			if (Fl::event_x() < w() / 2)
 				return;
 
 			// make accepted move
@@ -1936,9 +1936,9 @@ public:
 		fl_color(FL_GRAY);
 		fl_rect(x_, y_, _CW, _CH);
 		fl_color(FL_BLACK);
-		fl_font(FL_COURIER, _CH/14);
+		fl_font(FL_COURIER, _CH / 14);
 		int X = x_ + _CW / 20;
-		int Y = y_ + _CW / 20 + fl_height();
+		int Y = y_ + fl_descent() + fl_height();
 		draw_color_text(message(GAMEBOOK), X, Y, text_colors);
 		fl_line_style(FL_SOLID, 2);
 		fl_line(X, Y + fl_descent(), X + _CW - _CW / 10, Y + fl_descent());
@@ -1948,14 +1948,21 @@ public:
 		fl_line_style(FL_SOLID, 1);
 		int W = _CW - _CW / 10;
 		fl_line(X, Y + fl_descent(), X + W, Y + fl_descent());
-		fl_line(X + W / 2, Y-fl_height(), X + W / 2, Y + H - fl_descent());
+		fl_line(X + W / 2, Y - fl_height(), X + W / 2, Y + H - fl_descent());
 		int player_score = 0;
 		int ai_score = 0;
-		for (auto s : _gamebook)
+		Y += fl_descent();
+		size_t first = 0;
+		// limit display to last 8 scores
+		if (_gamebook.size() > 8)
+			first = _gamebook.size() - 8;
+		for (size_t i = 0; i < _gamebook.size(); i++)
 		{
+			auto s = _gamebook[i];
 			char buf[40];
 			player_score += s.first;
 			ai_score += s.second;
+			if (i < first) continue;
 			char pbuf[10];
 			snprintf(pbuf, sizeof(pbuf), "%d", player_score);
 			if (!s.first || pbuf[0] == '0') pbuf[0] = '-';
@@ -1963,16 +1970,16 @@ public:
 			snprintf(abuf, sizeof(abuf), "%d", ai_score);
 			if (!s.second || abuf[0] == '0') abuf[0] = '-';
 			snprintf(buf, sizeof(buf),"   %s       %s", pbuf, abuf);
-			Y += _CH / 11;
+			Y += _CH / 12;
 			draw_color_text(buf, X, Y, text_colors);
 		}
 		if (ai_score >= 7 || player_score >= 7)
 		{
 			// draw "bummerl"
 			char buf[40];
-			Y += _CH / 11;
+			Y += _CH / 12;
 			snprintf(buf, sizeof(buf),"   %s       %s",
-				(ai_score >= 7 ? "⬤" :" "), (player_score >= 7 ? "⬤" : " "));
+				(ai_score >= 7 ? "●" :" "), (player_score >= 7 ? "●" : " "));
 			draw_color_text(buf, X, Y, text_colors);
 		}
 	}
@@ -2240,7 +2247,7 @@ public:
 		{
 			int X = w() / 3 - _CW + _CW / 4;
 			int Y = (h() - _CW) / 2;
-			_back.quer_image()->draw(X - w() /16, Y);
+			_back.quer_image()->draw(X - w() / 16, Y);
 		}
 	}
 
@@ -2255,7 +2262,7 @@ public:
 		}
 		for (size_t i = 0; i < _ai_deck.size(); i++)
 		{
-			_back.image()->draw(X - i * w() / 800, h() /10 - (i + 1) * w() /800);
+			_back.image()->draw(X - i * w() / 800, h() / 10 - (i + 1) * w() /800);
 		}
 		if (_player_deck.size())
 		{
@@ -3287,7 +3294,7 @@ void Welcome::draw()
 	fl_font(FL_HELVETICA_BOLD, w() / 10);
 	fl_color(FL_BLACK);
 	static std::string title("^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B");
-	draw_color_text(title, (w()-fl_width("FLTK SCHNAPSEN"))/2, h()/7, text_colors);
+	draw_color_text(title, (w() - fl_width("FLTK SCHNAPSEN")) / 2, h() / 7, text_colors);
 	fl_color(FL_BLUE);
 	fl_font(FL_HELVETICA_BOLD, w() / 26);
 	static std::string cr("(c) 2025 Christian Grabner <wcout@gmx.net>");
