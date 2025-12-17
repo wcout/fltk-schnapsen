@@ -53,13 +53,13 @@
 #endif
 #define _access access
 
-typedef std::map<std::string, std::string> StringMap;
+typedef std::map<std::string, std::string> string_map;
 
 // config values (from fltk-schnapsen.cfg)
-StringMap config = {};
+string_map config = {};
 
 // statistic values (from fltk-schnapsen.sta)
-StringMap stats = {};
+string_map stats = {};
 
 // Very simple logging interface
 std::string DBG_PREFIX = "\033[38;5;240m";  // light grey
@@ -317,7 +317,7 @@ const std::string &homeDir()
 	return home;
 }
 
-void load_values_from_file(std::ifstream &if_, StringMap &values_, const std::string& id_)
+void load_values_from_file(std::ifstream &if_, string_map &values_, const std::string& id_)
 {
 	std::string line;
 	while (std::getline(if_, line))
@@ -2638,7 +2638,7 @@ public:
 		return 0;
 	}
 
-	void save_values_to_file(std::ofstream &of_, const StringMap &values_, const std::string &id_) const
+	void save_values_to_file(std::ofstream &of_, const string_map &values_, const std::string &id_) const
 	{
 		for (auto c : values_)
 		{
@@ -3127,7 +3127,7 @@ void list_decks(std::ostringstream &os_)
 	}
 }
 
-std::string make_help(const StringMap &la_, const StringMap &sa_)
+std::string make_help(const string_map &la_, const string_map &sa_)
 {
 	std::ostringstream os;
 	os << APPLICATION << " " << VERSION << "\n\n";
@@ -3147,7 +3147,7 @@ std::string make_help(const StringMap &la_, const StringMap &sa_)
 
 bool process_arg(const std::string &arg_, const std::string &value_)
 {
-	static const StringMap long_args =
+	static const string_map long_args =
 	{
 		{ "lang", "\t{id}\t\tset language [de,en]" },
 		{ "loglevel", "{level}\t\tset loglevel [0-2]" },
@@ -3156,7 +3156,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 		{ "cardback", "{file}\t\tuse cardback image [svg]" },
 		{ "cards", "\t{cards-string}\tuse this cards to play (for debugging only)" }
 	};
-	static const StringMap short_args =
+	static const string_map short_args =
 	{
 		{ "C", "default config values" },
 		{ "d", "enable debug" },
