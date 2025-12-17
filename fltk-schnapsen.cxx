@@ -326,7 +326,7 @@ void load_values_from_file(std::ifstream &if_, StringMap &values_, const std::st
 		if (pos != std::string::npos)
 		{
 			std::string name = line.substr(0, pos);
-			std::string value = line.substr(pos+1);
+			std::string value = line.substr(pos + 1);
 			if (name.size() && value.size() && values_[name] == "")
 			{
 				DBG("[load " << id_ << "] " << name << " = " << value << "\n");
@@ -427,7 +427,7 @@ void draw_color_text(const std::string &text_, int x_, int y_, const std::map<ch
 				fl_draw(t.c_str(), x_, y_);
 				x_ += fl_width(t.c_str());
 			}
-			if (pos+1 >= text.size()) break;
+			if (pos + 1 >= text.size()) break;
 			char c = text[pos + 1];
 			auto it = colors_.find(c);
 			if (it == colors_.end())
@@ -530,11 +530,11 @@ public:
 		Fl_RGB_Image *skewed_image = _images[id_ + "_skewed"];
 		svg->as_svg_image()->resize(svg->w(), svg->h());
 		if (!skewed_image
-			|| skewed_image->w() != svg->w() || skewed_image->h() != svg->h()/3)
+			|| skewed_image->w() != svg->w() || skewed_image->h() != svg->h() / 3)
 		{
 			delete skewed_image;
 			skewed_image = static_cast<Fl_RGB_Image *>(svg->copy());
-			skewed_image->scale(svg->w(), svg->h()/3, 0, 1);
+			skewed_image->scale(svg->w(), svg->h() / 3, 0, 1);
 			_images[id_ + "_skewed"] = skewed_image;
 		}
 		assert(skewed_image);
@@ -992,7 +992,7 @@ public:
 		Fl_RGB_Image *icon = Card(QUEEN, HEART).image();
 		icon->normalize();
 		default_icon(icon);
-		_redeal_button = new Button(w()-100, h()-40, 100, 40, message(REDEAL).c_str());
+		_redeal_button = new Button(w() - 100, h() - 40, 100, 40, message(REDEAL).c_str());
 		_redeal_button->color(FL_YELLOW);
 		_redeal_button->selection_color(fl_darker(FL_YELLOW));
 		_redeal_button->visible_focus(0);
@@ -1998,11 +1998,11 @@ public:
 			os << deck_[i];
 			os << "^G";
 			os << "|";
-			if (deck_[i+1].is_red_suite())
+			if (deck_[i + 1].is_red_suite())
 				os << "^r";
 			else
 				os << "^B";
-			os << deck_[i+1];
+			os << deck_[i + 1];
 			std::string s = os.str();
 			draw_color_text(s, x_ + w() / 80, y_ + w() / 50 + i * w() / 100, text_colors);
 		}
