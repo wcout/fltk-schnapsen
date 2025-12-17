@@ -32,6 +32,13 @@
 #include <math.h>
 #ifdef USE_MINIAUDIO
 #define MA_IMPLEMENTATION
+#define MA_NO_ENCODING
+#define MA_NO_FLAC
+#define MA_NO_WAV
+#define MA_NO_OPENSL
+#define MA_NO_WEBAUDIO
+#define MA_NO_CUSTOM
+#define MA_NO_GENERATION
 #include "miniaudio.h"
 #endif
 
@@ -1952,10 +1959,8 @@ public:
 		int player_score = 0;
 		int ai_score = 0;
 		Y += fl_descent();
-		size_t first = 0;
 		// limit display to last 8 scores
-		if (_gamebook.size() > 8)
-			first = _gamebook.size() - 8;
+		size_t first = _gamebook.size() > 8 ? _gamebook.size() - 8 : 0;
 		for (size_t i = 0; i < _gamebook.size(); i++)
 		{
 			auto s = _gamebook[i];
@@ -1979,7 +1984,7 @@ public:
 			char buf[40];
 			Y += _CH / 12;
 			snprintf(buf, sizeof(buf),"   %s       %s",
-				(ai_score >= 7 ? "●" :" "), (player_score >= 7 ? "●" : " "));
+				(ai_score >= 7 ? "●" : " "), (player_score >= 7 ? "●" : " "));
 			draw_color_text(buf, X, Y, text_colors);
 		}
 	}
@@ -2199,7 +2204,7 @@ public:
 		_back.image()->scale(_CW, _CH, 0, 1);
 		_shadow.image()->scale(_CW, _CH, 0, 1);
 
-		if (_cards.size())
+		if (_cards.size() && _cards.size() != 20)
 		{
 			_cards.back().image()->scale(_CW, _CH, 0, 1);
 			int X = w() / 3 - _CW + _CW/4;
@@ -2750,7 +2755,7 @@ public:
 		}
 #else
 		// NOTE: under Wayland fl_beep() outputs a \007 character to stderr.
-		//       This does not work for application run from gnome dock,
+		//       This does not work for applications run from gnome dock,
 		//       most likely because stderr/stdout are redirected or disabled.
 		fl_beep();
 #endif
