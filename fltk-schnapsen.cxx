@@ -2676,6 +2676,30 @@ public:
 		save_values_to_file(stat, stats, "stat");
 	}
 
+	bool ai_wins(const std::string &log_, Message player_message_ = NO_MESSAGE)
+	{
+		LOG(log_);
+		ai_message(AI_GAME, true);
+		player_message(player_message_);
+		_ai_games_won++;
+		stats["ai_games_won"] = std::to_string(_ai_games_won);
+		_display_ai_score = true;
+		wait(2.0);
+		return true;
+	}
+
+	bool player_wins(const std::string &log_, Message ai_message_ = NO_MESSAGE)
+	{
+		LOG(log_);
+		player_message(YOUR_GAME, true);
+		ai_message(ai_message_);
+		_player_games_won++;
+		stats["player_games_won"] = std::to_string(_player_games_won);
+		_display_ai_score = true;
+		wait(2.0);
+		return true;
+	}
+
 	void deal()
 	{
 		// 3 cards to player
@@ -2765,27 +2789,58 @@ public:
 	bool check_end()
 	{
 		debug();
-		if (_move == PLAYER && _player_score >= 66 && _closed != BY_AI)
+		auto no_cards_in_play = [&]() -> bool
 		{
-			LOG("Player wins!\n");
-			player_message(YOUR_GAME, true);
-			ai_message(NO_MESSAGE);
-			_player_games_won++;
-			stats["player_games_won"] = std::to_string(_player_games_won);
-			_display_ai_score = true;
-			wait(2.0);
-			return true;
+			return _player_cards.empty() && _ai_cards.empty() && _moveCard == NONE && _moveAiCard == NONE;
+		};
+
+		if (_closed == NOT || _closed == AUTO)
+		{
+			if (_move == PLAYER && _player_score >= 66)
+			{
+				return player_wins("Player wins!\n");
+			}
+			else if (_move == AI && _ai_score >= 66)
+			{
+				return ai_wins("AI wins!\n");
+			}
+			else if (no_cards_in_play())
+			{
+				if (_move == AI)
+				{
+					return ai_wins("AI wins by last trick!\n");
+				}
+				else
+				{
+					// _move = PLAYER
+					return player_wins("Player wins by last trick!\n");
+				}
+			}
 		}
-		else if (_move == AI && _ai_score >= 66 && _closed != BY_PLAYER)
+		else
 		{
-			LOG("AI wins\n");
-			ai_message(AI_GAME, true);
-			player_message(NO_MESSAGE);
-			_ai_games_won++;
-			stats["ai_games_won"] = std::to_string(_ai_games_won);
-			_display_ai_score = true;
-			wait(2.0);
-			return true;
+			// closed
+			if (_closed == BY_PLAYER && _move == PLAYER && _player_score >= 66)
+			{
+				return ai_wins("Player wins!\n");
+			}
+			else if (_closed == BY_AI && _move == AI && _ai_score >= 66)
+			{
+				return ai_wins("AI wins!\n");
+			}
+			else if (no_cards_in_play())
+			{
+				// closed and last trick done
+				if (_move == AI)
+				{
+					return ai_wins("AI wins because player closed and has not enough!\n", YOU_NOT_ENOUGH);
+				}
+				else
+				{
+					// _move = PLAYER
+					return player_wins("Player wins because AI closes and has not enough!\n", AI_NOT_ENOUGH);
+				}
+			}
 		}
 		return false;
 	}
@@ -2858,6 +2913,7 @@ public:
 			assert(_player_cards.size() == _ai_cards.size());
 			_player_cards.sort();
 			_ai_cards.sort();
+			debug();
 
 			if (_cards.empty())
 			{
@@ -2866,7 +2922,6 @@ public:
 			}
 		}
 		redraw();
-		debug();
 	}
 
 	void game(Player playout_)
@@ -2887,7 +2942,7 @@ public:
 				ai_message(NO_MESSAGE);
 				redraw();
 				_moveCard = NONE;
-				if (_player_cards.empty()) break;
+				if (check_end()) break;
 				player_message(_moveAiCard == NONE ? YOU_LEAD : YOUR_TURN);
 				while (Fl::first_window() && _moveCard != ON_TABLE)
 				{
@@ -2917,7 +2972,7 @@ public:
 			if (_move == AI)
 			{
 				player_message(NO_MESSAGE);
-				if (_ai_cards.empty()) break;
+				if (check_end()) break;
 				_moveAiCard = MOVING;
 				ai_message(_moveCard == NONE ? AI_LEADS : AI_TURN);
 				cursor(FL_CURSOR_WAIT);
@@ -2945,46 +3000,6 @@ public:
 			}
 		}
 		if (!Fl::first_window()) return;
-
-		_display_ai_score = true; // display ai score after game
-		if (_move == AI)
-		{
-			if (_closed == BY_AI && _ai_score < 66)
-			{
-				LOG("Player wins because AI closed and has not enough\n");
-				player_message(YOUR_GAME, true);
-				ai_message(AI_NOT_ENOUGH);
-				_player_games_won++;
-				stats["player_games_won"] = std::to_string(_player_games_won);
-			}
-			else if (_closed == BY_PLAYER && _player_score < 66)
-			{
-				LOG("AI wins by last trick!\n");
-				ai_message(AI_GAME, true);
-				player_message(YOU_NOT_ENOUGH);
-				_ai_games_won++;
-				stats["ai_games_won"] = std::to_string(_ai_games_won);
-			}
-		}
-		else if (_move == PLAYER)
-		{
-			if (_closed == BY_PLAYER && _player_score < 66)
-			{
-				LOG("AI wins because player closed and has not enough\n");
-				ai_message(AI_GAME, true);
-				player_message(YOU_NOT_ENOUGH);
-				_ai_games_won++;
-				stats["ai_games_won"] = std::to_string(_ai_games_won);
-			}
-			else if (_closed == BY_AI && _ai_score < 66)
-			{
-				LOG("Player wins by last trick!\n");
-				player_message(YOUR_GAME, true);
-				ai_message(AI_NOT_ENOUGH);
-				_player_games_won++;
-				stats["player_games_won"] = std::to_string(_player_games_won);
-			}
-		}
 
 		_marriage = NO_MARRIAGE;
 		wait(2.0);
