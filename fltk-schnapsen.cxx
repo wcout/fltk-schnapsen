@@ -962,42 +962,48 @@ private:
 };
 #endif
 
+struct GameData
+{
+	GameData() : card(QUEEN, HEART), score(0), pending(false),
+	             message(NO_MESSAGE), deck_info(false), games_won(0),
+	             matches_won(0), display_score(false) {}
+	Cards   cards;    // hand
+	Cards   deck;     // stack
+	Card    card;     // card that is moved to play
+	int     score;    // current score
+	int     pending;  // from 20/40 will score *after* won trick
+	Suites  s20_40;
+	Message message;
+	bool    deck_info;
+	int     games_won;
+	int     matches_won;
+	bool    display_score;
+};
+
 class Deck : public Fl_Double_Window
 {
 public:
 	Deck() : Fl_Double_Window(800, 600),
 		_moveCard(NONE),
 		_moveAiCard(NONE),
-		_player_card(QUEEN, HEART),
-		_ai_card(QUEEN, SPADE),
 		_trump(HEART),
-		_player_to_move(true),
 		_marriage(NO_MARRIAGE),
 		_closed(NOT),
 		_move(PLAYER),
-		_player_score(0),
-		_player_pending(0),
-		_ai_score(0),
-		_ai_pending(0),
-		_display_ai_score(false),
-		_player_message(NO_MESSAGE),
-		_ai_message(NO_MESSAGE),
 		_error_message(NO_MESSAGE),
 		_disabled(false),
-		_player_deck_info(false),
-		_ai_deck_info(false),
 		_card_template(QUEEN, SPADE),
 		_CW(0),
 		_CH(0),
 		_cmd_input(nullptr),
 		_redeal_button(nullptr),
-		_player_games_won(atoi(stats["player_games_won"].c_str())),
-		_ai_games_won(atoi(stats["ai_games_won"].c_str())),
-		_player_matches_won(atoi(stats["player_matches_won"].c_str())),
-		_ai_matches_won(atoi(stats["ai_matches_won"].c_str())),
 		_welcome(nullptr),
 		_grayout(false)
 	{
+		_player.games_won = atoi(stats["player_games_won"].c_str());
+		_ai.games_won = atoi(stats["ai_games_won"].c_str());
+		_player.matches_won = atoi(stats["player_matches_won"].c_str());
+		_ai.matches_won = atoi(stats["ai_matches_won"].c_str());
 		copy_label(message(TITLE).c_str());
 		fl_register_images();
 		std::string root = homeDir() + cardDir;
@@ -1046,7 +1052,7 @@ public:
 	void ai_message(Message m_, bool bell_ = false)
 	{
 		if (bell_) bell(m_);
-		_ai_message = m_;
+		_ai.message = m_;
 		std::string m(message(m_));
 		DBG("ai_message(" << m << ")\n")
 	}
@@ -1054,7 +1060,7 @@ public:
 	void player_message(Message m_, bool bell_ = false)
 	{
 		if (bell_) bell(m_);
-		_player_message = m_;
+		_player.message = m_;
 		std::string m(message(m_));
 		DBG("player_message(" << m << ")\n")
 	}
@@ -1110,7 +1116,7 @@ public:
 	bool test_change()
 	{
 		if (_cards.size() && _cards.back().face() != JACK &&
-		    _player_card.face() == JACK && _player_card.suite() == _cards.back().suite())
+		    _player.card.face() == JACK && _player.card.suite() == _cards.back().suite())
 		{
 			if (_cards.size() < 4)
 			{
@@ -1121,8 +1127,8 @@ public:
 			LOG("Player changes jack for " << _cards.back() << "\n");
 			Card c = _cards.back();
 			_cards.pop_back();
-			_cards.push_back(_player_card);
-			_player_card = c;
+			_cards.push_back(_player.card);
+			_player.card = c;
 			player_message(YOU_CHANGED, true);
 			return true;
 		}
@@ -1156,7 +1162,7 @@ public:
 		if (_closed == NOT && _moveCard == NONE && _moveAiCard == MOVING &&
 		    _cards.size() >= 4)
 		{
-			int maybe_score = highest_cards_in_hand(_ai_cards).value() + _ai_score + _ai_pending;
+			int maybe_score = highest_cards_in_hand(_ai.cards).value() + _ai.score + _ai.pending;
 			DBG("maybe_score: " << maybe_score << "\n")
 			if (maybe_score >= 60)
 			{
@@ -1200,11 +1206,11 @@ public:
 	bool test_20_40(int x_, int y_)
 	{
 		_marriage = NO_MARRIAGE;
-		if (_player_card.face() == QUEEN || _player_card.face() == KING)
+		if (_player.card.face() == QUEEN || _player.card.face() == KING)
 		{
-			for (auto &c : _player_cards)
+			for (auto &c : _player.cards)
 			{
-				if (c.suite() == _player_card.suite() &&
+				if (c.suite() == _player.card.suite() &&
 				   (c.face() == QUEEN || c.face() == KING) &&
 					(c.includes(x_, y_)))
 				{
@@ -1243,13 +1249,13 @@ public:
 		// counts all cards of suite 'suite_', that are
 		// "knowable" by AI
 		Cards res;
-//		for (size_t i = 0; i < _ai_cards.size(); i++)
-//			if (_ai_cards[i].suite() == suite_) res.push_front(_ai_cards[i]);
-		for (auto c : _ai_deck)
+//		for (size_t i = 0; i < _ai.cards.size(); i++)
+//			if (_ai.cards[i].suite() == suite_) res.push_front(_ai.cards[i]);
+		for (auto c : _ai.deck)
 			if (c.suite() == suite_) res.push_front(c);
 		// allowed to ask player deck, because AI could have memorized
 		// the tricks
-		for (auto c : _player_deck)
+		for (auto c : _player.deck)
 			if (c.suite() == suite_) res.push_front(c);
 /*
 		if (include_pack_ == true)
@@ -1271,13 +1277,13 @@ public:
 	int max_cards_player(CardSuite suite_)
 	{
 		// TODO: review/test!!!
-		return cards_in_play(suite_) - suites_in_hand(suite_, _ai_cards).size();
+		return cards_in_play(suite_) - suites_in_hand(suite_, _ai.cards).size();
 	}
 
 	int max_trumps_player()
 	{
 		// TODO: review/test!!!
-		return cards_in_play(_trump) - suites_in_hand(_trump, _ai_cards).size();
+		return cards_in_play(_trump) - suites_in_hand(_trump, _ai.cards).size();
 	}
 
 	bool valid_move(const Card &card_)
@@ -1288,18 +1294,18 @@ public:
 			if (_moveAiCard == ON_TABLE)
 			{
 				// construct player cards from cards+played card
-				Cards temp = _player_cards;
+				Cards temp = _player.cards;
 				temp.push_back(card_);
-				if (has_suite(temp, _ai_card.suite()))
+				if (has_suite(temp, _ai.card.suite()))
 				{
 					// if player cards has suite it must use
-					if (card_.suite() != _ai_card.suite())
+					if (card_.suite() != _ai.card.suite())
 					{
 						error_message(INVALID_SUITE, true);
 						return false;
 					}
 					// if player can trick with suite, he must
-					if (can_trick_with_suite(_ai_card, temp) && !card_tricks(card_, _ai_card))
+					if (can_trick_with_suite(_ai.card, temp) && !card_tricks(card_, _ai.card))
 					{
 						error_message(MUST_TRICK_WITH_SUITE, true);
 						return false;
@@ -1308,7 +1314,7 @@ public:
 					return true;
 				}
 				// if player can trick (with trump now), he must
-				if (can_trick(_ai_card, temp) && !card_tricks(card_, _ai_card))
+				if (can_trick(_ai.card, temp) && !card_tricks(card_, _ai.card))
 				{
 					error_message(MUST_TRICK_WITH_TRUMP, true);
 					return false;
@@ -1366,7 +1372,7 @@ public:
 		// try to find a game winning trick
 		for (auto &c : tricks_)
 		{
-			if (c.value() + c_.value() + _ai_score + _ai_pending >= 66)
+			if (c.value() + c_.value() + _ai.score + _ai.pending >= 66)
 			{
 				move = find(c, tricks_);
 				break;
@@ -1377,7 +1383,7 @@ public:
 			// try to find a trick that pushes score beyond 32
 			for (auto c : tricks_)
 			{
-				if (c.value() + c_.value() + _ai_score + _ai_pending >= 33)
+				if (c.value() + c_.value() + _ai.score + _ai.pending >= 33)
 				{
 					move = find(c, tricks_);
 					break;
@@ -1493,13 +1499,13 @@ public:
 	Cards cards_to_claim(CardSuite suite_ = ANY_SUITE) const
 	{
 		Cards res;
-		// in use at end game playout ("allowed" to use _player_cards)
-		Cards player_cards = Cards::fullcards() - _player_deck - _ai_deck - _ai_cards;
+		// in use at end game playout ("allowed" to use _player.cards)
+		Cards player_cards = Cards::fullcards() - _player.deck - _ai.deck - _ai.cards;
 		if (_cards.size())
 			player_cards -= _cards.back(); // open trump is certainly not in player cards
 		player_cards.sort();
 		DBG("assumed player cards: " << player_cards << "\n")
-		for (const auto &c : _ai_cards)
+		for (const auto &c : _ai.cards)
 		{
 			if (suite_ != ANY_SUITE && c.suite() != suite_) continue;
 			for (size_t i = 0; i < player_cards.size(); i++)
@@ -1547,7 +1553,7 @@ public:
 	Cards highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suite_)
 	{
 		Cards res;
-		Cards played_suites(suites_in_hand(suite_, _ai_deck + _player_deck));
+		Cards played_suites(suites_in_hand(suite_, _ai.deck + _player.deck));
 		Cards suites(suites_in_hand(suite_, cards_));
 		for (auto c : suites)
 		{
@@ -1596,40 +1602,40 @@ public:
 	size_t ai_play_20_40()
 	{
 		size_t move = NO_MOVE;
-		Suites suites = have_40(_ai_cards);
+		Suites suites = have_40(_ai.cards);
 		if (suites.size())
 		{
 			// ai has 40, play out queen
 			_marriage = MARRIAGE_40;
 			bell(AI_MARRIAGE_40);
-			size_t trump_queen = find(Card(QUEEN, _trump), _ai_cards);
+			size_t trump_queen = find(Card(QUEEN, _trump), _ai.cards);
 			move = trump_queen;
-			LOG("AI declares 40 with " << _ai_cards[move] << "\n");
-			_ai_20_40.push_front(_ai_cards[move].suite());
-			if (_ai_deck.empty())
+			LOG("AI declares 40 with " << _ai.cards[move] << "\n");
+			_ai.s20_40.push_front(_ai.cards[move].suite());
+			if (_ai.deck.empty())
 			{
-				_ai_pending += 40;
+				_ai.pending += 40;
 			}
 			else
 			{
-				_ai_score += 40;
+				_ai.score += 40;
 			}
 		}
-		else if ((suites = have_20(_ai_cards)).size())
+		else if ((suites = have_20(_ai.cards)).size())
 		{
 			_marriage = MARRIAGE_20;
 			bell(AI_MARRIAGE_20);
-			size_t first_suite_queen = find(Card(QUEEN, suites[0]), _ai_cards);
+			size_t first_suite_queen = find(Card(QUEEN, suites[0]), _ai.cards);
 			move = first_suite_queen;
-			LOG("AI declares 20 with " << _ai_cards[move] << "\n");
-			_ai_20_40.push_front(_ai_cards[move].suite());
-			if (_ai_deck.empty())
+			LOG("AI declares 20 with " << _ai.cards[move] << "\n");
+			_ai.s20_40.push_front(_ai.cards[move].suite());
+			if (_ai.deck.empty())
 			{
-				_ai_pending += 20;
+				_ai.pending += 20;
 			}
 			else
 			{
-				_ai_score += 20;
+				_ai.score += 20;
 			}
 		}
 		return move;
@@ -1638,7 +1644,7 @@ public:
 	size_t ai_move_closed_follow()
 	{
 		// end game, player has moved, ai to follow
-		size_t move = must_give_color_or_trick(_player_card, _ai_cards);
+		size_t move = must_give_color_or_trick(_player.card, _ai.cards);
 		assert(move != NO_MOVE);
 		return move;
 	}
@@ -1658,14 +1664,14 @@ public:
 			Cards trump_claim = cards_to_claim(_trump);
 			if (trump_claim.size() && (int)trump_claim.size() >= max_trumps_player())
 			{
-				move = find(trump_claim[0], _ai_cards);
+				move = find(trump_claim[0], _ai.cards);
 			}
 			else
 			{
 				Cards claim = cards_to_claim();
 				if (claim.size())
 				{
-					move = find(claim[0], _ai_cards);
+					move = find(claim[0], _ai.cards);
 				}
 			}
 		}
@@ -1673,7 +1679,7 @@ public:
 		{
 			if (_marriage == NO_MARRIAGE)
 			{
-				move = find(highest_cards_in_hand(_ai_cards)[0], _ai_cards);
+				move = find(highest_cards_in_hand(_ai.cards)[0], _ai.cards);
 			}
 		}
 		return move;
@@ -1683,39 +1689,39 @@ public:
 	{
 		// normal game, player has moved, ai to follow
 		size_t move = NO_MOVE;
-		Suites s20 = have_20(_ai_cards);
-		Suites s40 = have_40(_ai_cards);
-		if (s20.size() || s40.size() || _player_card.value() >= 10)
+		Suites s20 = have_20(_ai.cards);
+		Suites s40 = have_40(_ai.cards);
+		if (s20.size() || s40.size() || _player.card.value() >= 10)
 		{
 			// clumsily try to not destroy a 40 by tricking
 			// TODO: better method for such things...
-			Cards temp = _ai_cards;
+			Cards temp = _ai.cards;
 			if (s40.size())
 			{
 				temp.erase(temp.begin() + find(Card(QUEEN,_trump), temp));
 				temp.erase(temp.begin() + find(Card(KING,_trump), temp));
 			}
-			size_t m = lowest_card_that_tricks(_player_card, temp);
+			size_t m = lowest_card_that_tricks(_player.card, temp);
 			if (m != NO_MOVE)
 				move = m;
 		}
 		else
 		{
-			Cards tricks = all_cards_that_trick(_player_card, _ai_cards);
+			Cards tricks = all_cards_that_trick(_player.card, _ai.cards);
 			if (tricks.size())
 			{
-				size_t m = find(tricks[best_trick_card(_player_card, tricks)], _ai_cards);
-				const Card &c = _ai_cards[m];
+				size_t m = find(tricks[best_trick_card(_player.card, tricks)], _ai.cards);
+				const Card &c = _ai.cards[m];
 				// trick or not trick?
 				bool trick(false);
-				int score = _ai_cards[m].value() + _player_card.value() + _ai_pending;
-				if (_ai_score < 33 && _ai_score + score >= 33)
+				int score = _ai.cards[m].value() + _player.card.value() + _ai.pending;
+				if (_ai.score < 33 && _ai.score + score >= 33)
 					trick = true;
-				else if (_ai_score >= 33 && _ai_score + score >= 66)
+				else if (_ai.score >= 33 && _ai.score + score >= 66)
 					trick = true;
-				else if (_cards.size() <= 2 && _ai_score <= 50 && _ai_score + score >= 60)
+				else if (_cards.size() <= 2 && _ai.score <= 50 && _ai.score + score >= 60)
 					trick = true;
-				else if (_player_card.suite() != _trump && c.suite() != _trump)
+				else if (_player.card.suite() != _trump && c.suite() != _trump)
 					trick = true;
 				if (trick)
 					move = m;
@@ -1729,7 +1735,7 @@ public:
 		// normal game, ai plays out
 		size_t move = NO_MOVE;
 
-		test_change(_ai_cards);
+		test_change(_ai.cards);
 
 		size_t m = ai_play_20_40();
 		if (m != NO_MOVE)
@@ -1739,7 +1745,7 @@ public:
 		{
 			if (_marriage == NO_MARRIAGE)
 			{
-				move = find(highest_cards_in_hand(_ai_cards)[0], _ai_cards);
+				move = find(highest_cards_in_hand(_ai.cards)[0], _ai.cards);
 			}
 		}
 
@@ -1749,8 +1755,8 @@ public:
 	size_t ai_move()
 	{
 		_marriage = NO_MARRIAGE;
-		assert(_ai_cards.size());
-		size_t move = lowest_card(_ai_cards); // default move lowest card
+		assert(_ai.cards.size());
+		size_t move = lowest_card(_ai.cards); // default move lowest card
 		assert(move != NO_MOVE);
 
 		if (_closed != NOT && _moveCard == ON_TABLE)
@@ -1781,11 +1787,11 @@ public:
 			}
 		}
 		assert(move != NO_MOVE);
-		_ai_card = _ai_cards[move];
+		_ai.card = _ai.cards[move];
 
-		_ai_cards.erase(_ai_cards.begin() + move);
+		_ai.cards.erase(_ai.cards.begin() + move);
 		_moveAiCard = ON_TABLE;
-		LOG("AI move: " << _ai_card << "\n");
+		LOG("AI move: " << _ai.card << "\n");
 		return move;
 	}
 
@@ -1800,10 +1806,10 @@ public:
 		}
 		else
 		{
-			_player_deck_info = _player_deck.size() &&
-			                    _player_deck.front().rect().includes(Fl::event_x(), Fl::event_y());
-			_ai_deck_info = _ai_deck.size() &&
-			                _ai_deck.front().rect().includes(Fl::event_x(), Fl::event_y());
+			_player.deck_info = _player.deck.size() &&
+			                    _player.deck.front().rect().includes(Fl::event_x(), Fl::event_y());
+			_ai.deck_info = _ai.deck.size() &&
+			                _ai.deck.front().rect().includes(Fl::event_x(), Fl::event_y());
 		}
 		redraw();
 	}
@@ -1847,13 +1853,13 @@ public:
 		if (_moveCard != NONE)
 		{
 			if (_moveCard == MOVING &&
-				(Fl::event_button() > 1 || !valid_move(_player_card)))
+				(Fl::event_button() > 1 || !valid_move(_player.card)))
 			{
 					// withdraw move, put card back to hand
-				LOG("withdraw or invalid " <<  _player_card << "\n");
-				_player_cards.push_back(_player_card);
+				LOG("withdraw or invalid " <<  _player.card << "\n");
+				_player.cards.push_back(_player.card);
 				_moveCard = NONE;
-				_player_cards.sort();
+				_player.cards.sort();
 				return;
 			}
 			if (_moveAiCard == NONE)
@@ -1876,50 +1882,50 @@ public:
 			{
 				if (_marriage == MARRIAGE_20)
 				{
-					LOG("Player declares 20 with " << _player_card << "\n");
-					_player_20_40.push_front(_player_card.suite());
+					LOG("Player declares 20 with " << _player.card << "\n");
+					_player.s20_40.push_front(_player.card.suite());
 					bell(YOU_MARRIAGE_20);
-					if (_player_deck.empty())
+					if (_player.deck.empty())
 					{
 						// must make at least one trick, before
 						// 20/40 is counted!
-						_player_pending += 20;
+						_player.pending += 20;
 					}
 					else
 					{
-						_player_score += 20;
+						_player.score += 20;
 					}
 				}
 				if (_marriage == MARRIAGE_40)
 				{
-					LOG("Player declares 40 with " << _player_card << "\n");
-					_player_20_40.push_front(_player_card.suite());
+					LOG("Player declares 40 with " << _player.card << "\n");
+					_player.s20_40.push_front(_player.card.suite());
 					bell(YOU_MARRIAGE_40);
-					if (_player_deck.empty())
+					if (_player.deck.empty())
 					{
 						// must make at least one trick, before
 						// 20/40 is counted!
-						_player_pending += 40;
+						_player.pending += 40;
 					}
 					else
 					{
-						_player_score += 40;
+						_player.score += 40;
 					}
 				}
-				_moveCard = ON_TABLE; // _player_card is on table
+				_moveCard = ON_TABLE; // _player.card is on table
 				return;
 			}
 		}
-		assert(_player_cards.size());
-		for (size_t i = 0; i < _player_cards.size(); i++)
+		assert(_player.cards.size());
+		for (size_t i = 0; i < _player.cards.size(); i++)
 		{
-			const Card &c = _player_cards[i];
+			const Card &c = _player.cards[i];
 			if (c.rect().includes(Fl::event_x(), Fl::event_y()))
 			{
-				_player_card = _player_cards[i];
-				_player_cards.erase(_player_cards.begin() + i);
+				_player.card = _player.cards[i];
+				_player.cards.erase(_player.cards.begin() + i);
 				_moveCard = MOVING;
-				LOG("PL move: " << _player_card << "\n");
+				LOG("PL move: " << _player.card << "\n");
 			}
 		}
 	}
@@ -2038,12 +2044,12 @@ public:
 
 	void draw_player_deck_info(int x_, int y_)
 	{
-		draw_deck_info(x_, y_, _player_deck);
+		draw_deck_info(x_, y_, _player.deck);
 	}
 
 	void draw_ai_deck_info(int x_, int y_)
 	{
-		draw_deck_info(x_, y_, _ai_deck, 1);
+		draw_deck_info(x_, y_, _ai.deck, 1);
 	}
 
 	void draw_blob(const char *text_, Fl_Color c_, int x_, int y_)
@@ -2053,13 +2059,13 @@ public:
 
 		if (_moveCard == ON_TABLE)
 		{
-			Rect r(_player_card.rect());
+			Rect r(_player.card.rect());
 			x_ = r.x + r.w / 2 ;
 			y_ = r.y + r.h / 2;
 		}
 		else if (_moveAiCard == ON_TABLE)
 		{
-			Rect r(_ai_card.rect());
+			Rect r(_ai.card.rect());
 			x_ = r.x + r.w / 2 ;
 			y_ = r.y + r.h / 2;
 		}
@@ -2122,16 +2128,16 @@ public:
 
 	void draw_messages()
 	{
-		if (_player_message != NO_MESSAGE)
+		if (_player.message != NO_MESSAGE)
 		{
-			std::string player_message = message(_player_message);
+			std::string player_message = message(_player.message);
 			fl_font(FL_HELVETICA, h()/(player_message.back() == '!' ? 15 : 25));
 			fl_color(FL_RED);
 			fl_draw(player_message.c_str(), w() / 4 - fl_width(player_message.c_str()) / 2, h() - h() / 8);
 		}
-		if (_ai_message != NO_MESSAGE)
+		if (_ai.message != NO_MESSAGE)
 		{
-			std::string ai_message = message(_ai_message);
+			std::string ai_message = message(_ai.message);
 			fl_font(FL_HELVETICA, h() / (ai_message.back() == '!' ? 15 : 25));
 			fl_color(FL_RED);
 			fl_draw(ai_message.c_str(), w() / 4 - fl_width(ai_message.c_str()) / 2, h() / 8);
@@ -2145,7 +2151,7 @@ public:
 			fl_color(FL_WHITE);
 			fl_draw(error_message.c_str(), w() / 2 - fl_width(error_message.c_str()) / 2, h() - fl_descent());
 		}
-		if (_closed != NOT && _display_ai_score == false)
+		if (_closed != NOT && _ai.display_score == false)
 		{
 			fl_font(FL_HELVETICA, _CH / 7);
 			fl_color(FL_GRAY);
@@ -2169,48 +2175,48 @@ public:
 	{
 #if 0
 		// TESTONLY
-		_player_20_40.clear();
-		_player_20_40.push_front(CardSuite(HEART));
-		_player_20_40.push_front(CardSuite(SPADE));
-		_player_20_40.push_front(CardSuite(CLUB));
-		_player_20_40.push_front(CardSuite(DIAMOND));
-		_ai_20_40.clear();
-		_ai_20_40.push_front(CardSuite(HEART));
-		_ai_20_40.push_front(CardSuite(SPADE));
-		_ai_20_40.push_front(CardSuite(CLUB));
-		_ai_20_40.push_front(CardSuite(DIAMOND));
-		_player_score = 56;
-		_ai_score = 56;
+		_player.s20_40.clear();
+		_player.s20_40.push_front(CardSuite(HEART));
+		_player.s20_40.push_front(CardSuite(SPADE));
+		_player.s20_40.push_front(CardSuite(CLUB));
+		_player.s20_40.push_front(CardSuite(DIAMOND));
+		_ai.s20_40.clear();
+		_ai.s20_40.push_front(CardSuite(HEART));
+		_ai.s20_40.push_front(CardSuite(SPADE));
+		_ai.s20_40.push_front(CardSuite(CLUB));
+		_ai.s20_40.push_front(CardSuite(DIAMOND));
+		_player.score = 56;
+		_ai.score = 56;
 #endif
 
-		for (size_t i = 0; i < _player_20_40.size(); i++)
+		for (size_t i = 0; i < _player.s20_40.size(); i++)
 		{
-			draw_suite_symbol(_player_20_40[i], w() - w() / 30 * (i + 1), h() - 6);
+			draw_suite_symbol(_player.s20_40[i], w() - w() / 30 * (i + 1), h() - 6);
 		}
-		for (size_t i = 0; i < _ai_20_40.size(); i++)
+		for (size_t i = 0; i < _ai.s20_40.size(); i++)
 		{
-			draw_suite_symbol(_ai_20_40[i], w() - w() / 30 * (i + 1), _CH / 6);
+			draw_suite_symbol(_ai.s20_40[i], w() - w() / 30 * (i + 1), _CH / 6);
 		}
 	}
 
 	void draw_cards()
 	{
 		_back.image()->scale(_CW, _CH, 0, 1);
-		for (size_t i = 0; i < _ai_cards.size(); i++)
+		for (size_t i = 0; i < _ai.cards.size(); i++)
 		{
 			int X = ((i + 1) * w()) / 20 + w() / 2 - w() / 24;
 			int Y = h()/40;
 			_back.skewed_image()->draw(X, Y);
 		}
-		for (size_t i = 0; i < _player_cards.size(); i++)
+		for (size_t i = 0; i < _player.cards.size(); i++)
 		{
-			Fl_RGB_Image *image = _player_cards[i].image();
+			Fl_RGB_Image *image = _player.cards[i].image();
 			int X = ((i + 1) * w()) / 20 + w() / 2 - w() / 24;
 			int Y = h() - _CH - h() / 40;
 			image->scale(_CW, _CH, 0, 1);
 			image->draw(X, Y);
 			int D = _CH / 20;
-			_player_cards[i].rect(Rect(X, Y + D, i == _player_cards.size() - 1 ? image->w() : w() / 20, _CH - 2 * D));
+			_player.cards[i].rect(Rect(X, Y + D, i == _player.cards.size() - 1 ? image->w() : w() / 20, _CH - 2 * D));
 		}
 	}
 
@@ -2277,23 +2283,23 @@ public:
 		// show played pack
 		int X = w() - _CW - 2;
 		int Y = h() - _CH - h() / 10;
-		for (size_t i = 0; i < _player_deck.size(); i++)
+		for (size_t i = 0; i < _player.deck.size(); i++)
 		{
 			_back.image()->draw(X - i * w() / 800, Y - i *w() / 800);
 		}
-		for (size_t i = 0; i < _ai_deck.size(); i++)
+		for (size_t i = 0; i < _ai.deck.size(); i++)
 		{
 			_back.image()->draw(X - i * w() / 800, h() / 10 - (i + 1) * w() /800);
 		}
-		if (_player_deck.size())
+		if (_player.deck.size())
 		{
 			// click region for deck display ("tooltip")
-			_player_deck.front().rect(Rect(X, Y, _CW, _CH));
+			_player.deck.front().rect(Rect(X, Y, _CW, _CH));
 		}
-		if (_ai_deck.size())
+		if (_ai.deck.size())
 		{
 			// click region for deck display ("tooltip")
-			_ai_deck.front().rect(Rect(X, h() / 10, _CW, _CH));
+			_ai.deck.front().rect(Rect(X, h() / 10, _CW, _CH));
 		}
 	}
 
@@ -2302,23 +2308,23 @@ public:
 		// cards moving or on table
 		if (_moveAiCard == ON_TABLE)
 		{
-			Fl_RGB_Image *image = _ai_card.image();
+			Fl_RGB_Image *image = _ai.card.image();
 			image->scale(_CW, _CH, 0, 1);
 			int X =  w() - w() / 3;
 			int Y =  h() / 5;
 			image->draw(X, Y);
-			_ai_card.rect(Rect(X, Y, image->w(), image->h()));
+			_ai.card.rect(Rect(X, Y, image->w(), image->h()));
 		}
 		if (_moveCard != NONE)
 		{
-			Fl_RGB_Image *image = _player_card.image();
+			Fl_RGB_Image *image = _player.card.image();
 			image->scale(_CW, _CH, 0, 1);
 			int X = _moveCard == MOVING ? Fl::event_x() - image->w() / 2 : w() - w() / 2;
 			int Y = _moveCard == MOVING ? Fl::event_y() - image->h() / 2 : h() / 4 - h() / 40;
 			if (_moveCard == MOVING)
 				_shadow.image()->draw(X + image->w() / 12, Y + image->w() / 12);
 			image->draw(X, Y);
-			_player_card.rect(Rect(X, Y, image->w(), image->h()));
+			_player.card.rect(Rect(X, Y, image->w(), image->h()));
 		}
 		// marriage declarations
 		if (_marriage == MARRIAGE_20) draw_blob("20", FL_GREEN, Fl::event_x(), Fl::event_y());
@@ -2327,20 +2333,20 @@ public:
 
 	void draw_scores()
 	{
-		if (_player_score)
+		if (_player.score)
 		{
 			fl_font(FL_HELVETICA, h() / 25);
 			fl_color(FL_BLUE);
 			char buf[20];
-			snprintf(buf, sizeof(buf), "%d", _player_score);
+			snprintf(buf, sizeof(buf), "%d", _player.score);
 			fl_draw(buf, w() - fl_width(buf), h() - fl_descent());
 		}
-		if (_ai_score && (_display_ai_score | ::debug))
+		if (_ai.score && (_ai.display_score | ::debug))
 		{
 			fl_font(FL_HELVETICA, h() / 25);
 			fl_color(FL_BLUE);
 			char buf[20];
-			snprintf(buf, sizeof(buf), "%d", _ai_score);
+			snprintf(buf, sizeof(buf), "%d", _ai.score);
 			fl_draw(buf, w() - fl_width(buf), fl_height() - fl_descent());
 		}
 	}
@@ -2382,9 +2388,9 @@ public:
 		draw_decks();
 		draw_move();
 		draw_scores();
-		if (_player_deck_info)
+		if (_player.deck_info)
 			draw_player_deck_info(Fl::event_x(), Fl::event_y());
-		if (_ai_deck_info)
+		if (_ai.deck_info)
 			draw_ai_deck_info(Fl::event_x(), Fl::event_y());
 		if (_cmd_input)
 			_cmd_input->draw();
@@ -2397,22 +2403,22 @@ public:
 	void collect()
 	{
 		LOG("collect\n");
-		for (auto &c : _player_cards)
+		for (auto &c : _player.cards)
 			_cards.push_front(c);
-		for (auto &c : _player_deck)
+		for (auto &c : _player.deck)
 			_cards.push_front(c);
-		for (auto &c :_ai_cards)
+		for (auto &c :_ai.cards)
 			_cards.push_front(c);
-		for (auto &c :_ai_deck)
+		for (auto &c :_ai.deck)
 			_cards.push_front(c);
-		_player_cards.clear();
-		_ai_cards.clear();
-		_player_deck.clear();
-		_ai_deck.clear();
+		_player.cards.clear();
+		_ai.cards.clear();
+		_player.deck.clear();
+		_ai.deck.clear();
 		if (_moveCard != NONE)
-			_cards.push_front(_player_card);
+			_cards.push_front(_player.card);
 		if (_moveAiCard != NONE)
-			_cards.push_front(_ai_card);
+			_cards.push_front(_ai.card);
 		if (_cards.size() != 20)
 			DBG("#cards: " << _cards.size())
 		assert(_cards.size() == 20);
@@ -2508,17 +2514,17 @@ public:
 	{
 		if (_cards.size() == 20 || _cards.size() == 10)
 			dump_cards(_cards, "Deck");
-		LOG("AI cards: " << _ai_cards);
-		LOG("\tscore: " << _ai_score << " pending: " << _ai_pending);
+		LOG("AI cards: " << _ai.cards);
+		LOG("\tscore: " << _ai.score << " pending: " << _ai.pending);
 		LOG("\t20/40: ");
-		for ([[maybe_unused]]auto s : _ai_20_40)
+		for ([[maybe_unused]]auto s : _ai.s20_40)
 			LOG(Card::suite_symbol(s));
 		LOG("\n");
 
-		LOG("PL cards: " << _player_cards);
-		LOG("\tscore: " << _player_score << " pending: " << _player_pending);
+		LOG("PL cards: " << _player.cards);
+		LOG("\tscore: " << _player.score << " pending: " << _player.pending);
 		LOG("\t20/40: ");
-		for ([[maybe_unused]]auto s : _player_20_40)
+		for ([[maybe_unused]]auto s : _player.s20_40)
 			LOG(Card::suite_symbol(s));
 		LOG("\n");
 	}
@@ -2531,33 +2537,33 @@ public:
 		error_message(NO_MESSAGE);
 		_closed = NOT;
 		_marriage = NO_MARRIAGE;
-		_player_20_40.clear();
-		_ai_20_40.clear();
+		_player.s20_40.clear();
+		_ai.s20_40.clear();
 		_move = PLAYER;
-		_player_score = 0;
-		_player_pending = 0;
-		_ai_score = 0;
-		_ai_pending = 0;
-		_display_ai_score = false;
-		_player_message = NO_MESSAGE;
-		_ai_message = NO_MESSAGE;
+		_player.score = 0;
+		_player.pending = 0;
+		_ai.score = 0;
+		_ai.pending = 0;
+		_ai.display_score = false;
+		_player.message = NO_MESSAGE;
+		_ai.message = NO_MESSAGE;
 		_error_message = NO_MESSAGE;
 		_moveCard = NONE;
 		_moveAiCard = NONE;
 		_disabled = false;
-		_player_deck_info = false;
-		_ai_deck_info = false;
+		_player.deck_info = false;
+		_ai.deck_info = false;
 		_cards.shuffle();
 		assert(_cards.size() == 20);
 		bell(SHUFFLE);
 		debug();
 		deal();
-		assert(_player_cards.size() == 5);
-		assert(_ai_cards.size() == 5);
-		_player_cards.sort();
-		_ai_cards.sort();
-		assert(_player_cards.size() == 5);
-		assert(_ai_cards.size() == 5);
+		assert(_player.cards.size() == 5);
+		assert(_ai.cards.size() == 5);
+		_player.cards.sort();
+		_ai.cards.sort();
+		assert(_player.cards.size() == 5);
+		assert(_ai.cards.size() == 5);
 		redraw();
 		debug();
 	}
@@ -2576,8 +2582,8 @@ public:
 		if (pscore >= 7)
 		{
 			LOG("You win match " << pscore << ":" << ascore << "\n");
-			_player_matches_won++;
-			stats["player_matches_won"] = std::to_string(_player_matches_won);
+			_player.matches_won++;
+			stats["player_matches_won"] = std::to_string(_player.matches_won);
 			std::string m(message(YOU_WIN));
 			bell(YOU_WIN);
 			fl_alert("%s", m.c_str());
@@ -2588,8 +2594,8 @@ public:
 		else if (ascore >= 7)
 		{
 			LOG("AI wins match " << ascore << ":" << pscore << "\n");
-			_ai_matches_won++;
-			stats["ai_matches_won"] = std::to_string(_ai_matches_won);
+			_ai.matches_won++;
+			stats["ai_matches_won"] = std::to_string(_ai.matches_won);
 			std::string m(message(YOU_LOST));
 			bell(YOU_LOST);
 			fl_alert("%s", m.c_str());
@@ -2607,27 +2613,27 @@ public:
 			// game was closed, now the closer must have enough points
 			if (_closed == BY_PLAYER)
 			{
-				if (_player_score >= 66)
+				if (_player.score >= 66)
 				{
-					_gamebook.push_back(std::make_pair(_ai_score < 33 ? _ai_score == 0 ? 3 : 2 : 1, 0));
+					_gamebook.push_back(std::make_pair(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 1, 0));
 				}
 				else
 				{
 					// TODO: officially the points are counted at the moment of closing
-					_gamebook.push_back(std::make_pair(0, _player_score < 33 ? _player_score == 0 ? 3 : 2 : 2));
+					_gamebook.push_back(std::make_pair(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 2));
 				}
 			}
 			else
 			{
 				// closed by AI
-				if (_ai_score >= 66)
+				if (_ai.score >= 66)
 				{
-					_gamebook.push_back(std::make_pair(0, _player_score < 33 ? _player_score == 0 ? 3 : 2 : 1));
+					_gamebook.push_back(std::make_pair(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 1));
 				}
 				else
 				{
 					// TODO: officially the points are counted at the moment of closing
-					_gamebook.push_back(std::make_pair(_ai_score < 33 ? _ai_score == 0 ? 3 : 2 : 2, 0));
+					_gamebook.push_back(std::make_pair(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 2, 0));
 				}
 			}
 		}
@@ -2636,11 +2642,11 @@ public:
 			// normal game (not closed)
 			if (_move == PLAYER)
 			{
-				_gamebook.push_back(std::make_pair(_ai_score < 33 ? _ai_score == 0 ? 3 : 2 : 1, 0));
+				_gamebook.push_back(std::make_pair(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 1, 0));
 			}
 			else
 			{
-				_gamebook.push_back(std::make_pair(0, _player_score < 33 ? _player_score == 0 ? 3 : 2 : 1));
+				_gamebook.push_back(std::make_pair(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 1));
 			}
 		}
 	}
@@ -2701,9 +2707,9 @@ public:
 		LOG(log_);
 		ai_message(AI_GAME, true);
 		player_message(player_message_);
-		_ai_games_won++;
-		stats["ai_games_won"] = std::to_string(_ai_games_won);
-		_display_ai_score = true;
+		_ai.games_won++;
+		stats["ai_games_won"] = std::to_string(_ai.games_won);
+		_ai.display_score = true;
 		wait(2.0);
 		return true;
 	}
@@ -2713,9 +2719,9 @@ public:
 		LOG(log_);
 		player_message(YOUR_GAME, true);
 		ai_message(ai_message_);
-		_player_games_won++;
-		stats["player_games_won"] = std::to_string(_player_games_won);
-		_display_ai_score = true;
+		_player.games_won++;
+		stats["player_games_won"] = std::to_string(_player.games_won);
+		_ai.display_score = true;
 		wait(2.0);
 		return true;
 	}
@@ -2726,14 +2732,14 @@ public:
 		for (int i = 0; i < 3; i++)
 		{
 			Card c = _cards.front();
-			_move == PLAYER ? _player_cards.push_front(c) : _ai_cards.push_front(c);
+			_move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
 			_cards.pop_front();
 		}
 		// 3 cards to ai
 		for (int i = 0; i < 3; i++)
 		{
 			Card c = _cards.front();
-			_move == PLAYER ? _ai_cards.push_front(c) : _player_cards.push_front(c);
+			_move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
 			_cards.pop_front();
 		}
 		// trump card
@@ -2747,35 +2753,35 @@ public:
 		for (int i = 0; i < 2; i++)
 		{
 			Card c = _cards.front();
-			_move == PLAYER ? _player_cards.push_front(c) : _ai_cards.push_front(c);
+			_move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
 			_cards.pop_front();
 		}
 		// 2 cards to ai
 		for (int i = 0; i < 2; i++)
 		{
 			Card c = _cards.front();
-			_move == PLAYER ? _ai_cards.push_front(c) : _player_cards.push_front(c);
+			_move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
 			_cards.pop_front();
 		}
 
 		// TEST TEST
 		Suites res;
-		res = have_40(_player_cards);
+		res = have_40(_player.cards);
 		if (res.size())
 			DBG("player cards contain 40!\n")
-		res = have_20(_player_cards);
+		res = have_20(_player.cards);
 		if (res.size())
 			DBG("player cards contain " << res.size() << "x20!\n")
-		res = have_40(_ai_cards);
+		res = have_40(_ai.cards);
 		if (res.size())
 			DBG("AI cards contain 40!\n")
-		res = have_20(_ai_cards);
+		res = have_20(_ai.cards);
 		if (res.size())
 			DBG("AI cards contain " << res.size() << "x20!\n")
-		size_t i = find(Card(JACK, _cards.back().suite()), _player_cards);
+		size_t i = find(Card(JACK, _cards.back().suite()), _player.cards);
 		if (i != NO_MOVE)
 			DBG("player cards can change Jack!\n")
-		i = find(Card(JACK, _cards.back().suite()), _ai_cards);
+		i = find(Card(JACK, _cards.back().suite()), _ai.cards);
 		if (i != NO_MOVE)
 			DBG("AI cards can change Jack!\n")
 	}
@@ -2811,16 +2817,16 @@ public:
 		debug();
 		auto no_cards_in_play = [&]() -> bool
 		{
-			return _player_cards.empty() && _ai_cards.empty() && _moveCard == NONE && _moveAiCard == NONE;
+			return _player.cards.empty() && _ai.cards.empty() && _moveCard == NONE && _moveAiCard == NONE;
 		};
 
 		if (_closed == NOT || _closed == AUTO)
 		{
-			if (_move == PLAYER && _player_score >= 66)
+			if (_move == PLAYER && _player.score >= 66)
 			{
 				return player_wins("Player wins!\n");
 			}
-			else if (_move == AI && _ai_score >= 66)
+			else if (_move == AI && _ai.score >= 66)
 			{
 				return ai_wins("AI wins!\n");
 			}
@@ -2840,11 +2846,11 @@ public:
 		else
 		{
 			// closed
-			if (_closed == BY_PLAYER && _move == PLAYER && _player_score >= 66)
+			if (_closed == BY_PLAYER && _move == PLAYER && _player.score >= 66)
 			{
 				return player_wins("Player wins closed game!\n");
 			}
-			else if (_closed == BY_AI && _move == AI && _ai_score >= 66)
+			else if (_closed == BY_AI && _move == AI && _ai.score >= 66)
 			{
 				return ai_wins("AI wins closed game!\n");
 			}
@@ -2870,33 +2876,33 @@ public:
 		_marriage = NO_MARRIAGE;
 		if (move_ == PLAYER)
 		{
-			_move = card_tricks(_ai_card, _player_card) ? AI : PLAYER;
-			if (_move == AI) LOG(_ai_card << " tricks " << _player_card << "\n")
-			else LOG("Player card " << _player_card << " tricks AI card " << _ai_card << "\n")
+			_move = card_tricks(_ai.card, _player.card) ? AI : PLAYER;
+			if (_move == AI) LOG(_ai.card << " tricks " << _player.card << "\n")
+			else LOG("Player card " << _player.card << " tricks AI card " << _ai.card << "\n")
 		}
 		else
 		{
-			_move = card_tricks(_player_card, _ai_card) ? PLAYER : AI;
-			if (_move == PLAYER) LOG(_player_card << " tricks " << _ai_card << "\n")
-			else LOG("AI card " << _ai_card << " tricks player card " << _player_card << "\n")
+			_move = card_tricks(_player.card, _ai.card) ? PLAYER : AI;
+			if (_move == PLAYER) LOG(_player.card << " tricks " << _ai.card << "\n")
+			else LOG("AI card " << _ai.card << " tricks player card " << _player.card << "\n")
 		}
 		LOG("next move: " << (_move == PLAYER ? "PLAYER" : "AI") << "\n")
 		if (_move == PLAYER) // player won trick
 		{
-			_player_deck.push_front(_ai_card);
-			_player_deck.push_front(_player_card);
-			_player_score += _player_card.value() + _ai_card.value() + _player_pending;
-			_player_pending = 0;
+			_player.deck.push_front(_ai.card);
+			_player.deck.push_front(_player.card);
+			_player.score += _player.card.value() + _ai.card.value() + _player.pending;
+			_player.pending = 0;
 			player_message(YOUR_TRICK);
 			ai_message(NO_MESSAGE);
 			redraw();
 		}
 		else
 		{
-			_ai_deck.push_back(_player_card);
-			_ai_deck.push_back(_ai_card);
-			_ai_score += _ai_card.value() + _player_card.value() + _ai_pending;
-			_ai_pending = 0;
+			_ai.deck.push_back(_player.card);
+			_ai.deck.push_back(_ai.card);
+			_ai.score += _ai.card.value() + _player.card.value() + _ai.pending;
+			_ai.pending = 0;
 			ai_message(AI_TRICK);
 			player_message(NO_MESSAGE);
 			redraw();
@@ -2916,9 +2922,9 @@ public:
 				Card c = _cards.front();
 				_cards.pop_front();
 				if (_move == AI)
-					_ai_cards.push_front(c);
+					_ai.cards.push_front(c);
 				else
-					_player_cards.push_front(c);
+					_player.cards.push_front(c);
 			}
 
 			if (_cards.size())
@@ -2926,13 +2932,13 @@ public:
 				Card c = _cards.front();
 				_cards.pop_front();
 				if (_move == AI)
-					_player_cards.push_front(c);
+					_player.cards.push_front(c);
 				else
-					_ai_cards.push_front(c);
+					_ai.cards.push_front(c);
 			}
-			assert(_player_cards.size() == _ai_cards.size());
-			_player_cards.sort();
-			_ai_cards.sort();
+			assert(_player.cards.size() == _ai.cards.size());
+			_player.cards.sort();
+			_ai.cards.sort();
 			debug();
 
 			if (_cards.empty())
@@ -2954,7 +2960,7 @@ public:
 		cursor(FL_CURSOR_DEFAULT);
 		_redeal_button->show();
 		redraw();
-		while (Fl::first_window() && (_player_cards.size() || _ai_cards.size()))
+		while (Fl::first_window() && (_player.cards.size() || _ai.cards.size()))
 		{
 			if (_move == PLAYER)
 			{
@@ -3046,8 +3052,8 @@ public:
 	std::string make_stats() const
 	{
 		std::ostringstream os;
-		os << message(GAMES_WON) << _player_games_won << " / " << _ai_games_won;
-		os << "\t" << message(MATCHES_WON) <<  _player_matches_won << " / " << _ai_matches_won;
+		os << message(GAMES_WON) << _player.games_won << " / " << _ai.games_won;
+		os << "\t" << message(MATCHES_WON) <<  _player.matches_won << " / " << _ai.matches_won;
 		return os.str();
 	}
 
@@ -3106,46 +3112,26 @@ public:
 	}
 
 private:
+	GameData _player;
+	GameData _ai;
 	CardImage _back;
 	CardImage _shadow;
 	CardImage _outline;
 	Cards _cards;			// remaining cards
-	MoveCardState _moveCard;			// flag player move (_player_card valid)
-	MoveCardState _moveAiCard;	   // flag ai move (_ai_card valid)
-	Cards _player_cards;	// player hand
-	Cards _player_deck;	// player stack
-	Cards _ai_cards;		// ai hand
-	Cards _ai_deck;		// ai stack
-	Card _player_card;	// card that is moved by player to play
-	Card _ai_card;			// card that is played by ai
+	MoveCardState _moveCard;			// flag player move (_player.card valid)
+	MoveCardState _moveAiCard;	   // flag ai move (_ai.card valid)
 	CardSuite _trump;		// trump suite
-	bool _player_to_move;
 	Marriage _marriage;
 	Closed _closed;
 	Player _move;
-	int _player_score;	// current score
-	int _player_pending;	// from 20/40 will score *after* won trick
-	int _ai_score;
-	int _ai_pending;
-	bool _display_ai_score;
-	Suites _player_20_40;
-	Suites _ai_20_40;
-	Message _player_message;
-	Message _ai_message;
 	Message _error_message;
 	bool _disabled;
-	bool _player_deck_info;
-	bool _ai_deck_info;
 	Card _card_template;
 	int _CW;					// card pixel width (used as "unit" for UI)
 	int _CH;					// card pixel height
 	std::vector<std::pair<int, int>> _gamebook;
 	Cmd_Input *_cmd_input;
 	Button *_redeal_button;
-	int _player_games_won;
-	int _ai_games_won;
-	int _player_matches_won;
-	int _ai_matches_won;
 	Welcome *_welcome;
 	bool _grayout;
 #ifdef USE_MINIAUDIO
