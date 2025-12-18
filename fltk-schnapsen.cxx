@@ -1950,7 +1950,7 @@ public:
 		return ret;
 	}
 
-	void draw_game_book(int x_, int y_)
+	void draw_gamebook(int x_, int y_)
 	{
 		fl_color(fl_lighter(fl_lighter(FL_YELLOW)));
 		x_ -= _CW / 2;
@@ -2373,7 +2373,7 @@ public:
 		_CW = _card_template.image()->w();
 		_CH = _card_template.image()->h();
 		draw_table();
-		draw_game_book(w() / 40 + _CW / 2, h() / 2);
+		draw_gamebook(w() / 40 + _CW / 2, h() / 2);
 		draw_suite_symbol(_trump, w() / 3 - _CW / 4, h() - h() / 2 + _CH / 2 + _CH / 5);
 		draw_messages();
 		draw_20_40_suites();
@@ -2600,6 +2600,51 @@ public:
 		return false;
 	}
 
+	void update_gamebook()
+	{
+		if (_closed != NOT && _closed != AUTO)
+		{
+			// game was closed, now the closer must have enough points
+			if (_closed == BY_PLAYER)
+			{
+				if (_player_score >= 66)
+				{
+					_gamebook.push_back(std::make_pair(_ai_score < 33 ? _ai_score == 0 ? 3 : 2 : 1, 0));
+				}
+				else
+				{
+					// TODO: officially the points are counted at the moment of closing
+					_gamebook.push_back(std::make_pair(0, _player_score < 33 ? _player_score == 0 ? 3 : 2 : 2));
+				}
+			}
+			else
+			{
+				// closed by AI
+				if (_ai_score >= 66)
+				{
+					_gamebook.push_back(std::make_pair(0, _player_score < 33 ? _player_score == 0 ? 3 : 2 : 1));
+				}
+				else
+				{
+					// TODO: officially the points are counted at the moment of closing
+					_gamebook.push_back(std::make_pair(_ai_score < 33 ? _ai_score == 0 ? 3 : 2 : 2, 0));
+				}
+			}
+		}
+		else
+		{
+			// normal game (not closed)
+			if (_move == PLAYER)
+			{
+				_gamebook.push_back(std::make_pair(_ai_score < 33 ? _ai_score == 0 ? 3 : 2 : 1, 0));
+			}
+			else
+			{
+				_gamebook.push_back(std::make_pair(0, _player_score < 33 ? _player_score == 0 ? 3 : 2 : 1));
+			}
+		}
+	}
+
 	int run()
 	{
 		Player playout(PLAYER);
@@ -2608,61 +2653,10 @@ public:
 			game(playout);
 			cursor(FL_CURSOR_DEFAULT);
 			playout = playout == PLAYER ? AI : PLAYER;
+			update_gamebook();
+
 			if (!Fl::first_window()) break;
-			if (_closed != NOT && _closed != AUTO)
-			{
-				// game was closed, now the closer must have enough points
-				if (_closed == BY_PLAYER)
-				{
-					if (_player_score >= 66)
-					{
-						_gamebook.push_back(std::make_pair(_ai_score < 33 ? _ai_score == 0 ? 3 : 2 : 1, 0));
-					}
-					else
-					{
-						// TODO: officially the points are counted at the moment of closing
-						_gamebook.push_back(std::make_pair(0, _player_score < 33 ? _player_score == 0 ? 3 : 2 : 2));
-					}
-				}
-				else
-				{
-					// closed by AI
-					if (_ai_score >= 66)
-					{
-						_gamebook.push_back(std::make_pair(0, _player_score < 33 ? _player_score == 0 ? 3 : 2 : 1));
-					}
-					else
-					{
-						// TODO: officially the points are counted at the moment of closing
-						_gamebook.push_back(std::make_pair(_ai_score < 33 ? _ai_score == 0 ? 3 : 2 : 2, 0));
-					}
-				}
-			}
-			else
-			{
-				if (_move == PLAYER)
-				{
-					if (_player_score >= 66)
-					{
-						_gamebook.push_back(std::make_pair(_ai_score < 33 ? _ai_score == 0 ? 3 : 2 : 1, 0));
-					}
-					else
-					{
-						_gamebook.push_back(std::make_pair(0, _player_score < 33 ? _player_score == 0 ? 3 : 2 : 1));
-					}
-				}
-				else
-				{
-					if (_ai_score >= 66)
-					{
-						_gamebook.push_back(std::make_pair(0, _player_score < 33 ? _player_score == 0 ? 3 : 2 : 1));
-					}
-					else
-					{
-						_gamebook.push_back(std::make_pair(_ai_score < 33 ? _ai_score == 0 ? 3 : 2 : 1, 0));
-					}
-				}
-			}
+
 			auto s = _gamebook.back();
 			if (s.first)
 				LOG("PL scores " << s.first << "\n");
