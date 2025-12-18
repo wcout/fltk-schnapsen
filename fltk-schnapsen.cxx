@@ -2546,6 +2546,44 @@ public:
 		debug();
 	}
 
+	bool check_end_match()
+	{
+		int pscore = 0;
+		int ascore = 0;
+		for (auto s : _gamebook)
+		{
+			pscore += s.first;
+			ascore += s.second;
+		}
+		LOG("match score PL:AI: " << pscore << ":" << ascore << "\n");
+		fl_message_font_ = FL_COURIER;
+		if (pscore >= 7)
+		{
+			LOG("You win match " << pscore << ":" << ascore << "\n");
+			_player_matches_won++;
+			stats["player_matches_won"] = std::to_string(_player_matches_won);
+			std::string m(message(YOU_WIN));
+			bell(YOU_WIN);
+			fl_alert("%s", m.c_str());
+			_gamebook.clear();
+			redraw();
+			return true;
+		}
+		else if (ascore >= 7)
+		{
+			LOG("AI wins match " << ascore << ":" << pscore << "\n");
+			_ai_matches_won++;
+			stats["ai_matches_won"] = std::to_string(_ai_matches_won);
+			std::string m(message(YOU_LOST));
+			bell(YOU_LOST);
+			fl_alert("%s", m.c_str());
+			_gamebook.clear();
+			redraw();
+			return true;
+		}
+		return false;
+	}
+
 	int run()
 	{
 		Player playout(PLAYER);
@@ -2609,41 +2647,13 @@ public:
 					}
 				}
 			}
-			redraw();
 			auto s = _gamebook.back();
 			if (s.first)
 				LOG("PL scores " << s.first << "\n");
 			if (s.second)
 				LOG("AI scores " << s.second << "\n");
-			int pscore = 0;
-			int ascore = 0;
-			for (auto s : _gamebook)
-			{
-				pscore += s.first;
-				ascore += s.second;
-			}
-			LOG("match score PL:AI: " << pscore << ":" << ascore << "\n");
-			if (pscore >= 7)
-			{
-				LOG("You win match " << pscore << ":" << ascore << "\n");
-				_player_matches_won++;
-				stats["player_matches_won"] = std::to_string(_player_matches_won);
-				std::string m(message(YOU_WIN));
-				bell(YOU_WIN);
-				fl_alert("%s", m.c_str());
-				_gamebook.clear();
-			}
-			else if (ascore >= 7)
-			{
-				LOG("AI wins match " << ascore << ":" << pscore << "\n");
-				_ai_matches_won++;
-				stats["ai_matches_won"] = std::to_string(_ai_matches_won);
-				std::string m(message(YOU_LOST));
-				bell(YOU_LOST);
-				fl_alert("%s", m.c_str());
-				_gamebook.clear();
-				redraw();
-			}
+			redraw();
+			check_end_match();
 		}
 		save_config();
 		save_stats();
