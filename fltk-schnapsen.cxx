@@ -2552,9 +2552,9 @@ public:
 		while (Fl::first_window())
 		{
 			game(playout);
+			cursor(FL_CURSOR_DEFAULT);
 			playout = playout == PLAYER ? AI : PLAYER;
 			if (!Fl::first_window()) break;
-			cursor(FL_CURSOR_DEFAULT);
 			if (_closed != NOT && _closed != AUTO)
 			{
 				// game was closed, now the closer must have enough points
@@ -2822,7 +2822,7 @@ public:
 			// closed
 			if (_closed == BY_PLAYER && _move == PLAYER && _player_score >= 66)
 			{
-				return ai_wins("Player wins closed game!\n");
+				return player_wins("Player wins closed game!\n");
 			}
 			else if (_closed == BY_AI && _move == AI && _ai_score >= 66)
 			{
@@ -2838,7 +2838,7 @@ public:
 				else
 				{
 					// _move = PLAYER
-					return player_wins("Player wins because AI closes and has not enough!\n", AI_NOT_ENOUGH);
+					return player_wins("Player wins because AI closed and has not enough!\n", AI_NOT_ENOUGH);
 				}
 			}
 		}
