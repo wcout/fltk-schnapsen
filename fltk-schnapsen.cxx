@@ -214,7 +214,15 @@ std::map<Message, std::string> messages_de = {
 	{TITLE, "Schnapsen zu zweit"},
 	{GAMEBOOK, "**Spielebuch**"},
 	{GB_HEADLINE, "  DU      AI"},
-	{YOU_WIN, "\n\nDu hast die Partie gewonnen!\n\n"},
+	{YOU_WIN, "♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣\n"
+	          "♥                                  ♠\n"
+	          "♦           Glückwunsch!           ♥\n"
+	          "♣                                  ♦\n"
+	          "♠                                  ♣\n"
+	          "♥   Du hast die Partie gewonnen!   ♠\n"
+	          "♦                                  ♥\n"
+	          "♣                                  ♦\n"
+	          "♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣"},
 	{YOU_LOST, "\n\nDie AI hat dir ein\nBummerl angehängt!\n\n"},
 	{INVALID_SUITE, "Du must Farbe geben"},
 	{MUST_TRICK_WITH_SUITE, "Du must mit Farbe stechen"},
@@ -244,7 +252,15 @@ std::map<Message, std::string> messages_en = {
 	{TITLE, "Schnapsen for two"},
 	{GAMEBOOK, "**Game book**"},
 	{GB_HEADLINE, "  YOU     AI"},
-	{YOU_WIN, "\n\nYou won the game!"},
+	{YOU_WIN, "♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣\n"
+	          "♥                                  ♠\n"
+	          "♦       Wow, your lucky day!       ♥\n"
+	          "♣                                  ♦\n"
+	          "♠                                  ♣\n"
+	          "♥   You have won the whole lot!    ♠\n"
+	          "♦                                  ♥\n"
+	          "♣                                  ♦\n"
+	          "♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣"},
 	{YOU_LOST, "\n\nYou got the bummerl!\n\n"},
 	{INVALID_SUITE, "You must give suite"},
 	{MUST_TRICK_WITH_SUITE, "You must trick with suite"},
@@ -3340,6 +3356,8 @@ int main(int argc_, char *argv_[])
 {
 	Fl::keyboard_screen_scaling(0);
 	fl_message_title_default(message(TITLE).c_str());
+	Fl::get_system_colors();
+	Fl::background(240, 240,240);
 	load_config();
 	load_stats();
 	LOG("homeDir: " << homeDir() << "\n");
