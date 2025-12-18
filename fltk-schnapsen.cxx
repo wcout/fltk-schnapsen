@@ -2831,13 +2831,13 @@ public:
 			else if (no_cards_in_play())
 			{
 				// closed and last trick done
-				if (_move == AI)
+				if (_closed == BY_PLAYER)
 				{
 					return ai_wins("AI wins because player closed and has not enough!\n", YOU_NOT_ENOUGH);
 				}
 				else
 				{
-					// _move = PLAYER
+					// _closed = BY_AI
 					return player_wins("Player wins because AI closed and has not enough!\n", AI_NOT_ENOUGH);
 				}
 			}
