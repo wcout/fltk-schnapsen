@@ -21,6 +21,7 @@
 #include <sstream>
 #include <deque>
 #include <map>
+#include <functional>
 #include <filesystem>
 #include <algorithm>
 #include <chrono>
@@ -95,7 +96,7 @@ enum class Closed
 	AUTO
 };
 
-enum class MoveCardState
+enum class CardState
 {
 	NONE,
 	MOVING,
@@ -171,7 +172,7 @@ enum class Marriage
 using enum CardSuite;
 using enum CardFace;
 using enum Player;
-using enum MoveCardState;
+using enum CardState;
 using enum Message;
 using enum Closed;
 using enum Marriage;
@@ -966,7 +967,7 @@ struct GameData
 {
 	GameData() : card(QUEEN, HEART), score(0), pending(false),
 	             message(NO_MESSAGE), deck_info(false), games_won(0),
-	             matches_won(0), display_score(false) {}
+	             matches_won(0), display_score(false), move_state(NONE) {}
 	Cards   cards;    // hand
 	Cards   deck;     // stack
 	Card    card;     // card that is moved to play
@@ -978,14 +979,15 @@ struct GameData
 	int     games_won;
 	int     matches_won;
 	bool    display_score;
+	CardState move_state;
 };
+
+typedef void (Deck::*DeckMemberFn)();
 
 class Deck : public Fl_Double_Window
 {
 public:
 	Deck() : Fl_Double_Window(800, 600),
-		_moveCard(NONE),
-		_moveAiCard(NONE),
 		_trump(HEART),
 		_marriage(NO_MARRIAGE),
 		_closed(NOT),
@@ -998,7 +1000,10 @@ public:
 		_cmd_input(nullptr),
 		_redeal_button(nullptr),
 		_welcome(nullptr),
-		_grayout(false)
+		_grayout(false),
+		_animate_x(0),
+		_animate_y(0),
+		_animate(nullptr)
 	{
 		_player.games_won = atoi(stats["player_games_won"].c_str());
 		_ai.games_won = atoi(stats["ai_games_won"].c_str());
@@ -1159,7 +1164,7 @@ public:
 	bool ai_test_close()
 	{
 		// test if ai should close
-		if (_closed == NOT && _moveCard == NONE && _moveAiCard == MOVING &&
+		if (_closed == NOT && _player.move_state == NONE && _ai.move_state == MOVING &&
 		    _cards.size() >= 4)
 		{
 			int maybe_score = highest_cards_in_hand(_ai.cards).value() + _ai.score + _ai.pending;
@@ -1179,7 +1184,7 @@ public:
 
 	bool idle() const
 	{
-		return _moveCard == NONE && _moveAiCard == NONE;
+		return _player.move_state == NONE && _ai.move_state == NONE;
 	}
 
 	bool test_close(int x_, int y_)
@@ -1291,7 +1296,7 @@ public:
 		// check closed game and AI has card on table
 		if (_closed != NOT)
 		{
-			if (_moveAiCard == ON_TABLE)
+			if (_ai.move_state == ON_TABLE)
 			{
 				// construct player cards from cards+played card
 				Cards temp = _player.cards;
@@ -1759,7 +1764,7 @@ public:
 		size_t move = lowest_card(_ai.cards); // default move lowest card
 		assert(move != NO_MOVE);
 
-		if (_closed != NOT && _moveCard == ON_TABLE)
+		if (_closed != NOT && _player.move_state == ON_TABLE)
 		{
 			size_t m = ai_move_closed_follow();
 			if (m != NO_MOVE)
@@ -1773,7 +1778,7 @@ public:
 		}
 		else
 		{
-			if (_moveCard == ON_TABLE)
+			if (_player.move_state == ON_TABLE)
 			{
 				size_t m = ai_move_follow();
 				if (m != NO_MOVE)
@@ -1790,14 +1795,15 @@ public:
 		_ai.card = _ai.cards[move];
 
 		_ai.cards.erase(_ai.cards.begin() + move);
-		_moveAiCard = ON_TABLE;
+		_ai.move_state = ON_TABLE;
+		redraw();
 		LOG("AI move: " << _ai.card << "\n");
 		return move;
 	}
 
 	void handle_move()
 	{
-		if (_moveCard != NONE && _moveAiCard == NONE)
+		if (_player.move_state != NONE && _ai.move_state == NONE)
 		{
 			if (_move == PLAYER)
 			{
@@ -1850,24 +1856,24 @@ public:
 		{
 			return;
 		}
-		if (_moveCard != NONE)
+		if (_player.move_state != NONE)
 		{
-			if (_moveCard == MOVING &&
+			if (_player.move_state == MOVING &&
 				(Fl::event_button() > 1 || !valid_move(_player.card)))
 			{
 					// withdraw move, put card back to hand
 				LOG("withdraw or invalid " <<  _player.card << "\n");
 				_player.cards.push_back(_player.card);
-				_moveCard = NONE;
+				_player.move_state = NONE;
 				_player.cards.sort();
 				return;
 			}
-			if (_moveAiCard == NONE)
+			if (_ai.move_state == NONE)
 			{
 				test_20_40(Fl::event_x(), Fl::event_y());
 			}
 
-			if (_closed == NOT && _cards.size() && _moveAiCard == NONE &&
+			if (_closed == NOT && _cards.size() && _ai.move_state == NONE &&
 		    _cards.back().rect().includes(Fl::event_x(), Fl::event_y()))
 			{
 				test_change();
@@ -1878,7 +1884,7 @@ public:
 				return;
 
 			// make accepted move
-			if (_moveCard == MOVING)
+			if (_player.move_state == MOVING)
 			{
 				if (_marriage == MARRIAGE_20)
 				{
@@ -1912,7 +1918,7 @@ public:
 						_player.score += 40;
 					}
 				}
-				_moveCard = ON_TABLE; // _player.card is on table
+				_player.move_state = ON_TABLE; // _player.card is on table
 				return;
 			}
 		}
@@ -1924,7 +1930,7 @@ public:
 			{
 				_player.card = _player.cards[i];
 				_player.cards.erase(_player.cards.begin() + i);
-				_moveCard = MOVING;
+				_player.move_state = MOVING;
 				LOG("PL move: " << _player.card << "\n");
 			}
 		}
@@ -2054,16 +2060,16 @@ public:
 
 	void draw_blob(const char *text_, Fl_Color c_, int x_, int y_)
 	{
-		if (!(_moveCard != NONE || _moveAiCard == ON_TABLE))
+		if (!(_player.move_state != NONE || _ai.move_state == ON_TABLE))
 			return;
 
-		if (_moveCard == ON_TABLE)
+		if (_player.move_state == ON_TABLE)
 		{
 			Rect r(_player.card.rect());
 			x_ = r.x + r.w / 2 ;
 			y_ = r.y + r.h / 2;
 		}
-		else if (_moveAiCard == ON_TABLE)
+		else if (_ai.move_state == ON_TABLE)
 		{
 			Rect r(_ai.card.rect());
 			x_ = r.x + r.w / 2 ;
@@ -2220,6 +2226,32 @@ public:
 		}
 	}
 
+	void animate_trick()
+	{
+		int src_X = (_move == AI ? w() - w() / 3 : w() - w() / 2) + _CW / 2;
+		int src_Y = (_move == AI ? h() / 5 : h() / 4 - h() / 40) + _CH / 2;
+
+		int dest_X = w() - _CW / 2 - 2;
+		int dest_Y = (_move == AI ? h() / 40 : h() - _CH - h() / 10) + _CH / 2;
+
+		int dx = dest_X - src_X;
+		int dy = dest_Y - src_Y;
+
+		_animate = &Deck::draw_animated_trick;
+		static const int STEPS = 5;
+		for (int i = 0; i < STEPS; i++)
+		{
+			int X = src_X + (floor)(((double)dx / STEPS) * i);
+			int Y = src_Y + (floor)(((double)dy / STEPS) * i);
+			_animate_x = X;
+			_animate_y = Y;
+//			DBG("animate " << X << "/" << Y << "\n");
+			wait(1./50);
+			redraw();
+		}
+		_animate = nullptr;
+	}
+
 	void draw_pack()
 	{
 		// _cards.back() is the trump card
@@ -2285,7 +2317,7 @@ public:
 		int Y = h() - _CH - h() / 10;
 		for (size_t i = 0; i < _player.deck.size(); i++)
 		{
-			_back.image()->draw(X - i * w() / 800, Y - i *w() / 800);
+			_back.image()->draw(X - i * w() / 800, Y - i * w() / 800);
 		}
 		for (size_t i = 0; i < _ai.deck.size(); i++)
 		{
@@ -2306,7 +2338,7 @@ public:
 	void draw_move()
 	{
 		// cards moving or on table
-		if (_moveAiCard == ON_TABLE)
+		if (_ai.move_state == ON_TABLE)
 		{
 			Fl_RGB_Image *image = _ai.card.image();
 			image->scale(_CW, _CH, 0, 1);
@@ -2315,13 +2347,13 @@ public:
 			image->draw(X, Y);
 			_ai.card.rect(Rect(X, Y, image->w(), image->h()));
 		}
-		if (_moveCard != NONE)
+		if (_player.move_state != NONE)
 		{
 			Fl_RGB_Image *image = _player.card.image();
 			image->scale(_CW, _CH, 0, 1);
-			int X = _moveCard == MOVING ? Fl::event_x() - image->w() / 2 : w() - w() / 2;
-			int Y = _moveCard == MOVING ? Fl::event_y() - image->h() / 2 : h() / 4 - h() / 40;
-			if (_moveCard == MOVING)
+			int X = _player.move_state == MOVING ? Fl::event_x() - image->w() / 2 : w() - w() / 2;
+			int Y = _player.move_state == MOVING ? Fl::event_y() - image->h() / 2 : h() / 4 - h() / 40;
+			if (_player.move_state == MOVING)
 				_shadow.image()->draw(X + image->w() / 12, Y + image->w() / 12);
 			image->draw(X, Y);
 			_player.card.rect(Rect(X, Y, image->w(), image->h()));
@@ -2372,6 +2404,12 @@ public:
 		}
 	}
 
+	void draw_animated_trick()
+	{
+		_back.image()->scale(_CW, _CH, 0, 1);
+		_back.image()->draw(_animate_x - _CW / 2, _animate_y - _CH / 2);
+	}
+
 	void draw()
 	{
 		// measure a "standard card"
@@ -2388,6 +2426,8 @@ public:
 		draw_decks();
 		draw_move();
 		draw_scores();
+		if (_animate)
+			std::invoke(_animate, this);
 		if (_player.deck_info)
 			draw_player_deck_info(Fl::event_x(), Fl::event_y());
 		if (_ai.deck_info)
@@ -2415,9 +2455,9 @@ public:
 		_ai.cards.clear();
 		_player.deck.clear();
 		_ai.deck.clear();
-		if (_moveCard != NONE)
+		if (_player.move_state != NONE)
 			_cards.push_front(_player.card);
-		if (_moveAiCard != NONE)
+		if (_ai.move_state != NONE)
 			_cards.push_front(_ai.card);
 		if (_cards.size() != 20)
 			DBG("#cards: " << _cards.size())
@@ -2548,8 +2588,8 @@ public:
 		_player.message = NO_MESSAGE;
 		_ai.message = NO_MESSAGE;
 		_error_message = NO_MESSAGE;
-		_moveCard = NONE;
-		_moveAiCard = NONE;
+		_player.move_state = NONE;
+		_ai.move_state = NONE;
 		_disabled = false;
 		_player.deck_info = false;
 		_ai.deck_info = false;
@@ -2817,7 +2857,7 @@ public:
 		debug();
 		auto no_cards_in_play = [&]() -> bool
 		{
-			return _player.cards.empty() && _ai.cards.empty() && _moveCard == NONE && _moveAiCard == NONE;
+			return _player.cards.empty() && _ai.cards.empty() && _player.move_state == NONE && _ai.move_state == NONE;
 		};
 
 		if (_closed == NOT || _closed == AUTO)
@@ -2887,6 +2927,11 @@ public:
 			else LOG("AI card " << _ai.card << " tricks player card " << _player.card << "\n")
 		}
 		LOG("next move: " << (_move == PLAYER ? "PLAYER" : "AI") << "\n")
+
+		_player.move_state = NONE;
+		_ai.move_state = NONE;
+		animate_trick();
+
 		if (_move == PLAYER) // player won trick
 		{
 			_player.deck.push_front(_ai.card);
@@ -2908,8 +2953,6 @@ public:
 			redraw();
 		}
 
-		_moveCard = NONE;
-		_moveAiCard = NONE;
 	}
 
 	void fillup_cards()
@@ -2955,8 +2998,8 @@ public:
 		init();
 		wait(1.0);
 		_move = playout_;
-		_moveCard = NONE;
-		_moveAiCard = NONE;
+		_player.move_state = NONE;
+		_ai.move_state = NONE;
 		cursor(FL_CURSOR_DEFAULT);
 		_redeal_button->show();
 		redraw();
@@ -2967,10 +3010,10 @@ public:
 				cursor(FL_CURSOR_DEFAULT);
 				ai_message(NO_MESSAGE);
 				redraw();
-				_moveCard = NONE;
+				_player.move_state = NONE;
 				if (check_end()) break;
-				player_message(_moveAiCard == NONE ? YOU_LEAD : YOUR_TURN);
-				while (Fl::first_window() && _moveCard != ON_TABLE)
+				player_message(_ai.move_state == NONE ? YOU_LEAD : YOUR_TURN);
+				while (Fl::first_window() && _player.move_state != ON_TABLE)
 				{
 					Fl::wait();
 				}
@@ -2978,7 +3021,7 @@ public:
 				if (check_end()) break; // if enough from 20/40!!
 
 				if (!Fl::first_window()) break;
-				if (_moveAiCard == ON_TABLE)
+				if (_ai.move_state == ON_TABLE)
 				{
 					wait(1.5);
 					check_trick(AI);
@@ -2999,8 +3042,8 @@ public:
 			{
 				player_message(NO_MESSAGE);
 				if (check_end()) break;
-				_moveAiCard = MOVING;
-				ai_message(_moveCard == NONE ? AI_LEADS : AI_TURN);
+				_ai.move_state = MOVING;
+				ai_message(_player.move_state == NONE ? AI_LEADS : AI_TURN);
 				cursor(FL_CURSOR_WAIT);
 				wait(2.0);
 				if (!Fl::first_window()) break;
@@ -3008,7 +3051,7 @@ public:
 
 				if (check_end()) break; // if enough from 20/40!!
 
-				if (_moveCard == ON_TABLE)
+				if (_player.move_state == ON_TABLE)
 				{
 					wait(1.5);
 					check_trick(PLAYER);
@@ -3035,12 +3078,13 @@ public:
 	{
 		DBG("wait(" << s_ << ")\n");
 		_disabled = true;
+		double min_wait = s_ > 1./50 ? 1./50 : s_;
 		std::chrono::time_point<std::chrono::system_clock> start =
 			std::chrono::system_clock::now();
 		while (Fl::first_window() && _disabled)
 		{
-			Fl::wait(1./50);
-			redraw(); // TODO/FIXME: do redraws in game loop instead
+			Fl::wait(min_wait);
+//			redraw(); // TODO/FIXME: do redraws in game loop instead
 			std::chrono::time_point<std::chrono::system_clock> end =
 				std::chrono::system_clock::now();
 			std::chrono::duration<double> diff = end - start;
@@ -3118,8 +3162,6 @@ private:
 	CardImage _shadow;
 	CardImage _outline;
 	Cards _cards;			// remaining cards
-	MoveCardState _moveCard;			// flag player move (_player.card valid)
-	MoveCardState _moveAiCard;	   // flag ai move (_ai.card valid)
 	CardSuite _trump;		// trump suite
 	Marriage _marriage;
 	Closed _closed;
@@ -3138,6 +3180,9 @@ private:
 	Audio _audio;
 #endif
 	std::string _cmd;
+	int _animate_x;
+	int _animate_y;
+	DeckMemberFn _animate;
 };
 
 void list_decks(std::ostringstream &os_)
