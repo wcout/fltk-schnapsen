@@ -303,7 +303,10 @@ bool debug = false;
 const std::string &cardDir = "svg_cards";
 
 // for readability of std::vector/dequeu index results
-const	size_t NO_MOVE = (size_t)-1;
+constexpr size_t NO_MOVE = (size_t)-1;
+
+// score points count down for "bummerl"
+constexpr int MATCH_SCORE = 7; // or 11?
 
 // helpers
 const std::string &homeDir()
@@ -516,6 +519,7 @@ struct Rect
 		h(wgt_.h() - Fl::box_dh(box_))
 	{}
 	bool includes(int x_, int y_) const { return x_ >= x && y_ >= y && x_ < x + w && y_ < y + h; }
+	std::pair<int, int> center() const { return std::make_pair((x + w) / 2, (y + h) / 2); }
 };
 
 class CardImage
@@ -1984,35 +1988,53 @@ public:
 		int W = _CW - _CW / 10;
 		fl_line(X, Y + fl_descent(), X + W, Y + fl_descent());
 		fl_line(X + W / 2, Y - fl_height(), X + W / 2, Y + H - fl_descent());
+		Y += fl_descent();
+
 		int player_score = 0;
 		int ai_score = 0;
-		Y += fl_descent();
+
+		auto draw_score = [&](std::pair<int, int> s) -> void
+		{
+			char buf[50];
+			char pbuf[20];
+			char abuf[20];
+			if (MATCH_SCORE - player_score <= 0 || MATCH_SCORE - ai_score <= 0) return;
+			if (!s.first && !s.second)
+			{
+				snprintf(pbuf, sizeof(pbuf), "%d", MATCH_SCORE - player_score);
+				snprintf(abuf, sizeof(abuf), "%d", MATCH_SCORE - ai_score);
+			}
+			else
+			{
+				snprintf(pbuf, sizeof(pbuf), "%d", MATCH_SCORE - player_score);
+				if (!s.first || pbuf[0] == '0') pbuf[0] = '-';
+				snprintf(abuf, sizeof(abuf), "%d", MATCH_SCORE - ai_score);
+				if (!s.second || abuf[0] == '0') abuf[0] = '-';
+			}
+			snprintf(buf, sizeof(buf),"  %2s      %2s", pbuf, abuf);
+			Y += _CH / 12;
+			draw_color_text(buf, X, Y, text_colors);
+		};
+
 		// limit display to last 8 scores
 		size_t first = _gamebook.size() > 8 ? _gamebook.size() - 8 : 0;
+		if (first == 0)
+			draw_score(std::make_pair(0, 0));
 		for (size_t i = 0; i < _gamebook.size(); i++)
 		{
 			auto s = _gamebook[i];
-			char buf[40];
 			player_score += s.first;
 			ai_score += s.second;
 			if (i < first) continue;
-			char pbuf[10];
-			snprintf(pbuf, sizeof(pbuf), "%d", player_score);
-			if (!s.first || pbuf[0] == '0') pbuf[0] = '-';
-			char abuf[10];
-			snprintf(abuf, sizeof(abuf), "%d", ai_score);
-			if (!s.second || abuf[0] == '0') abuf[0] = '-';
-			snprintf(buf, sizeof(buf),"   %s       %s", pbuf, abuf);
-			Y += _CH / 12;
-			draw_color_text(buf, X, Y, text_colors);
+			draw_score(s);
 		}
-		if (ai_score >= 7 || player_score >= 7)
+		if (ai_score >= MATCH_SCORE || player_score >= MATCH_SCORE)
 		{
 			// draw "bummerl"
 			char buf[40];
 			Y += _CH / 12;
 			snprintf(buf, sizeof(buf),"   %s       %s",
-				(ai_score >= 7 ? "●" : " "), (player_score >= 7 ? "●" : " "));
+				(ai_score >= MATCH_SCORE ? "●" : " "), (player_score >= MATCH_SCORE ? "●" : " "));
 			draw_color_text(buf, X, Y, text_colors);
 		}
 	}
@@ -2619,7 +2641,7 @@ public:
 		}
 		LOG("match score PL:AI: " << pscore << ":" << ascore << "\n");
 		fl_message_font_ = FL_COURIER;
-		if (pscore >= 7)
+		if (pscore >= MATCH_SCORE)
 		{
 			LOG("You win match " << pscore << ":" << ascore << "\n");
 			_player.matches_won++;
@@ -2631,7 +2653,7 @@ public:
 			redraw();
 			return true;
 		}
-		else if (ascore >= 7)
+		else if (ascore >= MATCH_SCORE)
 		{
 			LOG("AI wins match " << ascore << ":" << pscore << "\n");
 			_ai.matches_won++;
@@ -3364,12 +3386,12 @@ void Welcome::draw()
 	c.image()->draw(w() / 40, h() / 4);
 	fl_font(FL_HELVETICA_BOLD, w() / 10);
 	fl_color(FL_BLACK);
-	static std::string title("^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B");
+	static constexpr char title[] = "^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B";
 	draw_color_text(title, (w() - fl_width("FLTK SCHNAPSEN")) / 2, h() / 7, text_colors);
 	fl_color(FL_BLUE);
 	fl_font(FL_HELVETICA_BOLD, w() / 26);
-	static std::string cr("(c) 2025 Christian Grabner <wcout@gmx.net>");
-	fl_draw(cr.c_str(), (w() - fl_width(cr.c_str())) / 2, h() / 7 + h() / 14);
+	static constexpr char cr[] = "(c) 2025 Christian Grabner <wcout@gmx.net>";
+	fl_draw(cr, (w() - fl_width(cr)) / 2, h() / 7 + h() / 14);
 	fl_color(FL_BLACK);
 	fl_font(FL_HELVETICA_BOLD, h() / 16);
 	fl_draw(message(WELCOME).c_str(), w() / 2 + w() / 60, h() / 2);
