@@ -110,7 +110,8 @@ enum class CardFace
 	QUEEN,
 	KING,
 	ACE,
-	NrOfFaces
+	NrOfFaces,
+	NO_FACE
 };
 
 enum class CardSuite
@@ -120,7 +121,8 @@ enum class CardSuite
 	HEART,
 	SPADE,
 	NrOfSuites,
-	ANY_SUITE
+	ANY_SUITE,
+	NO_SUITE
 };
 
 enum class Message
@@ -616,7 +618,8 @@ private:
 class Card
 {
 public:
-	Card(CardFace f_, CardSuite s_) :
+	Card() : _f(NO_FACE), _s(NO_SUITE), _rect(0,0,0,0) {}
+	explicit Card(CardFace f_, CardSuite s_) :
 		_f(f_),
 		_s(s_),
 		_rect(0,0,0,0)
@@ -969,7 +972,7 @@ private:
 
 struct GameData
 {
-	GameData() : card(QUEEN, HEART), score(0), pending(false),
+	GameData() : score(0), pending(false),
 	             message(NO_MESSAGE), deck_info(false), games_won(0),
 	             matches_won(0), display_score(false), move_state(NONE) {}
 	Cards   cards;    // hand
@@ -984,6 +987,7 @@ struct GameData
 	int     matches_won;
 	bool    display_score;
 	CardState move_state;
+	Card    last_drawn;
 };
 
 typedef void (Deck::*DeckMemberFn)();
@@ -1960,6 +1964,7 @@ public:
 		else if (e_ == FL_PUSH)
 		{
 			error_message(NO_MESSAGE);
+			_move == AI ? _ai.last_drawn = Card() : _player.last_drawn = Card();
 			handle_click();
 			return 1;
 		}
@@ -2238,13 +2243,25 @@ public:
 		}
 		for (size_t i = 0; i < _player.cards.size(); i++)
 		{
-			Fl_RGB_Image *image = _player.cards[i].image();
+			Card &c = _player.cards[i];
+			Fl_RGB_Image *image = c.image();
 			int X = ((i + 1) * w()) / 20 + w() / 2 - w() / 24;
 			int Y = h() - _CH - h() / 40;
 			image->scale(_CW, _CH, 0, 1);
-			image->draw(X, Y);
+			if (_player.last_drawn.face() != NO_FACE &&
+			    _player.last_drawn.name() == c.name())
+			{
+				Fl_Image *temp = image->copy();
+				temp->color_average(FL_YELLOW, 0.9);
+				temp->draw(X, Y);
+				delete temp;
+			}
+			else
+			{
+				image->draw(X, Y);
+			}
 			int D = _CH / 20;
-			_player.cards[i].rect(Rect(X, Y + D, i == _player.cards.size() - 1 ? image->w() : w() / 20, _CH - 2 * D));
+			c.rect(Rect(X, Y + D, i == _player.cards.size() - 1 ? image->w() : w() / 20, _CH - 2 * D));
 		}
 	}
 
@@ -2986,6 +3003,7 @@ public:
 			{
 				Card c = _cards.front();
 				_cards.pop_front();
+				_move == AI ? _ai.last_drawn = c : _player.last_drawn = c;
 				if (_move == AI)
 					_ai.cards.push_front(c);
 				else
@@ -2995,6 +3013,7 @@ public:
 			if (_cards.size())
 			{
 				Card c = _cards.front();
+				_move == PLAYER ? _ai.last_drawn = c : _player.last_drawn = c;
 				_cards.pop_front();
 				if (_move == AI)
 					_player.cards.push_front(c);
