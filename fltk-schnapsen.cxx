@@ -3129,7 +3129,7 @@ public:
 			std::chrono::time_point<std::chrono::system_clock> end =
 				std::chrono::system_clock::now();
 			std::chrono::duration<double> diff = end - start;
-			if (diff.count() > s_) break;
+			if (diff.count() >= s_) break;
 		}
 		_disabled = false;
 	}
