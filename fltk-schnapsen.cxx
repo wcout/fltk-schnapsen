@@ -78,8 +78,8 @@ std::string RESET_ATTR = "\033[0m";
 #define LOG(x) { if (atoi(config["loglevel"].c_str()) > 0) std::cout << LOG_PREFIX << x << RESET_ATTR; }
 #define DBG(x) { if (atoi(config["loglevel"].c_str()) > 1) std::cout << DBG_PREFIX << x << RESET_ATTR; }
 
-const char APPLICATION[] = "fltk-schnapsen";
-const char VERSION[] = "1.0";
+constexpr char APPLICATION[] = "fltk-schnapsen";
+constexpr char VERSION[] = "1.0";
 
 
 enum class Player
@@ -3283,7 +3283,6 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 		{ "w", "show welcome screen" },
 		{ "h", "this help" }
 	};
-	static const std::string help_text(make_help(long_args, short_args));
 
 	if (value_.size() && long_args.find(arg_.substr(2)) != long_args.end())
 	{
@@ -3303,7 +3302,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 				config["welcome"] = "1";
 				break;
 			case 'h':
-				OUT(help_text);
+				OUT(make_help(long_args, short_args));
 				return false;
 			case 'C':
 				config.clear();
@@ -3312,7 +3311,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 	else
 	{
 		fl_message_font_ = FL_COURIER;
-		fl_alert("Invalid argument '%s'!\n\n%s", arg_.c_str(), help_text.c_str());
+		fl_alert("Invalid argument '%s'!\n\n%s", arg_.c_str(), make_help(long_args, short_args).c_str());
 		return false;
 	}
 	return true;
@@ -3346,7 +3345,7 @@ Welcome::Welcome(const Deck &deck_) : Fl_Double_Window(deck_.w() / 2, deck_.h() 
 	set_modal();
 	box(FL_UP_BOX);
 	color(FL_WHITE);
-	Fl::add_timeout(0.2, redraw_timer, this);
+	redraw_timer(this);
 }
 
 Welcome::~Welcome()
@@ -3401,7 +3400,9 @@ void Welcome::draw()
 		fl_draw(suite_symbols[suites[s]].c_str(), x, y + fl_height());
 	}
 	Card c(QUEEN, HEART);
-	c.image()->scale(w() / 2 - w() / 10, h(), 1, 1);
+	int W = w() / 2 - w() / 10;
+	int H = (double)c.image()->h() / c.image()->w() * W;
+	c.image()->scale(W, H, 0, 1);
 	c.image()->draw(w() / 40, h() / 4);
 	fl_font(FL_HELVETICA_BOLD, w() / 10);
 	fl_color(FL_BLACK);
@@ -3420,20 +3421,19 @@ void Welcome::draw()
 
 int main(int argc_, char *argv_[])
 {
-	Fl::keyboard_screen_scaling(0);
+	Fl::keyboard_screen_scaling(0); // disable keyboard scaling - we do that ourselves
 	fl_message_title_default(message(TITLE).c_str());
 	Fl::get_system_colors();
-	Fl::background(240, 240,240);
+	Fl::background(240, 240,240); // brighter color for message background
 	load_config();
 	load_stats();
 	LOG("homeDir: " << homeDir() << "\n");
 	parse_arg(argc_, argv_);
-	fl_message_title_default(message(TITLE).c_str());
+	fl_message_title_default(message(TITLE).c_str()); // redo ... maybe language changed
 	srand(time(nullptr));
 	Deck deck;
 	deck.show();
 	deck.wait_for_expose();
-	fl_message_title_default(message(TITLE).c_str());
 	if (atoi(config["welcome"].c_str()))
 	{
 		deck.welcome();
