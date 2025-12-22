@@ -217,15 +217,15 @@ std::map<Message, std::string> messages_de = {
 	{TITLE, "Schnapsen zu zweit"},
 	{GAMEBOOK, "**Spielebuch**"},
 	{GB_HEADLINE, "  DU      AI"},
-	{YOU_WIN, "♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣\n"
+	{YOU_WIN, "♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦\n"
 	          "♥                                  ♠\n"
-	          "♦           Glückwunsch!           ♥\n"
-	          "♣                                  ♦\n"
-	          "♠                                  ♣\n"
+	          "♣           Glückwunsch!           ♥\n"
+	          "♦                                  ♣\n"
+	          "♠                                  ♦\n"
 	          "♥   Du hast die Partie gewonnen!   ♠\n"
-	          "♦                                  ♥\n"
-	          "♣                                  ♦\n"
-	          "♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣"},
+	          "♣                                  ♥\n"
+	          "♦                                  ♣\n"
+	          "♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦"};
 	{YOU_LOST, "\n\nDie AI hat dir ein\nBummerl angehängt!\n\n"},
 	{INVALID_SUITE, "Du must Farbe geben"},
 	{MUST_TRICK_WITH_SUITE, "Du must mit Farbe stechen"},
@@ -255,15 +255,15 @@ std::map<Message, std::string> messages_en = {
 	{TITLE, "Schnapsen for two"},
 	{GAMEBOOK, "**Game book**"},
 	{GB_HEADLINE, "  YOU     AI"},
-	{YOU_WIN, "♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣\n"
+	{YOU_WIN, "♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦\n"
 	          "♥                                  ♠\n"
-	          "♦       Wow, your lucky day!       ♥\n"
-	          "♣                                  ♦\n"
-	          "♠                                  ♣\n"
+	          "♣       Wow, your lucky day!       ♥\n"
+	          "♦                                  ♣\n"
+	          "♠                                  ♦\n"
 	          "♥   You have won the whole lot!    ♠\n"
-	          "♦                                  ♥\n"
-	          "♣                                  ♦\n"
-	          "♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣♠♥♦♣"},
+	          "♣                                  ♥\n"
+	          "♦                                  ♣\n"
+	          "♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦"};
 	{YOU_LOST, "\n\nYou got the bummerl!\n\n"},
 	{INVALID_SUITE, "You must give suite"},
 	{MUST_TRICK_WITH_SUITE, "You must trick with suite"},
