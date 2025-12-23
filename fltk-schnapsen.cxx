@@ -1009,8 +1009,7 @@ public:
 		_redeal_button(nullptr),
 		_welcome(nullptr),
 		_grayout(false),
-		_animate_x(0),
-		_animate_y(0),
+		_animate_xy(std::make_pair(-1, -1)),
 		_animate(nullptr)
 	{
 		_player.games_won = atoi(stats["player_games_won"].c_str());
@@ -1803,6 +1802,9 @@ public:
 		_ai.card = _ai.cards[move];
 
 		_ai.cards.erase(_ai.cards.begin() + move);
+
+		animate_ai_move();
+
 		_ai.move_state = ON_TABLE;
 		redraw();
 		LOG("AI move: " << _ai.card << "\n");
@@ -2265,6 +2267,36 @@ public:
 		}
 	}
 
+	void do_animate(int src_X_, int src_Y_, int dest_X_, int dest_Y_)
+	{
+		int dx = dest_X_ - src_X_;
+		int dy = dest_Y_ - src_Y_;
+
+		static const int STEPS = 5;
+		for (int i = 0; i < STEPS; i++)
+		{
+			int X = src_X_ + (floor)(((double)dx / STEPS) * i);
+			int Y = src_Y_ + (floor)(((double)dy / STEPS) * i);
+			_animate_xy = std::make_pair(X, Y);
+			wait(1./50);
+			redraw();
+		}
+		_animate = nullptr;
+	}
+
+	void animate_ai_move()
+	{
+		int src_X = w() / 20 + w() / 2 - w() / 24 + _CW / 2;
+		int src_Y = h()/40 + _CH / 4;
+
+		int dest_X = w() - w() / 3 + _CW / 2;
+		int dest_Y = h() / 5 + _CH / 2;
+
+		_animate = &Deck::draw_animated_move;
+
+		do_animate(src_X, src_Y, dest_X, dest_Y);
+	}
+
 	void animate_trick()
 	{
 		int src_X = (_move == AI ? w() - w() / 3 : w() - w() / 2) + _CW / 2;
@@ -2273,22 +2305,9 @@ public:
 		int dest_X = w() - _CW / 2 - 2;
 		int dest_Y = (_move == AI ? h() / 10 - w() / 800 : h() - _CH - h() / 10) + _CH / 2;
 
-		int dx = dest_X - src_X;
-		int dy = dest_Y - src_Y;
-
 		_animate = &Deck::draw_animated_trick;
-		static const int STEPS = 5;
-		for (int i = 0; i < STEPS; i++)
-		{
-			int X = src_X + (floor)(((double)dx / STEPS) * i);
-			int Y = src_Y + (floor)(((double)dy / STEPS) * i);
-			_animate_x = X;
-			_animate_y = Y;
-//			DBG("animate " << X << "/" << Y << "\n");
-			wait(1./50);
-			redraw();
-		}
-		_animate = nullptr;
+
+		do_animate(src_X, src_Y, dest_X, dest_Y);
 	}
 
 	void draw_pack()
@@ -2446,7 +2465,18 @@ public:
 	void draw_animated_trick()
 	{
 		_back.image()->scale(_CW, _CH, 0, 1);
-		_back.image()->draw(_animate_x - _CW / 2, _animate_y - _CH / 2);
+		_back.image()->draw(_animate_xy.first - _CW / 2, _animate_xy.second - _CH / 2);
+	}
+
+	void draw_animated_move()
+	{
+		_ai.card.image()->scale(_CW, _CH, 0, 1);
+		_shadow.image()->scale(_CW, _CH, 0, 1);
+
+		int X = _animate_xy.first - _CW / 2;
+		int Y = _animate_xy.second - _CH / 2;
+		_shadow.image()->draw(X + _CW / 12, Y + _CH / 12);
+		_ai.card.image()->draw(X, Y);
 	}
 
 	void draw()
@@ -3221,8 +3251,7 @@ private:
 	Audio _audio;
 #endif
 	std::string _cmd;
-	int _animate_x;
-	int _animate_y;
+	std::pair<int, int> _animate_xy;
 	DeckMemberFn _animate;
 };
 
