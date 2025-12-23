@@ -61,7 +61,7 @@
 #endif
 #define _access access
 
-typedef std::map<std::string, std::string> string_map;
+typedef std::unordered_map<std::string, std::string> string_map;
 
 // config values (from fltk-schnapsen.cfg)
 string_map config = {};
@@ -611,9 +611,9 @@ public:
 	}
 private:
 	std::string _last_id;
-	static std::map<std::string, Fl_RGB_Image *> _images;
+	static std::unordered_map<std::string, Fl_RGB_Image *> _images;
 };
-/*static*/std::map<std::string, Fl_RGB_Image *> CardImage::_images;
+/*static*/std::unordered_map<std::string, Fl_RGB_Image *> CardImage::_images;
 
 class Card
 {
@@ -2271,7 +2271,7 @@ public:
 		int src_Y = (_move == AI ? h() / 5 : h() / 4 - h() / 40) + _CH / 2;
 
 		int dest_X = w() - _CW / 2 - 2;
-		int dest_Y = (_move == AI ? h() / 40 : h() - _CH - h() / 10) + _CH / 2;
+		int dest_Y = (_move == AI ? h() / 10 - w() / 800 : h() - _CH - h() / 10) + _CH / 2;
 
 		int dx = dest_X - src_X;
 		int dy = dest_Y - src_Y;
@@ -3363,7 +3363,6 @@ void Welcome::redraw_timer(void *d_)
 int Welcome::handle(int e_)
 {
 	if (e_ == FL_NO_EVENT) return 1;
-	LOG("handle " << fl_eventnames[e_] << "\n");
 	if (e_ == FL_PUSH || e_ == FL_KEYDOWN)
 	{
 		Fl::delete_widget(this);
