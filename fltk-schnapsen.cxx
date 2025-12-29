@@ -2520,7 +2520,10 @@ public:
 	void draw()
 	{
 		// measure a "standard card"
-		_card_template.image()->scale(w() / 8, w() / 2, 1, 1);
+//		_card_template.image()->scale(w() / 8, w() / 2, 1, 1);
+		int W = w() / 8;
+		int H = 1.5 * W;
+		_card_template.image()->scale(W, H, 0, 1);
 		_CW = _card_template.image()->w();
 		_CH = _card_template.image()->h();
 		draw_table();
@@ -3467,7 +3470,8 @@ void Welcome::draw()
 	}
 	Card c(QUEEN, HEART);
 	int W = w() / 2 - w() / 10;
-	int H = (double)c.image()->h() / c.image()->w() * W;
+	int H = 1.5 * W;
+//	int H = (double)c.image()->h() / c.image()->w() * W;
 	c.image()->scale(W, H, 0, 1);
 	c.image()->draw(w() / 40, h() / 4);
 	fl_font(FL_HELVETICA_BOLD, w() / 10);
