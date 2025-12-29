@@ -8,6 +8,7 @@
 #include <FL/Fl_Box.H>
 #include <FL/Fl_Button.H>
 #include <FL/Fl_SVG_Image.H>
+#include <FL/Fl_PNG_Image.H>
 #include <FL/Fl_Shared_Image.H>
 #include <FL/Fl_Tiled_Image.H>
 #include <FL/Fl_Input.H>
@@ -405,8 +406,8 @@ std::string readinFile(const std::string &name_)
 
 Fl_RGB_Image *rotate_90_CCW(const Fl_RGB_Image &svg_)
 {
-	int w = svg_.w();
-	int h = svg_.h();
+	int w = svg_.data_w();
+	int h = svg_.data_h();
 	int d = svg_.d();
 	assert(w > 0 && h > 0 && d >= 3);
 	uchar alpha = 0;
@@ -530,8 +531,16 @@ public:
 	CardImage& image(const std::string &id_, const std::string &pathname_)
 	{
 		assert(_images.find(id_) == _images.end());
-		Fl_SVG_Image *svg = new Fl_SVG_Image(pathname_.c_str());
-		if ((!svg || svg->w() <= 0 || svg->h() <= 0) && !::debug)
+		std::string pathname(pathname_);
+		Fl_RGB_Image *svg = new Fl_SVG_Image(pathname.c_str());
+		if ((!svg || svg->w() <= 0 || svg->h() <= 0))
+		{
+			delete svg;
+			pathname.erase(pathname.size() - 3);
+			pathname.append("png");
+			svg = new Fl_PNG_Image(pathname.c_str());
+		}
+		if ((!svg || svg->w() <= 0 || svg->h() <= 0))
 		{
 			fl_alert("Card image '%s' not found!", pathname_.c_str());
 			exit(EXIT_FAILURE);
@@ -558,7 +567,8 @@ public:
 		Fl_RGB_Image *svg = image(id_);
 		assert(svg && svg->w() > 0 && svg->h() > 0);
 		Fl_RGB_Image *skewed_image = _images[id_ + "_skewed"];
-		svg->as_svg_image()->resize(svg->w(), svg->h());
+		if (svg->as_svg_image())
+			svg->as_svg_image()->resize(svg->w(), svg->h());
 		if (!skewed_image
 			|| skewed_image->w() != svg->w() || skewed_image->h() != svg->h() / 3)
 		{
@@ -575,7 +585,8 @@ public:
 		Fl_RGB_Image *svg = image(id_);
 		assert(svg && svg->w() > 0 && svg->h() > 0);
 		Fl_RGB_Image *quer_image = _images[id_ + "_quer"];
-		svg->as_svg_image()->resize(svg->w(), svg->h());
+		if (svg->as_svg_image())
+			svg->as_svg_image()->resize(svg->w(), svg->h());
 		if (!quer_image
 			|| quer_image->w() != svg->h() || quer_image->h() != svg->w())
 		{
@@ -596,6 +607,7 @@ public:
 			_images[id_ + "_quer"] = rotate_90_CCW(*svg);
 		}
 		quer_image = _images[id_ + "_quer"];
+		quer_image->scale(svg->h(), svg->w(), 0, 1);
 		assert(quer_image);
 		return quer_image;
 	}
@@ -615,6 +627,16 @@ private:
 };
 /*static*/std::unordered_map<std::string, Fl_RGB_Image *> CardImage::_images;
 
+std::string cardset_dir()
+{
+	std::string dir = homeDir() + cardDir + "/";
+	std::string cardset = config["cardset"];
+	if (cardset.empty())
+		cardset = "English_pattern";
+	dir += cardset + "/";
+	return dir;
+}
+
 class Card
 {
 public:
@@ -626,11 +648,7 @@ public:
 	{
 		if (!_images.image(name()))
 		{
-			std::string root = homeDir() + cardDir + "/";
-			std::string cardset = config["cardset"];
-			if (cardset.empty())
-				cardset = "English_pattern";
-			root += cardset + "/";
+			std::string root = cardset_dir();
 			_pathname = root + filename();
 			DBG("load '" << _pathname << "'\n");
 			_images.image(name(), _pathname);
@@ -3453,6 +3471,7 @@ int main(int argc_, char *argv_[])
 	fl_message_title_default(message(TITLE).c_str());
 	Fl::get_system_colors();
 	Fl::background(240, 240,240); // brighter color for message background
+	fl_register_images();
 	load_config();
 	load_stats();
 	LOG("homeDir: " << homeDir() << "\n");
