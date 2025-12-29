@@ -187,6 +187,7 @@ std::map<CardSuite, std::string> suite_names = { {CLUB, "clubs"}, {DIAMOND, "dia
 std::map<CardFace, int> card_value = { {TEN, 10}, {JACK, 2}, {QUEEN, 3}, {KING, 4}, {ACE, 11} };
 std::map<CardSuite, int> suite_weights = { {SPADE, 4}, {HEART,3}, {DIAMOND,2}, {CLUB,1} };
 std::map<CardSuite, std::string> suite_symbols = { {SPADE, "♠"}, {HEART, "♥"}, {DIAMOND, "♦"}, {CLUB, "♣"} };
+std::map<CardSuite, std::string> suite_symbols_image = { {SPADE, "laub.svg"}, {HEART, "herz.svg"}, {DIAMOND, "schelle.svg"}, {CLUB, "eichel.svg"} };
 
 const std::map<char, Fl_Color> text_colors = {
 	{ 'r', FL_RED },
@@ -2130,20 +2131,31 @@ public:
 		fl_draw(text_, x_ - fl_width(text_) / 2, y_ + fl_height() / 2 - fl_descent());
 	}
 
-	void draw_suite_symbol(CardSuite suite_, int x_, int y_, const std::string &prefix_ = "")
+	void draw_suite_symbol(CardSuite suite_, int x_, int y_)
 	{
 		fl_font(FL_HELVETICA, _CH / 7);
 		fl_color(FL_BLACK);
 		Card c(ACE, suite_);
 		std::ostringstream os;
-		os << prefix_;
 		if (c.is_red_suite())
 			os << "^r";
 		else
 			os << "^B";
-		os << c.suite_symbol();
-		std::string text = os.str();
-		draw_color_text(text, x_ - fl_width(text.c_str()) / 2, y_, text_colors);
+
+		std::string symbol_image = cardset_dir() + suite_symbols_image[c.suite()];
+		if (std::filesystem::exists(symbol_image))
+		{
+			Fl_SVG_Image svg(symbol_image.c_str());
+			svg.resize(svg.w(), svg.h());
+			svg.scale(fl_width("M"), fl_height() - 2 * fl_descent(), 0, 1);
+			svg.draw(x_ - svg.w(), y_ - fl_height() + fl_descent());
+		}
+		else
+		{
+			os << c.suite_symbol();
+			std::string text = os.str();
+			draw_color_text(text, x_ - fl_width(text.c_str()) / 2, y_, text_colors);
+		}
 	}
 
 	std::string background_image()
