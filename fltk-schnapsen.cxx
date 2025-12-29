@@ -2734,35 +2734,32 @@ public:
 		std::string m(message(YOU_WIN));
 		Fl::add_timeout(0.0, [](void *d_)
 		{
-			std::string *m = (std::string *)d_;
+			Fl_Window *win = Fl::first_window();
+			if (win == nullptr) return;
+			auto &m = *(const std::string *)d_;
+			Fl_Box *b = static_cast<Fl_Box *>(win->child(0));
+			if (b->label() == nullptr || std::string(b->label()) != m) return;
 			std::string s;
-			const char *p = m->c_str();
+			const char *p = m.c_str();
 			while (*p)
 			{
 				int len = fl_utf8len1(*p);
-				std::string c = m->substr(p - m->c_str(), len);
+				std::string c = m.substr(p - m.c_str(), len);
 				p += len;
 				if (c == "♥" || c == "♦" || c == "\n")
 					s.append(c);
 				else
 					s.push_back(' ');
 			}
-
-			Fl_Window *win = Fl::first_window();
-			if (win)
-			{
-				Fl_Box *b = (Fl_Box *)win->child(0);
-				if (b->label() == nullptr || std::string(b->label()) != *m) return;
-				Fl_Box *box = new Fl_Box(b->x(), b->y(), b->w(), b->h());
-				box->color(b->color());
-				box->labelcolor(FL_RED);
-				box->labelfont(b->labelfont());
-				box->labelsize(b->labelsize());
-				box->align(b->align());
-				box->copy_label(s.c_str());
-				win->insert(*box, 99);
-				win->redraw();
-			}
+			Fl_Box *box = new Fl_Box(b->x(), b->y(), b->w(), b->h());
+			box->color(b->color());
+			box->labelcolor(FL_RED);
+			box->labelfont(b->labelfont());
+			box->labelsize(b->labelsize());
+			box->align(b->align());
+			box->copy_label(s.c_str());
+			win->insert(*box, 99);
+			win->redraw();
 		}, &m);
 		fl_alert("%s", m.c_str());
 	}
