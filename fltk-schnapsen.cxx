@@ -1976,6 +1976,14 @@ public:
 		int ret = Fl_Double_Window::handle(e_);
 		if (e_ == FL_MOVE )
 		{
+			// reduce excessive FL_MOVE event processing...
+			static std::chrono::time_point<std::chrono::system_clock> start =
+				std::chrono::system_clock::now();
+			std::chrono::time_point<std::chrono::system_clock> end =
+				std::chrono::system_clock::now();
+			std::chrono::duration<double> diff = end - start;
+			if (diff.count() < 1./20) return ret;
+			start = end;
 			handle_move();
 		}
 		else if (e_ == FL_KEYDOWN)
