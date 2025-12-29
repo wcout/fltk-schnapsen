@@ -13,6 +13,7 @@
 #include <FL/Fl_Tiled_Image.H>
 #include <FL/Fl_Input.H>
 #include <FL/fl_draw.H>
+#include <FL/fl_utf8.h>
 #include <FL/fl_ask.H>
 #include <FL/filename.H>
 #include <FL/names.h>
@@ -2582,6 +2583,16 @@ public:
 			debug();
 		else if (_cmd.find("error=") == 0)
 			error_message((Message)atoi(_cmd.substr(6).c_str()));
+		else if (_cmd.find("message=") == 0)
+		{
+			fl_message_font_ = FL_COURIER;
+			fl_message_size_ = h() / 40;
+			Message m = (Message)atoi(_cmd.substr(8).c_str());
+			if (m == YOU_WIN)
+				show_win_msg();
+			else
+				fl_alert("%s", message(m).c_str());
+		}
 		else if (_cmd.find("gb=") == 0)
 		{
 			std::string args = _cmd.substr(3);
@@ -2718,6 +2729,44 @@ public:
 		debug();
 	}
 
+	void show_win_msg()
+	{
+		std::string m(message(YOU_WIN));
+		Fl::add_timeout(0.0, [](void *d_)
+		{
+			std::string *m = (std::string *)d_;
+			std::string s;
+			const char *p = m->c_str();
+			while (*p)
+			{
+				int len = fl_utf8len1(*p);
+				std::string c = m->substr(p - m->c_str(), len);
+				p += len;
+				if (c == "♥" || c == "♦" || c == "\n")
+					s.append(c);
+				else
+					s.push_back(' ');
+			}
+
+			Fl_Window *win = Fl::first_window();
+			if (win)
+			{
+				Fl_Box *b = (Fl_Box *)win->child(0);
+				if (b->label() == nullptr || std::string(b->label()) != *m) return;
+				Fl_Box *box = new Fl_Box(b->x(), b->y(), b->w(), b->h());
+				box->color(b->color());
+				box->labelcolor(FL_RED);
+				box->labelfont(b->labelfont());
+				box->labelsize(b->labelsize());
+				box->align(b->align());
+				box->copy_label(s.c_str());
+				win->insert(*box, 99);
+				win->redraw();
+			}
+		}, &m);
+		fl_alert("%s", m.c_str());
+	}
+
 	bool check_end_match()
 	{
 		int pscore = 0;
@@ -2729,14 +2778,14 @@ public:
 		}
 		LOG("match score PL:AI: " << pscore << ":" << ascore << "\n");
 		fl_message_font_ = FL_COURIER;
+		fl_message_size_ = h() / 40;
 		if (pscore >= MATCH_SCORE)
 		{
 			LOG("You win match " << pscore << ":" << ascore << "\n");
 			_player.matches_won++;
 			stats["player_matches_won"] = std::to_string(_player.matches_won);
-			std::string m(message(YOU_WIN));
 			bell(YOU_WIN);
-			fl_alert("%s", m.c_str());
+			show_win_msg();
 			_gamebook.clear();
 			redraw();
 			return true;
