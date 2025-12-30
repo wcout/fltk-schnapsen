@@ -1008,6 +1008,7 @@ struct GameData
 	bool    display_score;
 	CardState move_state;
 	Card    last_drawn;
+	Card    changed;
 };
 
 typedef void (Deck::*DeckMemberFn)();
@@ -1161,6 +1162,7 @@ public:
 			_cards.pop_back();
 			_cards.push_back(_player.card);
 			_player.card = c;
+			_player.changed = c;
 			player_message(YOU_CHANGED, true);
 			return true;
 		}
@@ -1175,15 +1177,25 @@ public:
 
 		// make change
 		LOG("AI changes jack for " << _cards.back() << "\n");
-		Card c = _cards.back();
-		_cards.pop_back();
 		Card jack = cards_[i.value()];
 		cards_.erase(cards_.begin() + i.value());
-		_cards.push_back(jack);
-		cards_.push_back(c);
-		cards_.sort();
+
+		_ai.card = jack;
+		animate_change(true); // jack from hand to deck
+
 		ai_message(AI_CHANGED, true);
 		redraw();
+
+		Card c = _cards.back();
+		_cards.pop_back();
+		_cards.push_back(jack);
+
+		_ai.card = c;
+		animate_change();		// trump from deck to hand
+
+		cards_.push_back(c);
+		cards_.sort();
+		_ai.changed = c;
 		wait(1.5);
 		return true;
 	}
@@ -2306,16 +2318,15 @@ public:
 		}
 	}
 
-	void do_animate(int src_X_, int src_Y_, int dest_X_, int dest_Y_)
+	void do_animate(int src_X_, int src_Y_, int dest_X_, int dest_Y_, int steps_ = 5)
 	{
 		int dx = dest_X_ - src_X_;
 		int dy = dest_Y_ - src_Y_;
 
-		static const int STEPS = 5;
-		for (int i = 0; i < STEPS; i++)
+		for (int i = 0; i < steps_; i++)
 		{
-			int X = src_X_ + (floor)(((double)dx / STEPS) * i);
-			int Y = src_Y_ + (floor)(((double)dy / STEPS) * i);
+			int X = src_X_ + (floor)(((double)dx / steps_) * i);
+			int Y = src_Y_ + (floor)(((double)dy / steps_) * i);
 			_animate_xy = std::make_pair(X, Y);
 			wait(1./50);
 			redraw();
@@ -2347,6 +2358,21 @@ public:
 		_animate = &Deck::draw_animated_trick;
 
 		do_animate(src_X, src_Y, dest_X, dest_Y);
+	}
+
+	void animate_change(bool from_hand_ = false)
+	{
+		int src_X = w() / 3 - _CW + _CW/4 + _CW / 2;
+		int src_Y = (h() - _CW) / 2 + _CH / 2;
+
+		int dest_X = w() / 20 + w() / 2 - w() / 24 + _CW / 2;
+		int dest_Y = h()/40 + _CH / 4;
+
+		_animate = &Deck::draw_animated_change;
+		if (from_hand_)
+			do_animate(dest_X, dest_Y, src_X, src_Y, 10);
+		else
+			do_animate(src_X, src_Y, dest_X, dest_Y, 10);
 	}
 
 	void draw_pack()
@@ -2516,6 +2542,12 @@ public:
 		int Y = _animate_xy.second - _CH / 2;
 		_shadow.image()->draw(X + _CW / 12, Y + _CH / 12);
 		_ai.card.image()->draw(X, Y);
+	}
+
+	void draw_animated_change()
+	{
+		// same as:
+		draw_animated_move();
 	}
 
 	void draw()
