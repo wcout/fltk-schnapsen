@@ -303,7 +303,7 @@ std::map<Message, std::string> sound = {
 };
 
 // only for testing
-bool debug = false;
+int debug = 0;
 
 const std::string &cardDir = "svg_cards";
 
@@ -658,6 +658,7 @@ public:
 	}
 	Fl_RGB_Image *image() const { return _images.image(name()); }
 	Fl_RGB_Image *quer_image() { return _images.quer_image(name()); }
+	Fl_RGB_Image *skewed_image() { return _images.skewed_image(name()); }
 	void rect(const Rect &rect_) { _rect = rect_; }
 	CardSuite suite() const { return _s; }
 	CardFace face() const { return _f; }
@@ -1852,7 +1853,7 @@ public:
 				test_20_40(Fl::event_x(), Fl::event_y());
 			}
 		}
-		else
+		else if (_player.move_state == NONE)
 		{
 			_player.deck_info = _player.deck.size() &&
 			                    _player.deck.front().rect().includes(Fl::event_x(), Fl::event_y());
@@ -1871,6 +1872,21 @@ public:
 		else if (Fl::event_key('d')) // just for testing -> debug
 		{
 			debug();
+		}
+		else if (Fl::event_key(' ') && ::debug > 1)
+		{
+			static bool paused = false;
+			paused = !paused;
+			if (paused)
+			{
+				Fl::add_timeout(0.0, [](void *d_)
+				{
+					Deck *deck = static_cast<Deck *>(d_);
+					deck->_grayout = true;
+					while (paused)	{ deck->wait(0.1); deck->redraw(); }
+					deck->_grayout = false;
+				}, this);
+			}
 		}
 		else if (Fl::event_key(FL_F + 1) && idle())
 		{
@@ -2287,12 +2303,20 @@ public:
 
 	void draw_cards()
 	{
-		_back.image()->scale(_CW, _CH, 0, 1);
 		for (size_t i = 0; i < _ai.cards.size(); i++)
 		{
 			int X = ((i + 1) * w()) / 20 + w() / 2 - w() / 24;
 			int Y = h()/40;
-			_back.skewed_image()->draw(X, Y);
+			if (::debug > 1)
+			{
+				_ai.cards[i].image()->scale(_CW, _CH, 0, 1);
+				_ai.cards[i].skewed_image()->draw(X, Y);
+			}
+			else
+			{
+				_back.image()->scale(_CW, _CH, 0, 1);
+				_back.skewed_image()->draw(X, Y);
+			}
 		}
 		for (size_t i = 0; i < _player.cards.size(); i++)
 		{
@@ -3266,7 +3290,10 @@ public:
 
 	void wait(double s_)
 	{
-		DBG("wait(" << s_ << ")\n");
+		if (s_ > 0.1 || ::debug > 2)
+		{
+			DBG("wait(" << s_ << ")\n");
+		}
 		_disabled = true;
 		double min_wait = s_ > 1./50 ? 1./50 : s_;
 		std::chrono::time_point<std::chrono::system_clock> start =
@@ -3441,7 +3468,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 		switch (arg_[1])
 		{
 			case 'd':
-				debug = true;
+				debug++;
 				break;
 			case 'f':
 				config["fullscreen"] = "1";
