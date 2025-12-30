@@ -958,7 +958,6 @@ public:
 	~Welcome();
 	static void redraw_timer(void *d_);
 	int handle(int e_);
-	void draw_stats();
 	void draw();
 private:
 	const Deck &_deck;
@@ -3546,15 +3545,6 @@ int Welcome::handle(int e_)
 	return Fl_Double_Window::handle(e_);
 }
 
-void Welcome::draw_stats()
-{
-	fl_font(FL_COURIER_BOLD, h() / 42);
-	fl_draw_box(FL_FLAT_BOX, 0, h() - h() / 38 - fl_descent(), w(), h() / 38 + fl_descent(), fl_lighter(fl_lighter(FL_YELLOW)));
-	fl_color(FL_BLACK);
-	std::string stat(_deck.make_stats());
-	fl_draw(stat.c_str(), (w() - fl_width(stat.c_str())) / 2, h() - h() / 38 + fl_height() - fl_descent() - 2);
-}
-
 void Welcome::draw()
 {
 	fl_draw_box(box(), 0, 0, w(), h(), color());
@@ -3573,12 +3563,18 @@ void Welcome::draw()
 			fl_color(fl_lighter(fl_lighter(FL_BLACK)));
 		fl_draw(suite_symbols[suites[s]].c_str(), x, y + fl_height());
 	}
+	fl_font(FL_COURIER_BOLD, h() / 42);
+	int stat_h = fl_height() + fl_descent();
+
 	Card c(QUEEN, HEART);
 	int W = w() / 2 - w() / 10;
 	int H = 1.5 * W;
 //	int H = (double)c.image()->h() / c.image()->w() * W;
+	int Y = h() / 4;
+	if (Y + H > h() - stat_h - 4)
+		H = h() - Y - stat_h - 4;
 	c.image()->scale(W, H, 0, 1);
-	c.image()->draw(w() / 40, h() / 4);
+	c.image()->draw(w() / 40, Y);
 	fl_font(FL_HELVETICA_BOLD, w() / 10);
 	fl_color(FL_BLACK);
 	static constexpr char title[] = "^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B";
@@ -3590,7 +3586,12 @@ void Welcome::draw()
 	fl_color(FL_BLACK);
 	fl_font(FL_HELVETICA_BOLD, h() / 16);
 	fl_draw(message(WELCOME).c_str(), w() / 2 + w() / 60, h() / 2);
-	draw_stats();
+	// draw stats
+	fl_font(FL_COURIER_BOLD, h() / 42);
+	fl_draw_box(FL_FLAT_BOX, 0, h() - stat_h, w(), stat_h, fl_lighter(fl_lighter(FL_YELLOW)));
+	fl_color(FL_BLACK);
+	std::string stat(_deck.make_stats());
+	fl_draw(stat.c_str(), (w() - fl_width(stat.c_str())) / 2, h() - stat_h + fl_height() - 2);
 	fl_pop_clip();
 }
 
