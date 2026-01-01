@@ -709,6 +709,11 @@ public:
 	{
 		*this = cards_;
 	}
+	Cards operator = (const std::string &s_)
+	{
+		*this = from_string(s_);
+		return *this;
+	}
 	Cards operator += (const Cards &c_)
 	{
 		for (auto c : c_) push_back(c);
@@ -775,6 +780,42 @@ public:
 		}
 		return res;
 	}
+	Cards &from_string(const std::string &s_)
+	{
+		// parse card-string in format: '|T♣|Q♦|T♦|Q♣|J♦|Q♠|T♠|Q♥|J♠|A♦|K♥|J♣|K♠|J♥|T♥|A♥|A♣|A♠|K♣|K♦|'
+		Cards cards;
+		std::string s(s_);
+		while (s.size())
+		{
+			assert(s[0] == '|');
+			s.erase(0, 1);
+			size_t next_card = s.find("|");
+			if (next_card == std::string::npos) break;
+			std::string c = s.substr(0, next_card);
+			assert(c.size() > 1);
+			std::string face_str = c.substr(0, 1);
+			std::string suite_str = c.substr(1);
+			s.erase(0, next_card);
+			for (auto sym : suite_symbols)
+			{
+				if (sym.second == suite_str)
+				{
+					CardSuite suite = sym.first;
+					for (auto f : face_abbrs)
+					{
+						if (f.second == face_str)
+						{
+							CardFace face = f.first;
+							cards.push_back(Card(face, suite));
+							break;
+						}
+					}
+				}
+			}
+		}
+		*this = cards;
+		return *this;
+	}
 	void check()
 	{
 		assert(find(Card(ACE,HEART)));
@@ -826,41 +867,6 @@ public:
 			return at(card.value());
 		return {};
 	}
-	Cards parse_cards(const std::string &s_)
-	{
-		// parse card-string in format: '|T♣|Q♦|T♦|Q♣|J♦|Q♠|T♠|Q♥|J♠|A♦|K♥|J♣|K♠|J♥|T♥|A♥|A♣|A♠|K♣|K♦|'
-		Cards cards;
-		std::string s(s_);
-		while (s.size())
-		{
-			assert(s[0] == '|');
-			s.erase(0, 1);
-			size_t next_card = s.find("|");
-			if (next_card == std::string::npos) break;
-			std::string c = s.substr(0, next_card);
-			assert(c.size() > 1);
-			std::string face_str = c.substr(0, 1);
-			std::string suite_str = c.substr(1);
-			s.erase(0, next_card);
-			for (auto sym : suite_symbols)
-			{
-				if (sym.second == suite_str)
-				{
-					CardSuite suite = sym.first;
-					for (auto f : face_abbrs)
-					{
-						if (f.second == face_str)
-						{
-							CardFace face = f.first;
-							cards.push_back(Card(face, suite));
-							break;
-						}
-					}
-				}
-			}
-		}
-		return cards;
-	}
 	void shuffle()
 	{
 		LOG("shuffle\n");
@@ -868,7 +874,7 @@ public:
 		std::string cards = config["cards"];
 		if (cards.size() == 101)
 		{
-			*this = parse_cards(cards);
+			from_string(cards);
 			LOG("Using predefind card set!\n");
 		}
 		else
@@ -3351,12 +3357,7 @@ public:
 		c2.push_back(Card(KING, HEART));
 		res = _cards - c2;
 		assert(res.size() == 18);
-		temp.clear();
-		temp.push_back(Card(KING, CLUB));
-		temp.push_back(Card(QUEEN, CLUB));
-		temp.push_back(Card(TEN, CLUB));
-		temp.push_back(Card(KING, HEART));
-		temp.push_back(Card(ACE, SPADE));
+		temp = "|K♣|Q♣|T♣|K♥|A♠|";
 		temp.sort();
 		assert(temp[0] == Card(ACE, SPADE));
 		assert(temp[1] == Card(KING, HEART));
