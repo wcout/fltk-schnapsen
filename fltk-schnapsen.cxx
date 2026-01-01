@@ -647,18 +647,19 @@ public:
 		_f(f_),
 		_s(s_),
 		_rect(0,0,0,0)
+	{}
+	void load()
 	{
 		if (!_images.image(name()))
 		{
-			std::string root = cardset_dir();
-			_pathname = root + filename();
-			DBG("load '" << _pathname << "'\n");
-			_images.image(name(), _pathname);
+			std::string pathname = cardset_dir() + filename();
+			DBG("load '" << pathname << "'\n");
+			_images.image(name(), pathname);
 		}
 	}
-	Fl_RGB_Image *image() const { return _images.image(name()); }
-	Fl_RGB_Image *quer_image() { return _images.quer_image(name()); }
-	Fl_RGB_Image *skewed_image() { return _images.skewed_image(name()); }
+	Fl_RGB_Image *image() { load(); return _images.image(name()); }
+	Fl_RGB_Image *quer_image() { load(); return _images.quer_image(name()); }
+	Fl_RGB_Image *skewed_image() { load(); return _images.skewed_image(name()); }
 	void rect(const Rect &rect_) { _rect = rect_; }
 	CardSuite suite() const { return _s; }
 	CardFace face() const { return _f; }
@@ -688,7 +689,6 @@ public:
 private:
 	CardFace _f;
 	CardSuite _s;
-	std::string _pathname;
 	CardImage _images;
 	Rect _rect;
 };
@@ -708,6 +708,10 @@ public:
 	Cards(const Cards_ &cards_)
 	{
 		*this = cards_;
+	}
+	explicit Cards(const std::string &s_)
+	{
+		*this = from_string(s_);
 	}
 	Cards operator = (const std::string &s_)
 	{
@@ -920,7 +924,6 @@ public:
 		};
 		std::sort(begin(), end(), sortRuleCards);
 	}
-
 	int value() const
 	{
 		int value = 0;
@@ -928,7 +931,6 @@ public:
 			value += c.value();
 		return value;
 	}
-
 	static Cards fullcards()
 	{
 		Cards cards;
@@ -937,12 +939,12 @@ public:
 			for (int f = 0; f < (int)NrOfFaces; f++)
 			{
 				cards.push_back(Card((CardFace)f, CardSuite(s)));
+				cards.back().load();
 			}
 		}
 		assert(cards.size() == 20);
 		return cards;
 	}
-
 	virtual std::ostream &printOn(std::ostream &os_) const
 	{
 		if (size())
@@ -1610,10 +1612,14 @@ public:
 
 	Cards highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suite_)
 	{
-		// TODO: check
 		Cards res;
+		// all cards of 'suite' that were already played
 		Cards played_suites(suites_in_hand(suite_, _ai.deck + _player.deck));
+
+		// cards of suite in (ai) hand
 		Cards suites(suites_in_hand(suite_, cards_));
+
+		// check all cards in hand if there are higher cards that are not already played
 		for (auto c : suites)
 		{
 			Cards temp(played_suites);
@@ -3352,9 +3358,7 @@ public:
 		assert(res.size() == 20);
 		res = _cards + _cards;
 		assert(res.size() == 40);
-		Cards c2;
-		c2.push_back(Card(QUEEN, SPADE));
-		c2.push_back(Card(KING, HEART));
+		Cards c2("|Q♠|K♥|");
 		res = _cards - c2;
 		assert(res.size() == 18);
 		temp = "|K♣|Q♣|T♣|K♥|A♠|";
@@ -3372,6 +3376,16 @@ public:
 		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_trump=HEART)
 		_trump = DIAMOND;
 		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_trump=DIAMOND)
+
+		Cards c3("|A♠|K♥|K♣|Q♣|A♠|");
+		_player.deck = "|T♣|";
+		_ai.deck = "|A♣|";
+		res = highest_cards_of_suite_in_hand(c3, CLUB);
+		assert(res.size() == 2 && (res[0] == Card(KING, CLUB)) && (res[1] == Card(QUEEN, CLUB)));
+		_ai.deck.clear();
+		res = highest_cards_of_suite_in_hand(c3, CLUB);
+		assert(res.size() == 0);
+		_player.deck.clear();
 	}
 
 	void create_welcome()
