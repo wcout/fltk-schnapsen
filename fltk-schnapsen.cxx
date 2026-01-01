@@ -182,8 +182,8 @@ using enum Closed;
 using enum Marriage;
 
 // TODO: make const?
-std::map<CardFace, std::string> card_names = { {TEN, "10"}, {JACK, "jack"}, {QUEEN, "queen"}, {KING, "king"}, {ACE, "ace"} };
-std::map<CardFace, std::string> card_abbr = { {TEN, "T"}, {JACK, "J"}, {QUEEN, "Q"}, {KING, "K"}, {ACE, "A"} };
+std::map<CardFace, std::string> face_names = { {TEN, "10"}, {JACK, "jack"}, {QUEEN, "queen"}, {KING, "king"}, {ACE, "ace"} };
+std::map<CardFace, std::string> face_abbrs = { {TEN, "T"}, {JACK, "J"}, {QUEEN, "Q"}, {KING, "K"}, {ACE, "A"} };
 std::map<CardSuite, std::string> suite_names = { {CLUB, "clubs"}, {DIAMOND, "diamonds"}, {HEART, "hearts"}, {SPADE, "spades"} };
 std::map<CardFace, int> card_value = { {TEN, 10}, {JACK, 2}, {QUEEN, 3}, {KING, 4}, {ACE, 11} };
 std::map<CardSuite, int> suite_weights = { {SPADE, 4}, {HEART,3}, {DIAMOND,2}, {CLUB,1} };
@@ -664,8 +664,8 @@ public:
 	CardFace face() const { return _f; }
 	const Rect &rect() const { return _rect; }
 	int value() const { return card_value[face()]; }
-	std::string face_name() const { return card_names[face()]; }
-	std::string face_abbr() const { return card_abbr[face()]; }
+	std::string face_name() const { return face_names[face()]; }
+	std::string face_abbr() const { return face_abbrs[face()]; }
 	std::string suite_name() const { return suite_names[suite()]; }
 	std::string name() const { return face_name() + " of " + suite_name(); }
 	std::string filename() const { return face_name() + "_of_" + suite_name() + ".svg"; }
@@ -675,6 +675,10 @@ public:
 	bool is_black_suite() const { return _s == SPADE || _s == CLUB; }
 	bool is_red_suite() const { return !is_black_suite(); }
 	bool includes(int x_, int y_) const { return rect().includes(x_, y_); }
+	bool operator == (const Card c_)
+	{
+		return face() == c_.face() && suite() == c_.suite();
+	}
 	virtual std::ostream &printOn(std::ostream &os_) const
 	{
 		std::string abbr = face_abbr();
@@ -843,7 +847,7 @@ public:
 				if (sym.second == suite_str)
 				{
 					CardSuite suite = sym.first;
-					for (auto f : card_abbr)
+					for (auto f : face_abbrs)
 					{
 						if (f.second == face_str)
 						{
@@ -1088,6 +1092,7 @@ public:
 		_ai.message = m_;
 		std::string m(message(m_));
 		DBG("ai_message(" << m << ")\n")
+		redraw();
 	}
 
 	void player_message(Message m_, bool bell_ = false)
@@ -1096,6 +1101,7 @@ public:
 		_player.message = m_;
 		std::string m(message(m_));
 		DBG("player_message(" << m << ")\n")
+		redraw();
 	}
 
 	void error_message(Message m_, bool bell_ = false)
@@ -1104,6 +1110,7 @@ public:
 		_error_message = m_;
 		std::string m(message(m_));
 		DBG("error_message(" << m << ")\n")
+		redraw();
 	}
 
 	size_t find(const Card &c_, const Cards &cards_) const
@@ -1282,6 +1289,7 @@ public:
 
 	Cards suites_in_hand(CardSuite suite_, const Cards &cards_) const
 	{
+		// TODO: push_back() to keep sort order highest -> lowest?
 		Cards res;
 		for (auto &c : cards_)
 			if (c.suite() == suite_) res.push_front(c);
@@ -1596,6 +1604,7 @@ public:
 
 	Cards highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suite_)
 	{
+		// TODO: check
 		Cards res;
 		Cards played_suites(suites_in_hand(suite_, _ai.deck + _player.deck));
 		Cards suites(suites_in_hand(suite_, cards_));
@@ -1747,7 +1756,9 @@ public:
 			}
 			size_t m = lowest_card_that_tricks(_player.card, temp);
 			if (m != NO_MOVE)
-				move = m;
+			{
+				move = find(temp[m], _ai.cards);
+			}
 		}
 		else
 		{
@@ -2791,7 +2802,7 @@ public:
 		{
 			Fl_Window *win = Fl::first_window();
 			if (win == nullptr) return;
-			auto &m = *(const std::string *)d_;
+			auto &m = *(static_cast<const std::string *>(d_));
 			Fl_Box *b = static_cast<Fl_Box *>(win->child(0));
 			if (b->label() == nullptr || std::string(b->label()) != m) return;
 			std::string s;
@@ -3043,7 +3054,7 @@ public:
 		std::string snd = sound[m_];
 		if (snd.size())
 		{
-			snd = homeDir() + "/rsc/" + snd + ".mp3";
+			snd = homeDir() + "rsc/" + snd + ".mp3";
 			DBG("play '" << snd << "'\n");
 			if (std::filesystem::exists(snd))
 				_audio.play(snd);
@@ -3340,6 +3351,26 @@ public:
 		c2.push_back(Card(KING, HEART));
 		res = _cards - c2;
 		assert(res.size() == 18);
+		temp.clear();
+		temp.push_back(Card(KING, CLUB));
+		temp.push_back(Card(QUEEN, CLUB));
+		temp.push_back(Card(TEN, CLUB));
+		temp.push_back(Card(KING, HEART));
+		temp.push_back(Card(ACE, SPADE));
+		temp.sort();
+		assert(temp[0] == Card(ACE, SPADE));
+		assert(temp[1] == Card(KING, HEART));
+		assert(temp[2] == Card(TEN, CLUB));
+		assert(temp[3] == Card(KING, CLUB));
+		assert(temp[4] == Card(QUEEN, CLUB));
+		Cards clubs = suites_in_hand(CLUB, temp);
+		assert(clubs[0] == Card(QUEEN, CLUB)); // lowest first!
+		assert(lowest_card_that_tricks(Card(JACK, CLUB), temp) == 4); // 4=QUEEN/CLUB
+		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 0); // 0=ACE/SPADE (_trump=SPADE)
+		_trump = HEART;
+		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_trump=HEART)
+		_trump = DIAMOND;
+		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_trump=DIAMOND)
 	}
 
 	void create_welcome()
