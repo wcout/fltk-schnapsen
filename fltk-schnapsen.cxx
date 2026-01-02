@@ -1847,6 +1847,8 @@ public:
 
 	void handle_move()
 	{
+		bool player_deck_info = _player.deck_info;
+		bool ai_deck_info = _ai.deck_info;
 		if (_player.move_state != NONE && _ai.move_state == NONE)
 		{
 			if (_move == PLAYER)
@@ -1861,7 +1863,13 @@ public:
 			_ai.deck_info = _ai.deck.size() &&
 			                _ai.deck.front().rect().includes(Fl::event_x(), Fl::event_y());
 		}
-		redraw();
+		if (_marriage != NO_MARRIAGE || _player.move_state == MOVING ||
+		    _player.deck_info || _ai.deck_info ||
+		    (_player.deck_info != player_deck_info) ||
+		    (_ai.deck_info != ai_deck_info))
+		{
+			redraw();
+		}
 	}
 
 	void handle_key()
