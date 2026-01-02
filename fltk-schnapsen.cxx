@@ -1,7 +1,7 @@
 //
 //	Schnapsen for 2 card game for FLTK.
 //
-// Copyright 2025 Christian Grabner.
+// Copyright 2025-2026 Christian Grabner.
 //
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
@@ -163,7 +163,8 @@ enum class Message
 	YOU_MARRIAGE_40,
 	AI_MARRIAGE_20,
 	AI_MARRIAGE_40,
-	SHUFFLE
+	SHUFFLE,
+	AI_SLEEP
 };
 
 enum class Marriage
@@ -204,7 +205,7 @@ std::map<Message, std::string> messages_de = {
 	{NO_MESSAGE, ""},
 	{YOU_CHANGED, "Du hast den Buben getauscht"},
 	{YOU_CLOSED, "Du hast zugedreht"},
-	{YOUR_GAME, "Gratuliere, dein Spiel!"},
+	{YOUR_GAME, "👍Gratuliere, dein Spiel!"},
 	{YOUR_TRICK, "Dein Stich"},
 	{YOUR_TURN, "Du bist dran"},
 	{YOU_LEAD, "Du spielst aus"},
@@ -213,8 +214,8 @@ std::map<Message, std::string> messages_de = {
 	{AI_CLOSED, "AI hat zugedreht"},
 	{AI_GAME, "AI gewinnt das Spiel!"},
 	{AI_TRICK, "AI hat gestochen"},
-	{AI_TURN, "AI ist am Spiel"},
-	{AI_LEADS, "AI spielt aus"},
+	{AI_TURN, "AI ist am Spiel ... 💭"},
+	{AI_LEADS, "AI spielt aus ... 💭"},
 	{AI_NOT_ENOUGH, "AI hat nicht genug"},
 	{TRUMP, "Trumpf"},
 	{TITLE, "Schnapsen zu zweit"},
@@ -238,22 +239,23 @@ std::map<Message, std::string> messages_de = {
 	{REDEAL, "MISCHEN"},
 	{WELCOME, "Servas Oida!\n\nHast Lust auf\na Bummerl?"},
 	{GAMES_WON, "Spiele gewonnen (PL/AI): "},
-	{MATCHES_WON, "Partien: "}
+	{MATCHES_WON, "Partien: "},
+	{AI_SLEEP, "😴!!"}
 };
 
 std::map<Message, std::string> messages_en = {
 	{YOU_CHANGED, "You changed the jack"},
 	{YOU_CLOSED, "You closed the game"},
-	{YOUR_GAME, "Congrats, your game!"},
+	{YOUR_GAME, "👍Congrats, your game!"},
 	{YOUR_TRICK, "Your trick"},
 	{YOUR_TURN, "Your turn"},
 	{YOU_LEAD, "Your lead"},
 	{AI_CHANGED, "AI has changed the jack"},
 	{AI_CLOSED, "AI has closed"},
 	{AI_GAME, "AI wins the game!"},
-	{AI_TRICK, "AI has made trick"},
-	{AI_TURN, "AI is to play"},
-	{AI_LEADS, "AI is to lead"},
+	{AI_TRICK, "AI makes trick"},
+	{AI_TURN, "AI playing ... 💭"},
+	{AI_LEADS, "AI leading ... 💭"},
 	{TRUMP, "Trump"},
 	{TITLE, "Schnapsen for two"},
 	{GAMEBOOK, "**Game book**"},
@@ -276,7 +278,8 @@ std::map<Message, std::string> messages_en = {
 	{REDEAL, "REDEAL"},
 	{WELCOME, "Hey dude!\n\nDo you want\na 'bummerl'?"},
 	{GAMES_WON, "Games won (PL/AI): "},
-	{MATCHES_WON, "Matches: "}
+	{MATCHES_WON, "Matches: "},
+	{AI_SLEEP, "😴!!"}
 };
 
 std::map<Message, std::string> sound = {
@@ -592,18 +595,6 @@ public:
 		if (!quer_image
 			|| quer_image->w() != svg->h() || quer_image->h() != svg->w())
 		{
-#if 0
-// only for debugging
-			if (!quer_image)
-			{
-				printf("no quer image '%s'\n", id_.c_str());
-			}
-			else
-			{
-				printf("quer image '%s' has %dx%d, should have: %dx%d\n",
-					id_.c_str(), quer_image->w(), quer_image->h(), svg->w(), svg->h());
-			}
-#endif
 			delete quer_image;
 			DBG("rotate image '" << id_ << "'\n");
 			_images[id_ + "_quer"] = rotate_90_CCW(*svg);
@@ -1308,41 +1299,26 @@ public:
 	{
 		// counts all cards of suite 'suite_', that are
 		// "knowable" by AI
-		Cards res;
-//		for (size_t i = 0; i < _ai.cards.size(); i++)
-//			if (_ai.cards[i].suite() == suite_) res.push_front(_ai.cards[i]);
-		for (auto c : _ai.deck)
-			if (c.suite() == suite_) res.push_front(c);
-		// allowed to ask player deck, because AI could have memorized
-		// the tricks
-		for (auto c : _player.deck)
-			if (c.suite() == suite_) res.push_front(c);
-/*
-		if (include_pack_ == true)
-		{
-			// include visible trump of pack (if still there)
-			if (_cards.size() && _cards.back().suite() == suite_)
+		Cards res = suites_in_hand(suite_, _ai.deck) +
+		            suites_in_hand(suite_, _player.deck);
+		// include visible trump of pack (if still there and not closed)
+		if (_closed == NOT && _cards.size() && _cards.back().suite() == suite_)
 				res.push_front(_cards.back());
-		}
-*/
 		return res;
 	}
 
-	int cards_in_play(CardSuite suite_)
+	int cards_in_play(CardSuite suite_) const
 	{
-		// TODO: review/test!!!
 		return 5 - count_played_suite(suite_).size();
 	}
 
-	int max_cards_player(CardSuite suite_)
+	int max_cards_player(CardSuite suite_) const
 	{
-		// TODO: review/test!!!
 		return cards_in_play(suite_) - suites_in_hand(suite_, _ai.cards).size();
 	}
 
-	int max_trumps_player()
+	int max_trumps_player() const
 	{
-		// TODO: review/test!!!
 		return cards_in_play(_trump) - suites_in_hand(_trump, _ai.cards).size();
 	}
 
@@ -1790,6 +1766,8 @@ public:
 					trick = true;
 				else if (_player.card.suite() != _trump && c.suite() != _trump)
 					trick = true;
+//				else if (_cards.size() > 2 && _player.score + _player.pending + _player.card.value() + _ai.card.value() >= 50)
+//					trick = true;
 				if (trick)
 					move = m;
 			}
@@ -1825,6 +1803,7 @@ public:
 		assert(_ai.cards.size());
 		size_t move = lowest_card(_ai.cards); // default move lowest card
 		assert(move != NO_MOVE);
+		_ai.card = _ai.cards[move]; // default move
 
 		if (_closed != NOT && _player.move_state == ON_TABLE)
 		{
@@ -2044,6 +2023,9 @@ public:
 		else if (e_ == FL_PUSH)
 		{
 			error_message(NO_MESSAGE);
+			Fl::remove_timeout(cb_sleep, this);
+			Fl::add_timeout(20., cb_sleep, this);
+			ai_message(NO_MESSAGE);
 			_move == AI ? _ai.last_drawn = Card() : _player.last_drawn = Card();
 			handle_click();
 			return 1;
@@ -2263,6 +2245,9 @@ public:
 		{
 			std::string ai_message = message(_ai.message);
 			fl_font(FL_HELVETICA, h() / (ai_message.back() == '!' ? 15 : 25));
+			size_t pos = ai_message.find("!!");
+			if (pos != std::string::npos)
+				ai_message.erase(pos, 2);
 			fl_color(FL_RED);
 			fl_draw(ai_message.c_str(), w() / 4 - fl_width(ai_message.c_str()) / 2, h() / 8);
 		}
@@ -2605,6 +2590,8 @@ public:
 		_card_template.image()->scale(W, H, 0, 1);
 		_CW = _card_template.image()->w();
 		_CH = _card_template.image()->h();
+		Fl::remove_timeout(cb_sleep, this);
+		Fl::add_timeout(20.0, cb_sleep, this);
 		draw_table();
 		draw_gamebook(w() / 40 + _CW / 2, h() / 2);
 		draw_suite_symbol(_trump, w() / 3 - _CW / 4, h() - h() / 2 + _CH / 2 + _CH / 5);
@@ -2666,6 +2653,7 @@ public:
 			fl_message_font_ = FL_COURIER;
 			fl_message_size_ = h() / 40;
 			Message m = (Message)atoi(_cmd.substr(8).c_str());
+			Fl::add_timeout(0., [](void *d_) { (static_cast<Deck *>(d_))->redraw();	}, this);
 			if (m == YOU_WIN)
 				show_win_msg();
 			else
@@ -2689,10 +2677,11 @@ public:
 			OUT(Card::suite_symbol(SPADE) << ": " << cards_in_play(SPADE) << " (" << max_cards_player(SPADE) << ")\n");
 			OUT(Card::suite_symbol(DIAMOND) << ": " << cards_in_play(DIAMOND) << " (" << max_cards_player(DIAMOND) << ")\n");
 			OUT(Card::suite_symbol(CLUB) << ": " << cards_in_play(CLUB) << " (" << max_cards_player(CLUB) << ")\n");
+			OUT("max_trumps_player: " << max_trumps_player() << "\n");
 		}
 		else if (_cmd == "help")
 		{
-			OUT("debug/error/gb/cip\n");
+			OUT("debug/error/message/gb/cip\n");
 		}
 		else
 		{
@@ -2810,6 +2799,8 @@ public:
 	void show_win_msg()
 	{
 		std::string m(message(YOU_WIN));
+		fl_message_icon_label("🏆");
+		fl_message_icon()->box(FL_NO_BOX);
 		Fl::add_timeout(0.0, [](void *d_)
 		{
 			Fl_Window *win = Fl::first_window();
@@ -3229,6 +3220,12 @@ public:
 		redraw();
 	}
 
+	static void cb_sleep(void *d_)
+	{
+		if (Fl::first_window() == static_cast<Deck *>(d_))
+			(static_cast<Deck *>(d_))->ai_message(AI_SLEEP);
+	}
+
 	void game(Player playout_)
 	{
 		init();
@@ -3253,6 +3250,8 @@ public:
 				{
 					Fl::wait();
 				}
+				Fl::remove_timeout(cb_sleep, this);
+				ai_message(NO_MESSAGE);
 				_redeal_button->hide();
 				if (check_end()) break; // if enough from 20/40!!
 
@@ -3306,6 +3305,7 @@ public:
 		}
 		if (!Fl::first_window()) return;
 
+		Fl::remove_timeout(cb_sleep, this);
 		_marriage = NO_MARRIAGE;
 		wait(2.0);
 	}
@@ -3585,8 +3585,9 @@ int Welcome::handle(int e_)
 	if (e_ == FL_NO_EVENT) return 1;
 	if (e_ == FL_PUSH || e_ == FL_KEYDOWN)
 	{
-		Fl::delete_widget(this);
+		delete this;
 		Fl::first_window()->redraw();
+		return 1;
 	}
 	return Fl_Double_Window::handle(e_);
 }
