@@ -907,11 +907,11 @@ public:
 		};
 		std::sort(begin(), end(), sortRuleCards);
 	}
-	void sort_by_value()
+	void sort_by_value(bool high_to_low = true)
 	{
-		auto sortRuleCards = [] (Card const &c1_, Card const &c2_) -> bool
+		auto sortRuleCards = [&] (Card const &c1_, Card const &c2_) -> bool
 		{
-			return c1_.value() > c2_.value();
+			return high_to_low ? (c1_.value() > c2_.value()) : (c2_.value() > c1_.value());
 		};
 		std::sort(begin(), end(), sortRuleCards);
 	}
@@ -1640,6 +1640,41 @@ public:
 		return res;
 	}
 
+	Cards pull_trump_cards(Cards cards_, Cards from_) const
+	{
+		// all no-non trump cards in cards_, that can not
+		// be tricket by higher card of suite, but need a trump.
+		// Useable only when closed.
+		Cards res;
+		// does from_ (=player) even have trumps?
+		Cards trumps = suites_in_hand(_trump, from_);
+		if (trumps.empty())
+		{
+			return res; // no trumps to pull
+		}
+		for (auto &c : cards_)
+		{
+			if (c.suite() == _trump) continue; // skip trump suite
+			// check if card can be tricked by player with suite
+			Cards suites = suites_in_hand(c.suite(), from_);
+			bool no_trick = true;
+			for (auto &s : suites)
+			{
+				if (!card_tricks(s, c)) continue;
+				no_trick = false;
+				break;
+			}
+			// player can't trick, so this card can be used to pull a trump
+			if (no_trick == true)
+			{
+				res.push_back(c);
+			}
+		}
+		res.sort_by_value(false); // sort low to high
+		OUT("pull trump cards: " << res << "\n");
+		return res;
+	}
+
 	size_t ai_play_20_40()
 	{
 		size_t move = NO_MOVE;
@@ -1687,6 +1722,7 @@ public:
 		// end game, player has moved, ai to follow
 		size_t move = must_give_color_or_trick(_player.card, _ai.cards);
 		assert(move != NO_MOVE);
+
 		return move;
 	}
 
@@ -1723,6 +1759,10 @@ public:
 				move = find(highest_cards_in_hand(_ai.cards)[0], _ai.cards);
 			}
 		}
+
+		// testing.. (no effect yet):
+		pull_trump_cards(_ai.cards, _player.cards);
+
 		return move;
 	}
 
@@ -1766,7 +1806,7 @@ public:
 					trick = true;
 				else if (_player.card.suite() != _trump && c.suite() != _trump)
 					trick = true;
-//				else if (_cards.size() > 2 && _player.score + _player.pending + _player.card.value() + _ai.card.value() >= 50)
+//				else if (_cards.size() > 2 && _player.score + _player.pending + _player.card.value() + _ai.card.value() >= 52)
 //					trick = true;
 				if (trick)
 					move = m;
@@ -2598,8 +2638,11 @@ public:
 		_card_template.image()->scale(W, H, 0, 1);
 		_CW = _card_template.image()->w();
 		_CH = _card_template.image()->h();
-		Fl::remove_timeout(cb_sleep, this);
-		Fl::add_timeout(20.0, cb_sleep, this);
+		if (_ai.message != AI_SLEEP)
+		{
+			Fl::remove_timeout(cb_sleep, this);
+			Fl::add_timeout(20.0, cb_sleep, this);
+		}
 		draw_table();
 		draw_gamebook(w() / 40 + _CW / 2, h() / 2);
 		draw_suite_symbol(_trump, w() / 3 - _CW / 4, h() - h() / 2 + _CH / 2 + _CH / 5);
@@ -2871,6 +2914,8 @@ public:
 			stats["ai_matches_won"] = std::to_string(_ai.matches_won);
 			std::string m(message(YOU_LOST));
 			bell(YOU_LOST);
+			fl_message_icon_label("⚫");
+			fl_message_icon()->box(FL_NO_BOX);
 			fl_alert("%s", m.c_str());
 			_gamebook.clear();
 			redraw();
