@@ -660,7 +660,7 @@ public:
 	std::string face_abbr() const { return face_abbrs[face()]; }
 	std::string suite_name() const { return suite_names[suite()]; }
 	std::string name() const { return face_name() + " of " + suite_name(); }
-	std::string filename() const { return face_name() + "_of_" + suite_name() + ".svg"; }
+	std::string filename(std::string ext_ = ".svg") const { return face_name() + "_of_" + suite_name() + ext_; }
 	int suite_weight() const { return suite_weights[suite()]; }
 	std::string suite_symbol() const { return suite_symbols[suite()]; }
 	static std::string suite_symbol(CardSuite suite_) { return suite_symbols[suite_]; }
@@ -775,6 +775,12 @@ public:
 		}
 		return res;
 	}
+	bool operator == (const std::string& s_)
+	{
+		std::ostringstream os;
+		printOn(os);
+		return os.str() == s_;
+	}
 	Cards &from_string(const std::string &s_)
 	{
 		// parse card-string in format: '|T♣|Q♦|T♦|Q♣|J♦|Q♠|T♠|Q♥|J♠|A♦|K♥|J♣|K♠|J♥|T♥|A♥|A♣|A♠|K♣|K♦|'
@@ -791,16 +797,14 @@ public:
 			std::string face_str = c.substr(0, 1);
 			std::string suite_str = c.substr(1);
 			s.erase(0, next_card);
-			for (auto sym : suite_symbols)
+			for (auto &[suite, sym] : suite_symbols)
 			{
-				if (sym.second == suite_str)
+				if (sym == suite_str)
 				{
-					CardSuite suite = sym.first;
-					for (auto f : face_abbrs)
+					for (auto &[face, fabbr] : face_abbrs)
 					{
-						if (f.second == face_str)
+						if (fabbr == face_str)
 						{
-							CardFace face = f.first;
 							cards.push_back(Card(face, suite));
 							break;
 						}
@@ -1760,8 +1764,12 @@ public:
 			}
 		}
 
-		// testing.. (no effect yet):
-		pull_trump_cards(_ai.cards, _player.cards);
+		if (move == NO_MOVE)
+		{
+			Cards pull = pull_trump_cards(_ai.cards, _player.cards);
+			if (pull.size())
+				move = find(pull[0], _ai.cards);
+		}
 
 		return move;
 	}
@@ -2981,11 +2989,11 @@ public:
 
 			if (!Fl::first_window()) break;
 
-			auto s = _gamebook.back();
-			if (s.first)
-				LOG("PL scores " << s.first << "\n");
-			if (s.second)
-				LOG("AI scores " << s.second << "\n");
+			auto &[pscore, ascore] = _gamebook.back();
+			if (pscore)
+				LOG("PL scores " << pscore << "\n");
+			if (ascore)
+				LOG("AI scores " << ascore << "\n");
 			redraw();
 			check_end_match();
 		}
@@ -3439,6 +3447,13 @@ public:
 		res = highest_cards_of_suite_in_hand(c3, CLUB);
 		assert(res.size() == 0);
 		_player.deck.clear();
+
+		_trump = SPADE;
+		Cards p1("|A♠|Q♥|Q♦|Q♣|J♣|");
+		Cards a1("|K♠|Q♠|K♥|K♦|A♣|");
+		Cards pull = pull_trump_cards(a1, p1);
+		assert(pull.size()==3);
+		assert(pull == "|K♥|K♦|A♣|");
 	}
 
 	void create_welcome()
