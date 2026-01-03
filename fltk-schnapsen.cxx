@@ -3373,6 +3373,10 @@ public:
 
 	void wait(double s_)
 	{
+		if (config["fast"] == "1" && s_ >= 1.0)
+		{
+			s_ /= 2;
+		}
 		if (s_ > 0.1 || ::debug > 2)
 		{
 			DBG("wait(" << s_ << ")\n");
@@ -3569,6 +3573,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 		{ "d", "enable debug" },
 		{ "f", "run fullscreen" },
 		{ "w", "show welcome screen" },
+		{ "s", "faster response" },
 		{ "h", "this help" }
 	};
 
@@ -3586,6 +3591,9 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 			case 'f':
 				config["fullscreen"] = "1";
 			break;
+			case 's':
+				config["fast"] = "1";
+				break;
 			case 'w':
 				config["welcome"] = "1";
 				break;
