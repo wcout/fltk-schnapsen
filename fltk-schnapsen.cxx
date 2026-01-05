@@ -413,6 +413,7 @@ Fl_RGB_Image *rotate_90_CCW(const Fl_RGB_Image &svg_)
 {
 	int w = svg_.data_w();
 	int h = svg_.data_h();
+	DBG("rotate " << w << "x" << h << "\n");
 	int d = svg_.d();
 	assert(w > 0 && h > 0 && d >= 3);
 	uchar alpha = 0;
@@ -527,7 +528,8 @@ struct Rect
 		h(wgt_.h() - Fl::box_dh(box_))
 	{}
 	bool includes(int x_, int y_) const { return x_ >= x && y_ >= y && x_ < x + w && y_ < y + h; }
-	std::pair<int, int> center() const { return std::make_pair((x + w) / 2, (y + h) / 2); }
+	std::pair<int, int> center() const { return std::make_pair(x + w / 2, y + h / 2); }
+	Rect& get(int &x_, int &y_, int &w_, int &h_) { x_ = x; y_ = y; w_ = w; h_ = h; return *this; }
 };
 
 class CardImage
@@ -555,11 +557,12 @@ public:
 		_last_id = id_;
 		return *this;
 	}
-	Fl_RGB_Image *image(const std::string &id_) const
+	Fl_RGB_Image *image(const std::string &id_, int w_ = 0, int h_ = 0) const
 	{
 		auto image = _images.find(id_);
 		if (image == _images.end())
 			return nullptr;
+		image->second->scale(w_ ? w_ :_W , h_ ? h_ : _H, 0, 1);
 		return image->second;
 	}
 	Fl_RGB_Image *image() const
@@ -571,37 +574,39 @@ public:
 	{
 		Fl_RGB_Image *svg = image(id_);
 		assert(svg && svg->w() > 0 && svg->h() > 0);
+		assert(_W != 0 && _H != 0);
 		Fl_RGB_Image *skewed_image = _images[id_ + "_skewed"];
 		if (svg->as_svg_image())
-			svg->as_svg_image()->resize(svg->w(), svg->h());
+			svg->as_svg_image()->resize(_W, _H);
 		if (!skewed_image
-			|| skewed_image->w() != svg->w() || skewed_image->h() != svg->h() / 3)
+			|| skewed_image->w() != _W || skewed_image->h() != _H / 3)
 		{
 			delete skewed_image;
 			skewed_image = static_cast<Fl_RGB_Image *>(svg->copy());
-			skewed_image->scale(svg->w(), svg->h() / 3, 0, 1);
 			_images[id_ + "_skewed"] = skewed_image;
 		}
 		assert(skewed_image);
+		skewed_image->scale(_W, _H / 3, 0, 1);
 		return skewed_image;
 	}
 	Fl_RGB_Image *quer_image(const std::string &id_)
 	{
 		Fl_RGB_Image *svg = image(id_);
 		assert(svg && svg->w() > 0 && svg->h() > 0);
+		assert(_W != 0 && _H != 0);
 		Fl_RGB_Image *quer_image = _images[id_ + "_quer"];
 		if (svg->as_svg_image())
-			svg->as_svg_image()->resize(svg->w(), svg->h());
+			svg->as_svg_image()->resize(_W, _H);
 		if (!quer_image
-			|| quer_image->w() != svg->h() || quer_image->h() != svg->w())
+			|| quer_image->w() != _H || quer_image->h() != _W)
 		{
 			delete quer_image;
-			DBG("rotate image '" << id_ << "'\n");
-			_images[id_ + "_quer"] = rotate_90_CCW(*svg);
+			quer_image = rotate_90_CCW(*svg);
+			_images[id_ + "_quer"] = quer_image;
+			DBG("rotate image '" << id_ << "' size (before scale): " << quer_image->w() << "x" << quer_image->h() << "\n");
 		}
-		quer_image = _images[id_ + "_quer"];
-		quer_image->scale(svg->h(), svg->w(), 0, 1);
 		assert(quer_image);
+		quer_image->scale(_H, _W, 0, 1);
 		return quer_image;
 	}
 	Fl_RGB_Image *quer_image()
@@ -614,10 +619,20 @@ public:
 		assert(_last_id.size());
 		return skewed_image(_last_id);
 	}
+	CardImage &set_pixel_size(int w_, int h_)
+	{
+		_W = w_;
+		_H = h_;
+		return *this;
+	}
 private:
+	static int _W;
+	static int _H;
 	std::string _last_id;
 	static std::unordered_map<std::string, Fl_RGB_Image *> _images;
 };
+/*static*/ int CardImage::_W = 0;
+/*static*/ int CardImage::_H = 0;
 /*static*/std::unordered_map<std::string, Fl_RGB_Image *> CardImage::_images;
 
 std::string cardset_dir()
@@ -639,7 +654,7 @@ public:
 		_s(s_),
 		_rect(0,0,0,0)
 	{}
-	void load()
+	Card& load()
 	{
 		if (!_images.image(name()))
 		{
@@ -647,11 +662,12 @@ public:
 			DBG("load '" << pathname << "'\n");
 			_images.image(name(), pathname);
 		}
+		return *this;
 	}
-	Fl_RGB_Image *image() { load(); return _images.image(name()); }
+	Fl_RGB_Image *image(int w_ = 0, int h_ = 0) { load(); return _images.image(name(), w_, h_); }
 	Fl_RGB_Image *quer_image() { load(); return _images.quer_image(name()); }
 	Fl_RGB_Image *skewed_image() { load(); return _images.skewed_image(name()); }
-	void rect(const Rect &rect_) { _rect = rect_; }
+	Card &rect(const Rect &rect_) { _rect = rect_; return *this; }
 	CardSuite suite() const { return _s; }
 	CardFace face() const { return _f; }
 	const Rect &rect() const { return _rect; }
@@ -676,6 +692,11 @@ public:
 		std::string abbr = face_abbr();
 		os_ << abbr << suite_symbol();
 		return os_;
+	}
+	Card &set_pixel_size(int w_, int h_)
+	{
+		_images.set_pixel_size(w_, h_);
+		return *this;
 	}
 private:
 	CardFace _f;
@@ -1031,8 +1052,8 @@ public:
 		_error_message(NO_MESSAGE),
 		_disabled(false),
 		_card_template(QUEEN, SPADE),
-		_CW(0),
-		_CH(0),
+		_CW(w() / 8),
+		_CH(1.5 * w()),
 		_cmd_input(nullptr),
 		_redeal_button(nullptr),
 		_welcome(nullptr),
@@ -1660,7 +1681,10 @@ public:
 		{
 			if (c.suite() == _trump) continue; // skip trump suite
 			// check if card can be tricked by player with suite
-			Cards suites = suites_in_hand(c.suite(), from_);
+			// NOTE: With CLOSE_AUTO remaining cards are added to
+			//       player hand, so the result is only a 'probable'
+			//       result.
+			Cards suites = suites_in_hand(c.suite(), from_ + _cards) ;
 			bool no_trick = true;
 			for (auto &s : suites)
 			{
@@ -2089,26 +2113,75 @@ public:
 		return ret;
 	}
 
-	void draw_gamebook(int x_, int y_)
+	Rect gamebook_rect()
+	{
+		return Rect(w()/40, h() / 2 - _CH / 2, _CW, _CH);
+	}
+
+	Rect cards_rect(Player player_)
+	{
+		return Rect(w() / 20 + w() / 2 - w() / 24,
+			(player_ == AI ? h() / 40 : h() - _CH - h() / 40),
+			4 * w() / 20 + _CW,
+			(player_ == AI ? _CH / 3 : _CH));
+	}
+
+	Rect change_rect()
+	{
+		return Rect(w() / 3 - _CW + _CW / 4,
+			(h() - _CW) / 2,
+			_CH,
+			_CW
+			);
+	};
+
+	Rect deck_rect(Player player_)
+	{
+		return Rect(w() - _CW - 2, (player_ == AI ?
+			h() / 10 - w() / 800 : h() - _CH - h() / 10) , _CW, _CH);
+	}
+
+	Rect move_rect(Player player_)
+	{
+		int ma = h() / 40 + _CH / 3 + h() / 40 + _CH / 2;
+		int mp = h() - h() / 40 - _CH - h() / 40 - _CH / 2;
+		int m = (ma + mp) / 2;
+		return Rect(
+			(player_ == AI ? w() - w() / 3 : _player.move_state == MOVING ? Fl::event_x() - _CW / 2 : w() - w() / 2),
+//			(player_ == AI ? h() / 5 : _player.move_state == MOVING ? Fl::event_y() - _CH / 2 : h() / 4 - h() / 40),
+			(player_ == AI ? m - _CH / 2 - _CH / 8: _player.move_state == MOVING ? Fl::event_y() - _CH / 2 : m - _CH / 2 + _CH / 8),
+			_CW,
+			_CH
+			);
+	}
+
+	Rect pack_rect() const
+	{
+		return Rect(w() / 3 - _CW / 4 - _CW, (h() - _CH) / 2, _CW, _CH);
+	}
+
+	void draw_gamebook()
 	{
 		fl_color(fl_lighter(fl_lighter(FL_YELLOW)));
-		x_ -= _CW / 2;
-		y_ -= _CH / 2;
-		fl_rectf(x_, y_, _CW, _CH);
+		int X = gamebook_rect().x;
+		int Y = gamebook_rect().y;
+		int W = gamebook_rect().w;
+		int H = gamebook_rect().h;
+		fl_rectf(X, Y, W, H);
 		fl_color(FL_GRAY);
-		fl_rect(x_, y_, _CW, _CH);
+		fl_rect(X, Y, W, H);
 		fl_color(FL_BLACK);
 		fl_font(FL_COURIER, _CH / 14);
-		int X = x_ + _CW / 20;
-		int Y = y_ + fl_descent() + fl_height();
+		X += _CW / 20;
+		Y += fl_descent() + fl_height();
 		draw_color_text(message(GAMEBOOK), X, Y, text_colors);
 		fl_line_style(FL_SOLID, 2);
 		fl_line(X, Y + fl_descent(), X + _CW - _CW / 10, Y + fl_descent());
 		Y += _CH / 10;
 		draw_color_text(message(GB_HEADLINE), X, Y, text_colors);
-		int H = _CH - _CH / 5;
+		H = _CH - _CH / 5;
 		fl_line_style(FL_SOLID, 1);
-		int W = _CW - _CW / 10;
+		W = _CW - _CW / 10;
 		fl_line(X, Y + fl_descent(), X + W, Y + fl_descent());
 		fl_line(X + W / 2, Y - fl_height(), X + W / 2, Y + H - fl_descent());
 		Y += fl_descent();
@@ -2368,16 +2441,14 @@ public:
 	{
 		for (size_t i = 0; i < _ai.cards.size(); i++)
 		{
-			int X = ((i + 1) * w()) / 20 + w() / 2 - w() / 24;
-			int Y = h()/40;
+			int X = cards_rect(AI).x + i * w() / 20;
+			int Y = cards_rect(AI).y;
 			if (::debug > 1)
 			{
-				_ai.cards[i].image()->scale(_CW, _CH, 0, 1);
 				_ai.cards[i].skewed_image()->draw(X, Y);
 			}
 			else
 			{
-				_back.image()->scale(_CW, _CH, 0, 1);
 				_back.skewed_image()->draw(X, Y);
 			}
 		}
@@ -2385,9 +2456,8 @@ public:
 		{
 			Card &c = _player.cards[i];
 			Fl_RGB_Image *image = c.image();
-			int X = ((i + 1) * w()) / 20 + w() / 2 - w() / 24;
-			int Y = h() - _CH - h() / 40;
-			image->scale(_CW, _CH, 0, 1);
+			int X = cards_rect(PLAYER).x + i * w() / 20;
+			int Y = cards_rect(PLAYER).y;
 			if (_player.last_drawn.face() != NO_FACE &&
 			    _player.last_drawn.name() == c.name())
 			{
@@ -2423,11 +2493,11 @@ public:
 
 	void animate_ai_move()
 	{
-		int src_X = w() / 20 + w() / 2 - w() / 24 + _CW / 2;
-		int src_Y = h()/40 + _CH / 4;
+		int src_X = cards_rect(AI).center().first;
+		int src_Y = cards_rect(AI).center().second;
 
-		int dest_X = w() - w() / 3 + _CW / 2;
-		int dest_Y = h() / 5 + _CH / 2;
+		int dest_X = move_rect(AI).center().first;
+		int dest_Y = move_rect(AI).center().second;
 
 		_animate = &Deck::draw_animated_move;
 
@@ -2436,11 +2506,11 @@ public:
 
 	void animate_trick()
 	{
-		int src_X = (_move == AI ? w() - w() / 3 : w() - w() / 2) + _CW / 2;
-		int src_Y = (_move == AI ? h() / 5 : h() / 4 - h() / 40) + _CH / 2;
+		int src_X = move_rect(_move).center().first;
+		int src_Y = move_rect(_move).center().second;
 
-		int dest_X = w() - _CW / 2 - 2;
-		int dest_Y = (_move == AI ? h() / 10 - w() / 800 : h() - _CH - h() / 10) + _CH / 2;
+		int dest_X = deck_rect(_move).center().first;
+		int dest_Y = deck_rect(_move).center().second;
 
 		_animate = &Deck::draw_animated_trick;
 
@@ -2449,11 +2519,11 @@ public:
 
 	void animate_change(bool from_hand_ = false)
 	{
-		int src_X = w() / 3 - _CW + _CW/4 + _CW / 2;
-		int src_Y = (h() - _CW) / 2 + _CH / 2;
+		int src_X = change_rect().center().first;
+		int src_Y = change_rect().center().second;
 
-		int dest_X = w() / 20 + w() / 2 - w() / 24 + _CW / 2;
-		int dest_Y = h()/40 + _CH / 4;
+		int dest_X = cards_rect(_move).center().first;
+		int dest_Y = cards_rect(_move).center().second;
 
 		_animate = &Deck::draw_animated_change;
 		if (from_hand_)
@@ -2465,12 +2535,8 @@ public:
 	void draw_pack()
 	{
 		// _cards.back() is the trump card
-		_back.image()->scale(_CW, _CH, 0, 1);
-		_shadow.image()->scale(_CW, _CH, 0, 1);
-
 		if (_cards.size() && _cards.size() != 20)
 		{
-			_cards.back().image()->scale(_CW, _CH, 0, 1);
 			int X = w() / 3 - _CW + _CW/4;
 			int Y = (h() - _CW) / 2;
 			if (_closed == NOT)
@@ -2479,9 +2545,9 @@ public:
 				_cards.back().rect(Rect(X, Y, _cards.back().image()->h(), _cards.back().image()->w()));
 			}
 
-			// deck position
-			X = w() / 3 - _CW / 4 - _CW;
-			Y = (h() - _CH) / 2;
+			// pack position
+			X = pack_rect().x;
+			Y = pack_rect().y;
 			if (_cards.size())
 			{
 				for (size_t i = 0; i < _cards.size() - 1; i++)
@@ -2508,8 +2574,7 @@ public:
 			// draw an outline of pack
 			int X = w() / 3 - _CW - _CW / 4;
 			int Y = (h() - _CH) / 2;
-			_outline.image()->scale(_CW, _CH, 0, 1);
-				_outline.image()->draw(X, Y);
+			_outline.image()->draw(X, Y);
 		}
 
 		if (_closed != NOT && _cards.size())
@@ -2523,12 +2588,14 @@ public:
 	void draw_decks()
 	{
 		// show played pack
-		int X = w() - _CW - 2;
-		int Y = h() - _CH - h() / 10;
+		int X = deck_rect(PLAYER).x;
+		int Y = deck_rect(PLAYER).y;
 		for (size_t i = 0; i < _player.deck.size(); i++)
 		{
 			_back.image()->draw(X - i * w() / 800, Y - i * w() / 800);
 		}
+		X = deck_rect(AI).x;
+		Y = deck_rect(AI).y;
 		for (size_t i = 0; i < _ai.deck.size(); i++)
 		{
 			_back.image()->draw(X - i * w() / 800, h() / 10 - (i + 1) * w() /800);
@@ -2536,12 +2603,12 @@ public:
 		if (_player.deck.size())
 		{
 			// click region for deck display ("tooltip")
-			_player.deck.front().rect(Rect(X, Y, _CW, _CH));
+			_player.deck.front().rect(deck_rect(PLAYER));;
 		}
 		if (_ai.deck.size())
 		{
 			// click region for deck display ("tooltip")
-			_ai.deck.front().rect(Rect(X, h() / 10, _CW, _CH));
+			_ai.deck.front().rect(deck_rect(AI));
 		}
 	}
 
@@ -2551,22 +2618,20 @@ public:
 		if (_ai.move_state == ON_TABLE)
 		{
 			Fl_RGB_Image *image = _ai.card.image();
-			image->scale(_CW, _CH, 0, 1);
-			int X =  w() - w() / 3;
-			int Y =  h() / 5;
+			int X =  move_rect(AI).x;
+			int Y =  move_rect(AI).y;
 			image->draw(X, Y);
-			_ai.card.rect(Rect(X, Y, image->w(), image->h()));
+			_ai.card.rect(move_rect(AI));
 		}
 		if (_player.move_state != NONE)
 		{
 			Fl_RGB_Image *image = _player.card.image();
-			image->scale(_CW, _CH, 0, 1);
-			int X = _player.move_state == MOVING ? Fl::event_x() - image->w() / 2 : w() - w() / 2;
-			int Y = _player.move_state == MOVING ? Fl::event_y() - image->h() / 2 : h() / 4 - h() / 40;
+			int X = move_rect(PLAYER).x;
+			int Y = move_rect(PLAYER).y;
 			if (_player.move_state == MOVING)
 				_shadow.image()->draw(X + image->w() / 12, Y + image->w() / 12);
 			image->draw(X, Y);
-			_player.card.rect(Rect(X, Y, image->w(), image->h()));
+			_player.card.rect(move_rect(PLAYER));
 		}
 		// marriage declarations
 		if (_marriage == MARRIAGE_20) draw_blob("20", FL_GREEN, Fl::event_x(), Fl::event_y());
@@ -2607,7 +2672,6 @@ public:
 		if (Fl::first_window() != this || _grayout)
 		{
 			// use shadow image to "gray out" deck
-			_shadow.image()->scale(_CW, _CH, 0, 1);
 			for (int x = 0; x < w(); x += _CW / 2)
 				for (int y = 0; y < h(); y += _CH / 2)
 					_shadow.image()->draw(x, y, _CW / 2, _CH / 2, _CW / 4, _CH / 4);
@@ -2616,15 +2680,11 @@ public:
 
 	void draw_animated_trick()
 	{
-		_back.image()->scale(_CW, _CH, 0, 1);
 		_back.image()->draw(_animate_xy.first - _CW / 2, _animate_xy.second - _CH / 2);
 	}
 
 	void draw_animated_move()
 	{
-		_ai.card.image()->scale(_CW, _CH, 0, 1);
-		_shadow.image()->scale(_CW, _CH, 0, 1);
-
 		int X = _animate_xy.first - _CW / 2;
 		int Y = _animate_xy.second - _CH / 2;
 		_shadow.image()->draw(X + _CW / 12, Y + _CH / 12);
@@ -2637,22 +2697,54 @@ public:
 		draw_animated_move();
 	}
 
+	void draw_debug_rects()
+	{
+		fl_color(FL_GREEN);
+		int X, Y, W, H;
+		cards_rect(PLAYER).get(X, Y, W, H);
+		fl_rect(X, Y, W, H);
+		cards_rect(AI).get(X, Y, W, H);
+		fl_rect(X, Y, W, H);
+
+		move_rect(PLAYER).get(X, Y, W, H);
+		fl_rect(X, Y, W, H);
+		move_rect(AI).get(X, Y, W, H);
+		fl_rect(X, Y, W, H);
+
+		deck_rect(PLAYER).get(X, Y, W, H);
+		fl_rect(X, Y, W, H);
+		deck_rect(AI).get(X, Y, W, H);
+		fl_rect(X, Y, W, H);
+
+		pack_rect().get(X, Y, W, H);
+		fl_rect(X, Y, W, H);
+
+		change_rect().get(X, Y, W, H);
+		fl_rect(X, Y, W, H);
+
+		gamebook_rect().get(X, Y, W, H);
+		fl_rect(X, Y, W, H);
+	}
+
 	void draw()
 	{
 		// measure a "standard card"
-//		_card_template.image()->scale(w() / 8, w() / 2, 1, 1);
 		int W = w() / 8;
 		int H = 1.5 * W;
-		_card_template.image()->scale(W, H, 0, 1);
-		_CW = _card_template.image()->w();
-		_CH = _card_template.image()->h();
+		if (_CW != W || _CH != H)
+		{
+			DBG("new card size: " << W << "x" << H << "\n");
+		}
+		_CW = W;
+		_CH = H;
+		_card_template.set_pixel_size(_CW, _CH);
 		if (_ai.message != AI_SLEEP)
 		{
 			Fl::remove_timeout(cb_sleep, this);
 			Fl::add_timeout(20.0, cb_sleep, this);
 		}
 		draw_table();
-		draw_gamebook(w() / 40 + _CW / 2, h() / 2);
+		draw_gamebook();
 		draw_suite_symbol(_trump, w() / 3 - _CW / 4, h() - h() / 2 + _CH / 2 + _CH / 5);
 		draw_messages();
 		draw_20_40_suites();
@@ -2672,6 +2764,9 @@ public:
 		if (!_disabled && _redeal_button && _redeal_button->visible())
 			_redeal_button->draw();
 		draw_version();
+		if (::debug >= 3)
+			draw_debug_rects();
+
 		draw_grayout();
 	}
 
@@ -3453,11 +3548,14 @@ public:
 		_player.deck.clear();
 
 		_trump = SPADE;
+		temp = _cards;
+		_cards.clear();
 		Cards p1("|A♠|Q♥|Q♦|Q♣|J♣|");
 		Cards a1("|K♠|Q♠|K♥|K♦|A♣|");
 		Cards pull = pull_trump_cards(a1, p1);
 		assert(pull.size()==3);
 		assert(pull == "|K♥|K♦|A♣|");
+		_cards = temp;
 	}
 
 	void create_welcome()
@@ -3696,8 +3794,7 @@ void Welcome::draw()
 	int Y = h() / 4;
 	if (Y + H > h() - stat_h - 4)
 		H = h() - Y - stat_h - 4;
-	c.image()->scale(W, H, 0, 1);
-	c.image()->draw(w() / 40, Y);
+	c.image(W, H)->draw(w() / 40, Y);
 	fl_font(FL_HELVETICA_BOLD, w() / 10);
 	fl_color(FL_BLACK);
 	static constexpr char title[] = "^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B";
