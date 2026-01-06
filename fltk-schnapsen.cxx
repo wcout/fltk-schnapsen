@@ -2113,12 +2113,12 @@ public:
 		return ret;
 	}
 
-	Rect gamebook_rect()
+	Rect gamebook_rect() const
 	{
 		return Rect(w()/40, h() / 2 - _CH / 2, _CW, _CH);
 	}
 
-	Rect cards_rect(Player player_)
+	Rect cards_rect(Player player_) const
 	{
 		return Rect(w() / 20 + w() / 2 - w() / 24,
 			(player_ == AI ? h() / 40 : h() - _CH - h() / 40),
@@ -2126,7 +2126,7 @@ public:
 			(player_ == AI ? _CH / 3 : _CH));
 	}
 
-	Rect change_rect()
+	Rect change_rect() const
 	{
 		return Rect(w() / 3 - _CW + _CW / 4,
 			(h() - _CW) / 2,
@@ -2135,20 +2135,19 @@ public:
 			);
 	};
 
-	Rect deck_rect(Player player_)
+	Rect deck_rect(Player player_) const
 	{
 		return Rect(w() - _CW - 2, (player_ == AI ?
 			h() / 10 - w() / 800 : h() - _CH - h() / 10) , _CW, _CH);
 	}
 
-	Rect move_rect(Player player_)
+	Rect move_rect(Player player_) const
 	{
 		int ma = h() / 40 + _CH / 3 + h() / 40 + _CH / 2;
 		int mp = h() - h() / 40 - _CH - h() / 40 - _CH / 2;
 		int m = (ma + mp) / 2;
 		return Rect(
 			(player_ == AI ? w() - w() / 3 : _player.move_state == MOVING ? Fl::event_x() - _CW / 2 : w() - w() / 2),
-//			(player_ == AI ? h() / 5 : _player.move_state == MOVING ? Fl::event_y() - _CH / 2 : h() / 4 - h() / 40),
 			(player_ == AI ? m - _CH / 2 - _CH / 8: _player.move_state == MOVING ? Fl::event_y() - _CH / 2 : m - _CH / 2 + _CH / 8),
 			_CW,
 			_CH
@@ -2493,7 +2492,8 @@ public:
 
 	void animate_ai_move()
 	{
-		int src_X = cards_rect(AI).center().first;
+//		int src_X = cards_rect(AI).center().first;
+		int src_X = cards_rect(AI).x + _CW / 2;
 		int src_Y = cards_rect(AI).center().second;
 
 		int dest_X = move_rect(AI).center().first;
@@ -3483,7 +3483,6 @@ public:
 		while (Fl::first_window() && _disabled)
 		{
 			Fl::wait(min_wait);
-//			redraw(); // TODO/FIXME: do redraws in game loop instead
 			std::chrono::time_point<std::chrono::system_clock> end =
 				std::chrono::system_clock::now();
 			std::chrono::duration<double> diff = end - start;
@@ -3790,7 +3789,6 @@ void Welcome::draw()
 	Card c(QUEEN, HEART);
 	int W = w() / 2 - w() / 10;
 	int H = 1.5 * W;
-//	int H = (double)c.image()->h() / c.image()->w() * W;
 	int Y = h() / 4;
 	if (Y + H > h() - stat_h - 4)
 		H = h() - Y - stat_h - 4;
