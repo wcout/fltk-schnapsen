@@ -37,7 +37,7 @@ struct GameData
 class Engine
 {
 public:
-	explicit Engine(GameData &game_, GameState &player_, GameState &ai_, UI *ui_) :
+	explicit Engine(GameData &game_, GameState &player_, GameState &ai_, UI &ui_) :
 		_game(game_), _player(player_), _ai(ai_), _ui(ui_)
 	{
 	}
@@ -52,7 +52,10 @@ public:
 	size_t find(const Card &c_, const Cards &cards_) const;
 	size_t lowest_card(Cards &cards_, bool no_trump_ = true) const;
 	size_t lowest_card_that_tricks(const Card &c_, const Cards &cards_) const;
+	size_t highest_card_that_tricks(const Card &c_, const Cards &cards_) const;
 	Cards all_cards_that_trick(const Card &c_, const Cards &cards_) const;
+	bool has_suite(const Cards &cards_, CardSuite suite_) const;
+	bool can_trick_with_suite(const Card &c_, const Cards &cards_) const;
 	bool card_tricks(const Card &c1_, const Card &c2_) const;
 	size_t best_trick_card(const Card &c_, Cards &tricks_) const;
 	bool test_change(Cards &cards_);
@@ -63,6 +66,7 @@ public:
 	Cards suites_in_hand(CardSuite suite_, const Cards &cards_) const;
 	size_t must_give_color_or_trick(const Card &c_, Cards &cards_) const;
 	Cards cards_to_claim(CardSuite suite_ = ANY_SUITE) const;
+	Cards trumps_to_claim() const;
 	Cards count_played_suite(CardSuite suite_) const;
 	int cards_in_play(CardSuite suite_) const;
 	int max_cards_player(CardSuite suite_) const;
@@ -72,5 +76,5 @@ private:
 	GameData &_game;
 	GameState &_player;
 	GameState &_ai;
-	UI *_ui;
+	UI &_ui;
 };

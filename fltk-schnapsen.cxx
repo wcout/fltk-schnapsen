@@ -1016,7 +1016,7 @@ class Deck : public Fl_Double_Window, public UI
 {
 public:
 	Deck() : Fl_Double_Window(800, 600),
-		_engine(_game, _player, _ai, this),
+		_engine(_game, _player, _ai, *this),
 		_error_message(NO_MESSAGE),
 		_disabled(false),
 		_card_template(QUEEN, SPADE),
@@ -1185,13 +1185,6 @@ public:
 		return false;
 	}
 
-	bool has_suite(const Cards &cards_, CardSuite suite_) const
-	{
-		for (auto &c : cards_)
-			if (c.suite() == suite_) return true;
-		return false;
-	}
-
 	bool valid_move(const Card &card_)
 	{
 		// check closed game and AI has card on table
@@ -1202,7 +1195,7 @@ public:
 				// construct player cards from cards+played card
 				Cards temp = _player.cards;
 				temp.push_back(card_);
-				if (has_suite(temp, _ai.card.suite()))
+				if (_engine.has_suite(temp, _ai.card.suite()))
 				{
 					// if player cards has suite it must use
 					if (card_.suite() != _ai.card.suite())
@@ -1211,7 +1204,7 @@ public:
 						return false;
 					}
 					// if player can trick with suite, he must
-					if (can_trick_with_suite(_ai.card, temp) && !_engine.card_tricks(card_, _ai.card))
+					if (_engine.can_trick_with_suite(_ai.card, temp) && !_engine.card_tricks(card_, _ai.card))
 					{
 						error_message(MUST_TRICK_WITH_SUITE, true);
 						return false;
@@ -1240,45 +1233,9 @@ public:
 		return false;
 	}
 
-	bool can_trick_with_suite(const Card &c_, const Cards &cards_) const
-	{
-		for (auto &c : cards_)
-		{
-			if (c.suite() != c_.suite()) continue;
-			if (_engine.card_tricks(c, c_)) return true;
-		}
-		return false;
-	}
-
 	bool must_give_color(const Card &c_, const Cards &cards_) const
 	{
-		return has_suite(cards_, c_.suite());
-	}
-
-	Cards trumps_to_claim() const
-	{
-		return _engine.cards_to_claim(_game.trump);
-	}
-
-	size_t highest_card_that_tricks(const Card &c_, const Cards &cards_) const
-	{
-		int highest_value = 0;
-		size_t highest = NO_MOVE;
-		for (size_t i = 0; i < cards_.size(); i++)
-		{
-			if (_engine.card_tricks(cards_[i], c_))
-			{
-				int value = cards_[i].value();
-				if (cards_[i].suite() == _game.trump)
-					value -= 1;
-				if (value > highest_value)
-				{
-					highest_value = value;
-					highest = i;
-				}
-			}
-		}
-		return highest;
+		return _engine.has_suite(cards_, c_.suite());
 	}
 
 	void handle_move()
@@ -2872,7 +2829,7 @@ public:
 		temp.push_front(Card(TEN, CLUB));
 		temp.push_front(Card(ACE, SPADE));
 		Card c(ACE, CLUB);
-		assert(can_trick_with_suite(c, temp) == false);
+		assert(_engine.can_trick_with_suite(c, temp) == false);
 		assert(can_trick(c, temp) == true);
 		Cards res(_game.cards);
 		res += _game.cards;
@@ -2894,11 +2851,11 @@ public:
 		Cards clubs = _engine.suites_in_hand(CLUB, temp);
 		assert(clubs[0] == Card(QUEEN, CLUB)); // lowest first!
 		assert(_engine.lowest_card_that_tricks(Card(JACK, CLUB), temp) == 4); // 4=QUEEN/CLUB
-		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 0); // 0=ACE/SPADE (_game.trump=SPADE)
+		assert(_engine.highest_card_that_tricks(Card(JACK, CLUB), temp) == 0); // 0=ACE/SPADE (_game.trump=SPADE)
 		_game.trump = HEART;
-		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_game.trump=HEART)
+		assert(_engine.highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_game.trump=HEART)
 		_game.trump = DIAMOND;
-		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_game.trump=DIAMOND)
+		assert(_engine.highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_game.trump=DIAMOND)
 
 		Cards c3("|A♠|K♥|K♣|Q♣|A♠|");
 		_player.deck = "|T♣|";

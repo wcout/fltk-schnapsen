@@ -35,6 +35,25 @@ size_t Engine::best_trick_card(const Card &c_, Cards &tricks_) const
 	return move;
 }
 
+bool Engine::has_suite(const Cards &cards_, CardSuite suite_) const
+{
+	for (auto &c : cards_)
+	{
+		if (c.suite() == suite_) return true;
+	}
+	return false;
+}
+
+bool Engine::can_trick_with_suite(const Card &c_, const Cards &cards_) const
+{
+	for (auto &c : cards_)
+	{
+		if (c.suite() != c_.suite()) continue;
+		if (card_tricks(c, c_)) return true;
+	}
+	return false;
+}
+
 bool Engine::card_tricks(const Card &c1_, const Card &c2_) const
 {
 	// does card c1 trick card c2?
@@ -117,6 +136,28 @@ size_t Engine::lowest_card_that_tricks(const Card &c_, const Cards &cards_) cons
 	return lowest;
 }
 
+size_t Engine::highest_card_that_tricks(const Card &c_, const Cards &cards_) const
+{
+	// NOTE: seems unused currently
+	int highest_value = 0;
+	size_t highest = NO_MOVE;
+	for (size_t i = 0; i < cards_.size(); i++)
+	{
+		if (card_tricks(cards_[i], c_))
+		{
+			int value = cards_[i].value();
+			if (cards_[i].suite() == _game.trump)
+				value -= 1;
+			if (value > highest_value)
+			{
+				highest_value = value;
+				highest = i;
+			}
+		}
+	}
+	return highest;
+}
+
 Suites Engine::have_40(const Cards &cards_)
 {
 	Suites result;
@@ -169,22 +210,22 @@ bool Engine::test_change(Cards &cards_)
 	cards_.erase(cards_.begin() + i.value());
 
 	_ai.card = jack;
-	_ui->animate_change(true); // jack from hand to deck
+	_ui.animate_change(true); // jack from hand to deck
 
-	_ui->ai_message(AI_CHANGED, true);
-	_ui->update();
+	_ui.ai_message(AI_CHANGED, true);
+	_ui.update();
 
 	Card c = _game.cards.back();
 	_game.cards.pop_back();
 	_game.cards.push_back(jack);
 
 	_ai.card = c;
-	_ui->animate_change();		// trump from deck to hand
+	_ui.animate_change();		// trump from deck to hand
 
 	cards_.push_back(c);
 	cards_.sort();
 	_ai.changed = c;
-	_ui->wait(1.5);
+	_ui.wait(1.5);
 	return true;
 }
 
@@ -196,7 +237,7 @@ size_t Engine::ai_play_20_40()
 	{
 		// ai has 40, play out queen
 		_game.marriage = MARRIAGE_40;
-		_ui->bell(AI_MARRIAGE_40);
+		_ui.bell(AI_MARRIAGE_40);
 		size_t trump_queen = find(Card(QUEEN, _game.trump), _ai.cards);
 		move = trump_queen;
 		LOG("AI declares 40 with " << _ai.cards[move] << "\n");
@@ -213,7 +254,7 @@ size_t Engine::ai_play_20_40()
 	else if ((suites = have_20(_ai.cards)).size())
 	{
 		_game.marriage = MARRIAGE_20;
-		_ui->bell(AI_MARRIAGE_20);
+		_ui.bell(AI_MARRIAGE_20);
 		size_t first_suite_queen = find(Card(QUEEN, suites[0]), _ai.cards);
 		move = first_suite_queen;
 		LOG("AI declares 20 with " << _ai.cards[move] << "\n");
@@ -289,9 +330,9 @@ bool Engine::ai_test_close()
 		{
 			LOG("closed by AI!\n");
 			_game.closed = BY_AI;
-			_ui->ai_message(AI_CLOSED, true);
-			_ui->update();
-			_ui->wait(1.5);
+			_ui.ai_message(AI_CLOSED, true);
+			_ui.update();
+			_ui.wait(1.5);
 			return true;
 		}
 	}
@@ -324,6 +365,12 @@ Cards Engine::cards_to_claim(CardSuite suite_/* = ANY_SUITE*/) const
 	res.sort_by_value();
 	DBG("cards_to_claim: " << res << "\n")
 	return res;
+}
+
+Cards Engine::trumps_to_claim() const
+{
+	// NOTE: seeem unused currently
+	return cards_to_claim(_game.trump);
 }
 
 size_t Engine::must_give_color_or_trick(const Card &c_, Cards &cards_) const
@@ -549,10 +596,10 @@ size_t Engine::ai_move()
 
 	_ai.cards.erase(_ai.cards.begin() + move);
 
-	_ui->animate_ai_move();
+	_ui.animate_ai_move();
 
 	_ai.move_state = ON_TABLE;
-	_ui->update();
+	_ui.update();
 	LOG("AI move: " << _ai.card << "\n");
 	return move;
 }
