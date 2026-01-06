@@ -11,7 +11,7 @@ else
 cxxflags += -DUSE_MINIAUDIO
 endif
 
-$(APPLICATION): $(APPLICATION).cxx
+$(APPLICATION): $(APPLICATION).cxx engine.h engine.cxx welcome.h welcome.cxx UI.h
 	$(FLTK)$(FLTK_CONFIG) --use-images --compile $(APPLICATION).cxx $(cxxflags)
 #	g++ -o $(APPLICATION) -fsanitize=address `$(FLTK)$(FLTK_CONFIG) --use-images --cxxflags` $(cxxflags) $(APPLICATION).cxx `$(FLTK)$(FLTK_CONFIG) --use-images --ldflags` -static-libasan
 

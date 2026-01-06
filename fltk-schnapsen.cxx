@@ -979,17 +979,7 @@ inline std::ostream &operator<<(std::ostream &os_, const Cards &cards_)
 
 class Deck;
 
-class Welcome : public Fl_Double_Window
-{
-public:
-	Welcome(const Deck &deck_);
-	~Welcome();
-	static void redraw_timer(void *d_);
-	int handle(int e_);
-	void draw();
-private:
-	const Deck &_deck;
-};
+#include "welcome.cxx"
 
 #ifdef USE_MINIAUDIO
 class Audio
@@ -1018,37 +1008,15 @@ private:
 };
 #endif
 
-struct GameData
-{
-	GameData() : score(0), pending(false),
-	             message(NO_MESSAGE), deck_info(false), games_won(0),
-	             matches_won(0), display_score(false), move_state(NONE) {}
-	Cards   cards;    // hand
-	Cards   deck;     // stack
-	Card    card;     // card that is moved to play
-	int     score;    // current score
-	int     pending;  // from 20/40 will score *after* won trick
-	Suites  s20_40;
-	Message message;
-	bool    deck_info;
-	int     games_won;
-	int     matches_won;
-	bool    display_score;
-	CardState move_state;
-	Card    last_drawn;
-	Card    changed;
-};
+#include "engine.cxx"
 
 typedef void (Deck::*DeckMemberFn)();
 
-class Deck : public Fl_Double_Window
+class Deck : public Fl_Double_Window, public UI
 {
 public:
 	Deck() : Fl_Double_Window(800, 600),
-		_trump(HEART),
-		_marriage(NO_MARRIAGE),
-		_closed(NOT),
-		_move(PLAYER),
+		_engine(_game, _player, _ai, this),
 		_error_message(NO_MESSAGE),
 		_disabled(false),
 		_card_template(QUEEN, SPADE),
@@ -1074,9 +1042,9 @@ public:
 		_back.image("card_back", root + "/back/" + cardback);
 		_shadow.image("card_shadow", homeDir() + cardDir + "/Card_shadow.svg");
 		_outline.image("card_outline", homeDir() + cardDir + "/Card_outline.svg");
-		_cards = Cards::fullcards();
-		_cards.check();
-		_card_template = _cards[0];
+		_game.cards = Cards::fullcards();
+		_game.cards.check();
+		_card_template = _game.cards[0];
 		unit_tests();
 		default_cursor(FL_CURSOR_HAND);
 		Fl_RGB_Image *icon = Card(QUEEN, HEART).image();
@@ -1110,6 +1078,11 @@ public:
 		delete _cmd_input;
 	}
 
+	void update() override
+	{
+		redraw();
+	}
+
 	void ai_message(Message m_, bool bell_ = false)
 	{
 		if (bell_) bell(m_);
@@ -1137,117 +1110,25 @@ public:
 		redraw();
 	}
 
-	size_t find(const Card &c_, const Cards &cards_) const
-	{
-		auto i = cards_.find_pos(c_);
-		if (i) return i.value();
-		return NO_MOVE;
-	}
-
-	Suites have_40(const Cards &cards_)
-	{
-		Suites result;
-		auto trump_queen = cards_.find(Card(QUEEN, _trump));
-		auto trump_king = cards_.find(Card(KING, _trump));
-		if (trump_queen && trump_king)
-		{
-			result.push_back(_trump);
-		}
-		// trump or empty()
-		return result;
-	}
-
-	Suites have_20(const Cards &cards_)
-	{
-		Suites result;
-		auto find_20 = [&] (CardSuite suite) -> bool
-		{
-			if (cards_.find(Card(QUEEN, suite)) && cards_.find(Card(KING, suite)))
-			{
-				result.push_back(suite);
-				return true;
-			}
-			return false;
-		};
-		if (_trump != SPADE) find_20(SPADE);
-		if (_trump != HEART) find_20(HEART);
-		if (_trump != DIAMOND) find_20(DIAMOND);
-		if (_trump != CLUB) find_20(CLUB);
-		// list of suites or empty
-		return result;
-	}
-
 	bool test_change()
 	{
-		if (_cards.size() && _cards.back().face() != JACK &&
-		    _player.card.face() == JACK && _player.card.suite() == _cards.back().suite())
+		if (_game.cards.size() && _game.cards.back().face() != JACK &&
+		    _player.card.face() == JACK && _player.card.suite() == _game.cards.back().suite())
 		{
-			if (_cards.size() < 4)
+			if (_game.cards.size() < 4)
 			{
 				error_message(NO_CHANGE, true);
 				return false;
 			}
 			// make change
-			LOG("Player changes jack for " << _cards.back() << "\n");
-			Card c = _cards.back();
-			_cards.pop_back();
-			_cards.push_back(_player.card);
+			LOG("Player changes jack for " << _game.cards.back() << "\n");
+			Card c = _game.cards.back();
+			_game.cards.pop_back();
+			_game.cards.push_back(_player.card);
 			_player.card = c;
 			_player.changed = c;
 			player_message(YOU_CHANGED, true);
 			return true;
-		}
-		return false;
-	}
-
-	bool test_change(Cards &cards_)
-	{
-		if (_cards.size() < 4 || _closed != NOT) return false;
-		auto i = cards_.find_pos(Card(JACK, _cards.back().suite()));
-		if (!i) return false;
-
-		// make change
-		LOG("AI changes jack for " << _cards.back() << "\n");
-		Card jack = cards_[i.value()];
-		cards_.erase(cards_.begin() + i.value());
-
-		_ai.card = jack;
-		animate_change(true); // jack from hand to deck
-
-		ai_message(AI_CHANGED, true);
-		redraw();
-
-		Card c = _cards.back();
-		_cards.pop_back();
-		_cards.push_back(jack);
-
-		_ai.card = c;
-		animate_change();		// trump from deck to hand
-
-		cards_.push_back(c);
-		cards_.sort();
-		_ai.changed = c;
-		wait(1.5);
-		return true;
-	}
-
-	bool ai_test_close()
-	{
-		// test if ai should close
-		if (_closed == NOT && _player.move_state == NONE && _ai.move_state == MOVING &&
-		    _cards.size() >= 4)
-		{
-			int maybe_score = highest_cards_in_hand(_ai.cards).value() + _ai.score + _ai.pending;
-			DBG("maybe_score: " << maybe_score << "\n")
-			if (maybe_score >= 60)
-			{
-				LOG("closed by AI!\n");
-				_closed = BY_AI;
-				ai_message(AI_CLOSED, true);
-				redraw();
-				wait(1.5);
-				return true;
-			}
 		}
 		return false;
 	}
@@ -1260,17 +1141,17 @@ public:
 	bool test_close(int x_, int y_)
 	{
 		// test if player wants close and is allowed to
-		if (_closed == NOT && idle() &&
-		    _cards.front().rect().includes(x_, y_))
+		if (_game.closed == NOT && idle() &&
+		    _game.cards.front().rect().includes(x_, y_))
 		{
-		   if (_cards.size() < 4)
+		   if (_game.cards.size() < 4)
 			{
 				error_message(NO_CLOSE, true);
 			}
 			else
 			{
 				LOG("closed by player!\n");
-				_closed = BY_PLAYER;
+				_game.closed = BY_PLAYER;
 				player_message(YOU_CLOSED, true);
 				return true;
 			}
@@ -1280,7 +1161,7 @@ public:
 
 	bool test_20_40(int x_, int y_)
 	{
-		_marriage = NO_MARRIAGE;
+		_game.marriage = NO_MARRIAGE;
 		if (_player.card.face() == QUEEN || _player.card.face() == KING)
 		{
 			for (auto &c : _player.cards)
@@ -1289,13 +1170,13 @@ public:
 				   (c.face() == QUEEN || c.face() == KING) &&
 					(c.includes(x_, y_)))
 				{
-					if (c.suite() == _trump)
+					if (c.suite() == _game.trump)
 					{
-						_marriage = MARRIAGE_40;
+						_game.marriage = MARRIAGE_40;
 					}
 					else
 					{
-						_marriage = MARRIAGE_20;
+						_game.marriage = MARRIAGE_20;
 					}
 					return true;
 				}
@@ -1311,46 +1192,10 @@ public:
 		return false;
 	}
 
-	Cards suites_in_hand(CardSuite suite_, const Cards &cards_) const
-	{
-		// TODO: push_back() to keep sort order highest -> lowest?
-		Cards res;
-		for (auto &c : cards_)
-			if (c.suite() == suite_) res.push_front(c);
-		return res;
-	}
-
-	Cards count_played_suite(CardSuite suite_) const
-	{
-		// counts all cards of suite 'suite_', that are
-		// "knowable" by AI
-		Cards res = suites_in_hand(suite_, _ai.deck) +
-		            suites_in_hand(suite_, _player.deck);
-		// include visible trump of pack (if still there and not closed)
-		if (_closed == NOT && _cards.size() && _cards.back().suite() == suite_)
-				res.push_front(_cards.back());
-		return res;
-	}
-
-	int cards_in_play(CardSuite suite_) const
-	{
-		return 5 - count_played_suite(suite_).size();
-	}
-
-	int max_cards_player(CardSuite suite_) const
-	{
-		return cards_in_play(suite_) - suites_in_hand(suite_, _ai.cards).size();
-	}
-
-	int max_trumps_player() const
-	{
-		return cards_in_play(_trump) - suites_in_hand(_trump, _ai.cards).size();
-	}
-
 	bool valid_move(const Card &card_)
 	{
 		// check closed game and AI has card on table
-		if (_closed != NOT)
+		if (_game.closed != NOT)
 		{
 			if (_ai.move_state == ON_TABLE)
 			{
@@ -1366,7 +1211,7 @@ public:
 						return false;
 					}
 					// if player can trick with suite, he must
-					if (can_trick_with_suite(_ai.card, temp) && !card_tricks(card_, _ai.card))
+					if (can_trick_with_suite(_ai.card, temp) && !_engine.card_tricks(card_, _ai.card))
 					{
 						error_message(MUST_TRICK_WITH_SUITE, true);
 						return false;
@@ -1375,7 +1220,7 @@ public:
 					return true;
 				}
 				// if player can trick (with trump now), he must
-				if (can_trick(_ai.card, temp) && !card_tricks(card_, _ai.card))
+				if (can_trick(_ai.card, temp) && !_engine.card_tricks(card_, _ai.card))
 				{
 					error_message(MUST_TRICK_WITH_TRUMP, true);
 					return false;
@@ -1390,7 +1235,7 @@ public:
 	{
 		for (auto &c : cards_)
 		{
-			if (card_tricks(c, c_)) return true;
+			if (_engine.card_tricks(c, c_)) return true;
 		}
 		return false;
 	}
@@ -1400,24 +1245,9 @@ public:
 		for (auto &c : cards_)
 		{
 			if (c.suite() != c_.suite()) continue;
-			if (card_tricks(c, c_)) return true;
+			if (_engine.card_tricks(c, c_)) return true;
 		}
 		return false;
-	}
-
-	bool card_tricks(const Card &c1_, const Card &c2_) const
-	{
-		// does card c1 trick card c2?
-		bool result( false );
-		if (c1_.suite() == c2_.suite())
-		{
-			if (c1_.value() > c2_.value()) result = true;
-		}
-		else if (c1_.suite() == _trump)
-		{
-			result = true;
-		}
-		return result;
 	}
 
 	bool must_give_color(const Card &c_, const Cards &cards_) const
@@ -1425,169 +1255,9 @@ public:
 		return has_suite(cards_, c_.suite());
 	}
 
-	size_t best_trick_card(const Card &c_, Cards &tricks_) const
-	{
-		size_t move = NO_MOVE;
-		assert(tricks_.size());
-
-		// try to find a game winning trick
-		for (auto &c : tricks_)
-		{
-			if (c.value() + c_.value() + _ai.score + _ai.pending >= 66)
-			{
-				move = find(c, tricks_);
-				break;
-			}
-		}
-		if (move == NO_MOVE)
-		{
-			// try to find a trick that pushes score beyond 32
-			for (auto c : tricks_)
-			{
-				if (c.value() + c_.value() + _ai.score + _ai.pending >= 33)
-				{
-					move = find(c, tricks_);
-					break;
-				}
-			}
-		}
-		if (move == NO_MOVE)
-		{
-			move = lowest_card_that_tricks(c_, tricks_);
-		}
-		assert(move != NO_MOVE);
-		DBG("best_trick_card: " << tricks_ << " - " << c_ << " => " << tricks_[move] << "\n")
-		return move;
-	}
-
-	size_t must_give_color_or_trick(const Card &c_, Cards &cards_) const
-	{
-		Cards same_suite;
-		Cards trump_suite;
-		for (auto &c : cards_)
-		{
-			if (c.suite() == c_.suite())
-				same_suite.push_back(c);
-		}
-		if (same_suite.empty())
-		{
-			// we don't have this suite, maybe trick with trump?
-			if (c_.suite() != _trump)
-			{
-				for (auto c : cards_)
-				{
-					if (c.suite() == _trump)
-						trump_suite.push_back(c);
-				}
-				if (trump_suite.empty())
-				{
-					// we don't even have a trump
-					return lowest_card(cards_);
-				}
-				Card best_trick = trump_suite[best_trick_card(c_, trump_suite)];
-				return find(best_trick, cards_);
-			}
-			return lowest_card(cards_);
-		}
-		// we have this suite
-		Cards tricks;
-		for (auto &c : same_suite)
-		{
-			if (card_tricks(c, c_))
-				tricks.push_back(c);
-		}
-		if (tricks.empty())
-		{
-			// we can't trick, so return lowest card of suite
-			size_t i = lowest_card(same_suite);
-			return find(same_suite[i], cards_);
-		}
-		Card best_trick = tricks[best_trick_card(c_, tricks)];
-		return find(best_trick, cards_);
-	}
-
-	size_t lowest_card(Cards &cards_, bool no_trump_ = true) const
-	{
-		// return the lowest card, but no trump if possible
-		int lowest_value = 20;
-		int lowest_value_trump = 20;
-		size_t lowest = NO_MOVE;
-		size_t lowest_trump = NO_MOVE;
-		for (size_t i=0; i < cards_.size(); i++)
-		{
-			if (cards_[i].suite() == _trump)
-			{
-				if (cards_[i].value() < lowest_value_trump)
-				{
-					lowest_value_trump = cards_[i].value();
-					lowest_trump = i;
-				}
-			}
-			else if (cards_[i].value() < lowest_value)
-			{
-				lowest_value = cards_[i].value();
-				lowest = i;
-			}
-		}
-		if (lowest == NO_MOVE)
-			lowest = lowest_trump;
-		if (no_trump_ == true && lowest != NO_MOVE)
-			return lowest;
-		return lowest_trump;
-	}
-
-	size_t lowest_card_that_tricks(const Card &c_, const Cards &cards_) const
-	{
-		int lowest_value = 999;
-		size_t lowest = NO_MOVE;
-		for (size_t i = 0; i < cards_.size(); i++)
-		{
-			if (card_tricks(cards_[i], c_))
-			{
-				int value = cards_[i].value();
-				if (cards_[i].suite() == _trump)
-					value += 100;
-				if (value < lowest_value)
-				{
-					lowest_value = value;
-					lowest = i;
-				}
-			}
-		}
-		return lowest;
-	}
-
-	Cards cards_to_claim(CardSuite suite_ = ANY_SUITE) const
-	{
-		Cards res;
-		// in use at end game playout ("allowed" to use _player.cards)
-		Cards player_cards = Cards::fullcards() - _player.deck - _ai.deck - _ai.cards;
-		if (_cards.size())
-			player_cards -= _cards.back(); // open trump is certainly not in player cards
-		player_cards.sort();
-		DBG("assumed player cards: " << player_cards << "\n")
-		for (const auto &c : _ai.cards)
-		{
-			if (suite_ != ANY_SUITE && c.suite() != suite_) continue;
-			for (size_t i = 0; i < player_cards.size(); i++)
-			{
-				const Card &pc = player_cards[i];
-				if (pc.suite() != c.suite()) continue;
-				if (card_tricks(pc, c)) break;
-				res.push_back(c);
-				player_cards.erase(player_cards.begin() + i);
-				break;
-			}
-		}
-		// TODO: sort by value or trump?
-		res.sort_by_value();
-		DBG("cards_to_claim: " << res << "\n")
-		return res;
-	}
-
 	Cards trumps_to_claim() const
 	{
-		return cards_to_claim(_trump);
+		return _engine.cards_to_claim(_game.trump);
 	}
 
 	size_t highest_card_that_tricks(const Card &c_, const Cards &cards_) const
@@ -1596,10 +1266,10 @@ public:
 		size_t highest = NO_MOVE;
 		for (size_t i = 0; i < cards_.size(); i++)
 		{
-			if (card_tricks(cards_[i], c_))
+			if (_engine.card_tricks(cards_[i], c_))
 			{
 				int value = cards_[i].value();
-				if (cards_[i].suite() == _trump)
+				if (cards_[i].suite() == _game.trump)
 					value -= 1;
 				if (value > highest_value)
 				{
@@ -1611,319 +1281,13 @@ public:
 		return highest;
 	}
 
-	Cards highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suite_)
-	{
-		Cards res;
-		// all cards of 'suite' that were already played
-		Cards played_suites(suites_in_hand(suite_, _ai.deck + _player.deck));
-
-		// cards of suite in (ai) hand
-		Cards suites(suites_in_hand(suite_, cards_));
-
-		// check all cards in hand if there are higher cards that are not already played
-		for (auto c : suites)
-		{
-			Cards temp(played_suites);
-			temp += suites; // include self
-			temp.erase(temp.begin() + find(c, temp)); // but not current card!
-			if (c.face() == ACE) res.push_back(c);
-			if (c.face() == TEN && temp.find_face(ACE)) res.push_back(c); // ACE already played (or in own hand)
-			if (c.face() == KING && temp.find_face(TEN) && temp.find_face(ACE)) res.push_back(c); // TEN & ACE already played (or in own hand)
-			if (c.face() == QUEEN && temp.find_face(KING) && temp.find_face(TEN) && temp.find_face(ACE)) res.push_back(c);
-			if (c.face() == JACK && temp.find_face(QUEEN) && temp.find_face(KING) && temp.find_face(TEN) && temp.find_face(ACE)) res.push_back(c);
-		}
-		res.sort();
-		DBG("highest_cards_of_suite_in_hand " << suite_symbols[suite_] << ": "<< res << "\n")
-		return res;
-	}
-
-	Cards highest_cards_in_hand(const Cards &cards_)
-	{
-		Cards res;
-		res += highest_cards_of_suite_in_hand(cards_, HEART);
-		res += highest_cards_of_suite_in_hand(cards_, SPADE);
-		res += highest_cards_of_suite_in_hand(cards_, DIAMOND);
-		res += highest_cards_of_suite_in_hand(cards_, CLUB);
-		res.sort();
-		DBG("highest_cards_in_hand :" << res << "\n")
-		return res;
-	}
-
-	Cards all_cards_that_trick(const Card &c_, const Cards &cards_) const
-	{
-		Cards res;
-		Cards cards(cards_);
-		cards.sort(_trump); // sort with trumps in first place
-		for (auto c : cards)
-		{
-			if (card_tricks(c, c_))
-			{
-				res.push_front(c); // valuable trump tricks go to end
-			}
-		}
-		DBG("all_cards_that_trick: " << cards_ << " - " << c_ << " => " << res << "\n");
-		return res;
-	}
-
-	Cards pull_trump_cards(Cards cards_, Cards from_) const
-	{
-		// all no-non trump cards in cards_, that can not
-		// be tricket by higher card of suite, but need a trump.
-		// Useable only when closed.
-		Cards res;
-		// does from_ (=player) even have trumps?
-		Cards trumps = suites_in_hand(_trump, from_);
-		if (trumps.empty())
-		{
-			return res; // no trumps to pull
-		}
-		for (auto &c : cards_)
-		{
-			if (c.suite() == _trump) continue; // skip trump suite
-			// check if card can be tricked by player with suite
-			// NOTE: With CLOSE_AUTO remaining cards are added to
-			//       player hand, so the result is only a 'probable'
-			//       result.
-			Cards suites = suites_in_hand(c.suite(), from_ + _cards) ;
-			bool no_trick = true;
-			for (auto &s : suites)
-			{
-				if (!card_tricks(s, c)) continue;
-				no_trick = false;
-				break;
-			}
-			// player can't trick, so this card can be used to pull a trump
-			if (no_trick == true)
-			{
-				res.push_back(c);
-			}
-		}
-		res.sort_by_value(false); // sort low to high
-		OUT("pull trump cards: " << res << "\n");
-		return res;
-	}
-
-	size_t ai_play_20_40()
-	{
-		size_t move = NO_MOVE;
-		Suites suites = have_40(_ai.cards);
-		if (suites.size())
-		{
-			// ai has 40, play out queen
-			_marriage = MARRIAGE_40;
-			bell(AI_MARRIAGE_40);
-			size_t trump_queen = find(Card(QUEEN, _trump), _ai.cards);
-			move = trump_queen;
-			LOG("AI declares 40 with " << _ai.cards[move] << "\n");
-			_ai.s20_40.push_front(_ai.cards[move].suite());
-			if (_ai.deck.empty())
-			{
-				_ai.pending += 40;
-			}
-			else
-			{
-				_ai.score += 40;
-			}
-		}
-		else if ((suites = have_20(_ai.cards)).size())
-		{
-			_marriage = MARRIAGE_20;
-			bell(AI_MARRIAGE_20);
-			size_t first_suite_queen = find(Card(QUEEN, suites[0]), _ai.cards);
-			move = first_suite_queen;
-			LOG("AI declares 20 with " << _ai.cards[move] << "\n");
-			_ai.s20_40.push_front(_ai.cards[move].suite());
-			if (_ai.deck.empty())
-			{
-				_ai.pending += 20;
-			}
-			else
-			{
-				_ai.score += 20;
-			}
-		}
-		return move;
-	}
-
-	size_t ai_move_closed_follow()
-	{
-		// end game, player has moved, ai to follow
-		size_t move = must_give_color_or_trick(_player.card, _ai.cards);
-		assert(move != NO_MOVE);
-
-		return move;
-	}
-
-	size_t ai_move_closed_lead()
-	{
-		// end game, ai plays out
-		size_t move = NO_MOVE;
-
-		size_t m = ai_play_20_40();
-		if (m != NO_MOVE)
-		{
-			move = m;
-		}
-		else
-		{
-			Cards trump_claim = cards_to_claim(_trump);
-			if (trump_claim.size() && (int)trump_claim.size() >= max_trumps_player())
-			{
-				move = find(trump_claim[0], _ai.cards);
-			}
-			else
-			{
-				Cards claim = cards_to_claim();
-				if (claim.size())
-				{
-					move = find(claim[0], _ai.cards);
-				}
-			}
-		}
-		if (ai_test_close())
-		{
-			if (_marriage == NO_MARRIAGE)
-			{
-				move = find(highest_cards_in_hand(_ai.cards)[0], _ai.cards);
-			}
-		}
-
-		if (move == NO_MOVE)
-		{
-			Cards pull = pull_trump_cards(_ai.cards, _player.cards);
-			if (pull.size())
-				move = find(pull[0], _ai.cards);
-		}
-
-		return move;
-	}
-
-	size_t ai_move_follow()
-	{
-		// normal game, player has moved, ai to follow
-		size_t move = NO_MOVE;
-		Suites s20 = have_20(_ai.cards);
-		Suites s40 = have_40(_ai.cards);
-		if (s20.size() || s40.size() || _player.card.value() >= 10)
-		{
-			// clumsily try to not destroy a 40 by tricking
-			// TODO: better method for such things...
-			Cards temp = _ai.cards;
-			if (s40.size())
-			{
-				temp.erase(temp.begin() + find(Card(QUEEN,_trump), temp));
-				temp.erase(temp.begin() + find(Card(KING,_trump), temp));
-			}
-			size_t m = lowest_card_that_tricks(_player.card, temp);
-			if (m != NO_MOVE)
-			{
-				move = find(temp[m], _ai.cards);
-			}
-		}
-		else
-		{
-			Cards tricks = all_cards_that_trick(_player.card, _ai.cards);
-			if (tricks.size())
-			{
-				size_t m = find(tricks[best_trick_card(_player.card, tricks)], _ai.cards);
-				const Card &c = _ai.cards[m];
-				// trick or not trick?
-				bool trick(false);
-				int score = _ai.cards[m].value() + _player.card.value() + _ai.pending;
-				if (_ai.score < 33 && _ai.score + score >= 33)
-					trick = true;
-				else if (_ai.score >= 33 && _ai.score + score >= 66)
-					trick = true;
-				else if (_cards.size() <= 2 && _ai.score <= 50 && _ai.score + score >= 60)
-					trick = true;
-				else if (_player.card.suite() != _trump && c.suite() != _trump)
-					trick = true;
-//				else if (_cards.size() > 2 && _player.score + _player.pending + _player.card.value() + _ai.card.value() >= 52)
-//					trick = true;
-				if (trick)
-					move = m;
-			}
-		}
-		return move;
-	}
-
-	size_t ai_move_lead()
-	{
-		// normal game, ai plays out
-		size_t move = NO_MOVE;
-
-		test_change(_ai.cards);
-
-		size_t m = ai_play_20_40();
-		if (m != NO_MOVE)
-			move = m;
-
-		if (ai_test_close())
-		{
-			if (_marriage == NO_MARRIAGE)
-			{
-				move = find(highest_cards_in_hand(_ai.cards)[0], _ai.cards);
-			}
-		}
-
-		return move;
-	}
-
-	size_t ai_move()
-	{
-		_marriage = NO_MARRIAGE;
-		assert(_ai.cards.size());
-		size_t move = lowest_card(_ai.cards); // default move lowest card
-		assert(move != NO_MOVE);
-		_ai.card = _ai.cards[move]; // default move
-
-		if (_closed != NOT && _player.move_state == ON_TABLE)
-		{
-			size_t m = ai_move_closed_follow();
-			if (m != NO_MOVE)
-				move = m;
-		}
-		else if (_closed != NOT)
-		{
-			size_t m = ai_move_closed_lead();
-			if (m != NO_MOVE)
-				move = m;
-		}
-		else
-		{
-			if (_player.move_state == ON_TABLE)
-			{
-				size_t m = ai_move_follow();
-				if (m != NO_MOVE)
-					move = m;
-			}
-			else
-			{
-				size_t m = ai_move_lead();
-				if (m != NO_MOVE)
-					move = m;
-			}
-		}
-		assert(move != NO_MOVE);
-		_ai.card = _ai.cards[move];
-
-		_ai.cards.erase(_ai.cards.begin() + move);
-
-		animate_ai_move();
-
-		_ai.move_state = ON_TABLE;
-		redraw();
-		LOG("AI move: " << _ai.card << "\n");
-		return move;
-	}
-
 	void handle_move()
 	{
 		bool player_deck_info = _player.deck_info;
 		bool ai_deck_info = _ai.deck_info;
 		if (_player.move_state != NONE && _ai.move_state == NONE)
 		{
-			if (_move == PLAYER)
+			if (_game.move == PLAYER)
 			{
 				test_20_40(Fl::event_x(), Fl::event_y());
 			}
@@ -1935,7 +1299,7 @@ public:
 			_ai.deck_info = _ai.deck.size() &&
 			                _ai.deck.front().rect().includes(Fl::event_x(), Fl::event_y());
 		}
-		if (_marriage != NO_MARRIAGE || _player.move_state == MOVING ||
+		if (_game.marriage != NO_MARRIAGE || _player.move_state == MOVING ||
 		    _player.deck_info || _ai.deck_info ||
 		    (_player.deck_info != player_deck_info) ||
 		    (_ai.deck_info != ai_deck_info))
@@ -1990,7 +1354,7 @@ public:
 			_disabled = false;
 			return;
 		}
-		_marriage = NO_MARRIAGE;
+		_game.marriage = NO_MARRIAGE;
 		if (test_close(Fl::event_x(), Fl::event_y()) == true)
 		{
 			return;
@@ -2012,8 +1376,8 @@ public:
 				test_20_40(Fl::event_x(), Fl::event_y());
 			}
 
-			if (_closed == NOT && _cards.size() && _ai.move_state == NONE &&
-		    _cards.back().rect().includes(Fl::event_x(), Fl::event_y()))
+			if (_game.closed == NOT && _game.cards.size() && _ai.move_state == NONE &&
+		    _game.cards.back().rect().includes(Fl::event_x(), Fl::event_y()))
 			{
 				test_change();
 				return;
@@ -2025,7 +1389,7 @@ public:
 			// make accepted move
 			if (_player.move_state == MOVING)
 			{
-				if (_marriage == MARRIAGE_20)
+				if (_game.marriage == MARRIAGE_20)
 				{
 					LOG("Player declares 20 with " << _player.card << "\n");
 					_player.s20_40.push_front(_player.card.suite());
@@ -2041,7 +1405,7 @@ public:
 						_player.score += 20;
 					}
 				}
-				if (_marriage == MARRIAGE_40)
+				if (_game.marriage == MARRIAGE_40)
 				{
 					LOG("Player declares 40 with " << _player.card << "\n");
 					_player.s20_40.push_front(_player.card.suite());
@@ -2106,7 +1470,7 @@ public:
 			Fl::remove_timeout(cb_sleep, this);
 			Fl::add_timeout(20., cb_sleep, this);
 			ai_message(NO_MESSAGE);
-			_move == AI ? _ai.last_drawn = Card() : _player.last_drawn = Card();
+			_game.move == AI ? _ai.last_drawn = Card() : _player.last_drawn = Card();
 			handle_click();
 			return 1;
 		}
@@ -2388,18 +1752,18 @@ public:
 			fl_color(FL_WHITE);
 			fl_draw(error_message.c_str(), w() / 2 - fl_width(error_message.c_str()) / 2, h() - fl_descent());
 		}
-		if (_closed != NOT && _ai.display_score == false)
+		if (_game.closed != NOT && _ai.display_score == false)
 		{
 			fl_font(FL_HELVETICA, _CH / 7);
 			fl_color(FL_GRAY);
 			static const std::string closed_sym = "⛒";
-			if (_closed == BY_AI)
+			if (_game.closed == BY_AI)
 			{
 				int X = w() / 4 - fl_width(closed_sym.c_str()) / 2;
 				int Y = h() / 8 - _CH / 7;
 				fl_draw(closed_sym.c_str(), X, Y);
 			}
-			if (_closed == BY_PLAYER)
+			if (_game.closed == BY_PLAYER)
 			{
 				int X = w() / 4 - fl_width(closed_sym.c_str()) / 2;
 				int Y = h() - h() / 16;
@@ -2490,7 +1854,7 @@ public:
 		_animate = nullptr;
 	}
 
-	void animate_ai_move()
+	void animate_ai_move() override
 	{
 //		int src_X = cards_rect(AI).center().first;
 		int src_X = cards_rect(AI).x + _CW / 2;
@@ -2506,24 +1870,24 @@ public:
 
 	void animate_trick()
 	{
-		int src_X = move_rect(_move).center().first;
-		int src_Y = move_rect(_move).center().second;
+		int src_X = move_rect(_game.move).center().first;
+		int src_Y = move_rect(_game.move).center().second;
 
-		int dest_X = deck_rect(_move).center().first;
-		int dest_Y = deck_rect(_move).center().second;
+		int dest_X = deck_rect(_game.move).center().first;
+		int dest_Y = deck_rect(_game.move).center().second;
 
 		_animate = &Deck::draw_animated_trick;
 
 		do_animate(src_X, src_Y, dest_X, dest_Y);
 	}
 
-	void animate_change(bool from_hand_ = false)
+	void animate_change(bool from_hand_ = false) override
 	{
 		int src_X = change_rect().center().first;
 		int src_Y = change_rect().center().second;
 
-		int dest_X = cards_rect(_move).center().first;
-		int dest_Y = cards_rect(_move).center().second;
+		int dest_X = cards_rect(_game.move).center().first;
+		int dest_Y = cards_rect(_game.move).center().second;
 
 		_animate = &Deck::draw_animated_change;
 		if (from_hand_)
@@ -2534,38 +1898,38 @@ public:
 
 	void draw_pack()
 	{
-		// _cards.back() is the trump card
-		if (_cards.size() && _cards.size() != 20)
+		// _game.cards.back() is the trump card
+		if (_game.cards.size() && _game.cards.size() != 20)
 		{
 			int X = w() / 3 - _CW + _CW/4;
 			int Y = (h() - _CW) / 2;
-			if (_closed == NOT)
+			if (_game.closed == NOT)
 			{
-				_cards.back().quer_image()->draw(X, Y);
-				_cards.back().rect(Rect(X, Y, _cards.back().image()->h(), _cards.back().image()->w()));
+				_game.cards.back().quer_image()->draw(X, Y);
+				_game.cards.back().rect(Rect(X, Y, _game.cards.back().image()->h(), _game.cards.back().image()->w()));
 			}
 
 			// pack position
 			X = pack_rect().x;
 			Y = pack_rect().y;
-			if (_cards.size())
+			if (_game.cards.size())
 			{
-				for (size_t i = 0; i < _cards.size() - 1; i++)
+				for (size_t i = 0; i < _game.cards.size() - 1; i++)
 				{
 					// NOTE: 200 is a 'realistic' value for card the 'height'
 					//       of the full card pack with 20 cards.
 					//       But the pack with 10 cards after dealing just look
 					//       better, when single cards are visible.
 					//       So a compromise...
-					double h = (double)_CW / (_cards.size() == 20 ? 200 : 100);
+					double h = (double)_CW / (_game.cards.size() == 20 ? 200 : 100);
 					if (h > 1.) h = (int)h;
 					double x = (double)X - i * h +.5;
 					double y = (double)Y - i * h + .5;
 					_back.image()->draw(floor(x), floor(y));
 				}
-				if (_closed == NOT)
+				if (_game.closed == NOT)
 				{
-					_cards.front().rect(Rect(X, Y, _cards.back().image()->w(), _cards.back().image()->h()));
+					_game.cards.front().rect(Rect(X, Y, _game.cards.back().image()->w(), _game.cards.back().image()->h()));
 				}
 			}
 		}
@@ -2577,7 +1941,7 @@ public:
 			_outline.image()->draw(X, Y);
 		}
 
-		if (_closed != NOT && _cards.size())
+		if (_game.closed != NOT && _game.cards.size())
 		{
 			int X = w() / 3 - _CW + _CW / 4;
 			int Y = (h() - _CW) / 2;
@@ -2634,8 +1998,8 @@ public:
 			_player.card.rect(move_rect(PLAYER));
 		}
 		// marriage declarations
-		if (_marriage == MARRIAGE_20) draw_blob("20", FL_GREEN, Fl::event_x(), Fl::event_y());
-		if (_marriage == MARRIAGE_40) draw_blob("40", FL_RED, Fl::event_x(), Fl::event_y());
+		if (_game.marriage == MARRIAGE_20) draw_blob("20", FL_GREEN, Fl::event_x(), Fl::event_y());
+		if (_game.marriage == MARRIAGE_40) draw_blob("40", FL_RED, Fl::event_x(), Fl::event_y());
 	}
 
 	void draw_scores()
@@ -2745,7 +2109,7 @@ public:
 		}
 		draw_table();
 		draw_gamebook();
-		draw_suite_symbol(_trump, w() / 3 - _CW / 4, h() - h() / 2 + _CH / 2 + _CH / 5);
+		draw_suite_symbol(_game.trump, w() / 3 - _CW / 4, h() - h() / 2 + _CH / 2 + _CH / 5);
 		draw_messages();
 		draw_20_40_suites();
 		draw_cards();
@@ -2774,25 +2138,25 @@ public:
 	{
 		LOG("collect\n");
 		for (auto &c : _player.cards)
-			_cards.push_front(c);
+			_game.cards.push_front(c);
 		for (auto &c : _player.deck)
-			_cards.push_front(c);
+			_game.cards.push_front(c);
 		for (auto &c :_ai.cards)
-			_cards.push_front(c);
+			_game.cards.push_front(c);
 		for (auto &c :_ai.deck)
-			_cards.push_front(c);
+			_game.cards.push_front(c);
 		_player.cards.clear();
 		_ai.cards.clear();
 		_player.deck.clear();
 		_ai.deck.clear();
 		if (_player.move_state != NONE)
-			_cards.push_front(_player.card);
+			_game.cards.push_front(_player.card);
 		if (_ai.move_state != NONE)
-			_cards.push_front(_ai.card);
-		if (_cards.size() != 20)
-			DBG("#cards: " << _cards.size())
-		assert(_cards.size() == 20);
-		_cards.check();
+			_game.cards.push_front(_ai.card);
+		if (_game.cards.size() != 20)
+			DBG("#cards: " << _game.cards.size())
+		assert(_game.cards.size() == 20);
+		_game.cards.check();
 	}
 
 	void onCmd()
@@ -2827,11 +2191,11 @@ public:
 		}
 		else if (_cmd.find("cip") == 0)
 		{
-			OUT(Card::suite_symbol(HEART) << ": " << cards_in_play(HEART) << " (" << max_cards_player(HEART) << ")\n");
-			OUT(Card::suite_symbol(SPADE) << ": " << cards_in_play(SPADE) << " (" << max_cards_player(SPADE) << ")\n");
-			OUT(Card::suite_symbol(DIAMOND) << ": " << cards_in_play(DIAMOND) << " (" << max_cards_player(DIAMOND) << ")\n");
-			OUT(Card::suite_symbol(CLUB) << ": " << cards_in_play(CLUB) << " (" << max_cards_player(CLUB) << ")\n");
-			OUT("max_trumps_player: " << max_trumps_player() << "\n");
+			OUT(Card::suite_symbol(HEART) << ": " << _engine.cards_in_play(HEART) << " (" << _engine.max_cards_player(HEART) << ")\n");
+			OUT(Card::suite_symbol(SPADE) << ": " << _engine.cards_in_play(SPADE) << " (" << _engine.max_cards_player(SPADE) << ")\n");
+			OUT(Card::suite_symbol(DIAMOND) << ": " << _engine.cards_in_play(DIAMOND) << " (" << _engine.max_cards_player(DIAMOND) << ")\n");
+			OUT(Card::suite_symbol(CLUB) << ": " << _engine.cards_in_play(CLUB) << " (" << _engine.max_cards_player(CLUB) << ")\n");
+			OUT("max_trumps_player: " << _engine.max_trumps_player() << "\n");
 		}
 		else if (_cmd == "help")
 		{
@@ -2894,8 +2258,8 @@ public:
 
 	void debug() const
 	{
-		if (_cards.size() == 20 || _cards.size() == 10)
-			dump_cards(_cards, "Deck");
+		if (_game.cards.size() == 20 || _game.cards.size() == 10)
+			dump_cards(_game.cards, "Deck");
 		LOG("AI cards: " << _ai.cards);
 		LOG("\tscore: " << _ai.score << " pending: " << _ai.pending);
 		LOG("\t20/40: ");
@@ -2917,11 +2281,11 @@ public:
 		player_message(NO_MESSAGE);
 		ai_message(NO_MESSAGE);
 		error_message(NO_MESSAGE);
-		_closed = NOT;
-		_marriage = NO_MARRIAGE;
+		_game.closed = NOT;
+		_game.marriage = NO_MARRIAGE;
 		_player.s20_40.clear();
 		_ai.s20_40.clear();
-		_move = PLAYER;
+		_game.move = PLAYER;
 		_player.score = 0;
 		_player.pending = 0;
 		_ai.score = 0;
@@ -2935,8 +2299,8 @@ public:
 		_disabled = false;
 		_player.deck_info = false;
 		_ai.deck_info = false;
-		_cards.shuffle();
-		assert(_cards.size() == 20);
+		_game.cards.shuffle();
+		assert(_game.cards.size() == 20);
 		bell(SHUFFLE);
 		debug();
 		deal();
@@ -3029,10 +2393,10 @@ public:
 
 	void update_gamebook()
 	{
-		if (_closed != NOT && _closed != AUTO)
+		if (_game.closed != NOT && _game.closed != AUTO)
 		{
 			// game was closed, now the closer must have enough points
-			if (_closed == BY_PLAYER)
+			if (_game.closed == BY_PLAYER)
 			{
 				if (_player.score >= 66)
 				{
@@ -3061,7 +2425,7 @@ public:
 		else
 		{
 			// normal game (not closed)
-			if (_move == PLAYER)
+			if (_game.move == PLAYER)
 			{
 				_gamebook.push_back(std::make_pair(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 1, 0));
 			}
@@ -3152,57 +2516,57 @@ public:
 		// 3 cards to player
 		for (int i = 0; i < 3; i++)
 		{
-			Card c = _cards.front();
-			_move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
-			_cards.pop_front();
+			Card c = _game.cards.front();
+			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
+			_game.cards.pop_front();
 		}
 		// 3 cards to ai
 		for (int i = 0; i < 3; i++)
 		{
-			Card c = _cards.front();
-			_move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
-			_cards.pop_front();
+			Card c = _game.cards.front();
+			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
+			_game.cards.pop_front();
 		}
 		// trump card
-		Card trump = _cards.front();
-		_cards.pop_front();
-		_cards.push_back(trump); // will be the last card (_cards.back())
-		_trump = trump.suite();
-		LOG("trump: " << suite_symbols[_trump] << "\n");
+		Card trump = _game.cards.front();
+		_game.cards.pop_front();
+		_game.cards.push_back(trump); // will be the last card (_game.cards.back())
+		_game.trump = trump.suite();
+		LOG("trump: " << suite_symbols[_game.trump] << "\n");
 
 		// 2 cards to player
 		for (int i = 0; i < 2; i++)
 		{
-			Card c = _cards.front();
-			_move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
-			_cards.pop_front();
+			Card c = _game.cards.front();
+			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
+			_game.cards.pop_front();
 		}
 		// 2 cards to ai
 		for (int i = 0; i < 2; i++)
 		{
-			Card c = _cards.front();
-			_move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
-			_cards.pop_front();
+			Card c = _game.cards.front();
+			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
+			_game.cards.pop_front();
 		}
 
 		// TEST TEST
 		Suites res;
-		res = have_40(_player.cards);
+		res = _engine.have_40(_player.cards);
 		if (res.size())
 			DBG("player cards contain 40!\n")
-		res = have_20(_player.cards);
+		res = _engine.have_20(_player.cards);
 		if (res.size())
 			DBG("player cards contain " << res.size() << "x20!\n")
-		res = have_40(_ai.cards);
+		res = _engine.have_40(_ai.cards);
 		if (res.size())
 			DBG("AI cards contain 40!\n")
-		res = have_20(_ai.cards);
+		res = _engine.have_20(_ai.cards);
 		if (res.size())
 			DBG("AI cards contain " << res.size() << "x20!\n")
-		size_t i = find(Card(JACK, _cards.back().suite()), _player.cards);
+		size_t i = _engine.find(Card(JACK, _game.cards.back().suite()), _player.cards);
 		if (i != NO_MOVE)
 			DBG("player cards can change Jack!\n")
-		i = find(Card(JACK, _cards.back().suite()), _ai.cards);
+		i = _engine.find(Card(JACK, _game.cards.back().suite()), _ai.cards);
 		if (i != NO_MOVE)
 			DBG("AI cards can change Jack!\n")
 	}
@@ -3241,25 +2605,25 @@ public:
 			return _player.cards.empty() && _ai.cards.empty() && _player.move_state == NONE && _ai.move_state == NONE;
 		};
 
-		if (_closed == NOT || _closed == AUTO)
+		if (_game.closed == NOT || _game.closed == AUTO)
 		{
-			if (_move == PLAYER && _player.score >= 66)
+			if (_game.move == PLAYER && _player.score >= 66)
 			{
 				return player_wins("Player wins!\n");
 			}
-			else if (_move == AI && _ai.score >= 66)
+			else if (_game.move == AI && _ai.score >= 66)
 			{
 				return ai_wins("AI wins!\n");
 			}
 			else if (no_cards_in_play())
 			{
-				if (_move == AI)
+				if (_game.move == AI)
 				{
 					return ai_wins("AI wins by last trick!\n");
 				}
 				else
 				{
-					// _move = PLAYER
+					// _game.move = PLAYER
 					return player_wins("Player wins by last trick!\n");
 				}
 			}
@@ -3267,24 +2631,24 @@ public:
 		else
 		{
 			// closed
-			if (_closed == BY_PLAYER && _move == PLAYER && _player.score >= 66)
+			if (_game.closed == BY_PLAYER && _game.move == PLAYER && _player.score >= 66)
 			{
 				return player_wins("Player wins closed game!\n");
 			}
-			else if (_closed == BY_AI && _move == AI && _ai.score >= 66)
+			else if (_game.closed == BY_AI && _game.move == AI && _ai.score >= 66)
 			{
 				return ai_wins("AI wins closed game!\n");
 			}
 			else if (no_cards_in_play())
 			{
 				// closed and last trick done
-				if (_closed == BY_PLAYER)
+				if (_game.closed == BY_PLAYER)
 				{
 					return ai_wins("AI wins because player closed and has not enough!\n", YOU_NOT_ENOUGH);
 				}
 				else
 				{
-					// _closed = BY_AI
+					// _game.closed = BY_AI
 					return player_wins("Player wins because AI closed and has not enough!\n", AI_NOT_ENOUGH);
 				}
 			}
@@ -3294,26 +2658,26 @@ public:
 
 	void check_trick(Player move_)
 	{
-		_marriage = NO_MARRIAGE;
+		_game.marriage = NO_MARRIAGE;
 		if (move_ == PLAYER)
 		{
-			_move = card_tricks(_ai.card, _player.card) ? AI : PLAYER;
-			if (_move == AI) LOG(_ai.card << " tricks " << _player.card << "\n")
+			_game.move = _engine.card_tricks(_ai.card, _player.card) ? AI : PLAYER;
+			if (_game.move == AI) LOG(_ai.card << " tricks " << _player.card << "\n")
 			else LOG("Player card " << _player.card << " tricks AI card " << _ai.card << "\n")
 		}
 		else
 		{
-			_move = card_tricks(_player.card, _ai.card) ? PLAYER : AI;
-			if (_move == PLAYER) LOG(_player.card << " tricks " << _ai.card << "\n")
+			_game.move = _engine.card_tricks(_player.card, _ai.card) ? PLAYER : AI;
+			if (_game.move == PLAYER) LOG(_player.card << " tricks " << _ai.card << "\n")
 			else LOG("AI card " << _ai.card << " tricks player card " << _player.card << "\n")
 		}
-		LOG("next move: " << (_move == PLAYER ? "PLAYER" : "AI") << "\n")
+		LOG("next move: " << (_game.move == PLAYER ? "PLAYER" : "AI") << "\n")
 
 		_player.move_state = NONE;
 		_ai.move_state = NONE;
 		animate_trick();
 
-		if (_move == PLAYER) // player won trick
+		if (_game.move == PLAYER) // player won trick
 		{
 			_player.deck.push_front(_ai.card);
 			_player.deck.push_front(_player.card);
@@ -3338,26 +2702,26 @@ public:
 
 	void fillup_cards()
 	{
-		if (_closed == NOT)
+		if (_game.closed == NOT)
 		{
 			// give cards from pack
-			if (_cards.size())
+			if (_game.cards.size())
 			{
-				Card c = _cards.front();
-				_cards.pop_front();
-				_move == AI ? _ai.last_drawn = c : _player.last_drawn = c;
-				if (_move == AI)
+				Card c = _game.cards.front();
+				_game.cards.pop_front();
+				_game.move == AI ? _ai.last_drawn = c : _player.last_drawn = c;
+				if (_game.move == AI)
 					_ai.cards.push_front(c);
 				else
 					_player.cards.push_front(c);
 			}
 
-			if (_cards.size())
+			if (_game.cards.size())
 			{
-				Card c = _cards.front();
-				_move == PLAYER ? _ai.last_drawn = c : _player.last_drawn = c;
-				_cards.pop_front();
-				if (_move == AI)
+				Card c = _game.cards.front();
+				_game.move == PLAYER ? _ai.last_drawn = c : _player.last_drawn = c;
+				_game.cards.pop_front();
+				if (_game.move == AI)
 					_player.cards.push_front(c);
 				else
 					_ai.cards.push_front(c);
@@ -3367,9 +2731,9 @@ public:
 			_ai.cards.sort();
 			debug();
 
-			if (_cards.empty())
+			if (_game.cards.empty())
 			{
-				_closed = AUTO; // same rules as closing now
+				_game.closed = AUTO; // same rules as closing now
 				LOG("*** pack cleared - end game ***\n");
 			}
 		}
@@ -3386,7 +2750,7 @@ public:
 	{
 		init();
 		wait(1.0);
-		_move = playout_;
+		_game.move = playout_;
 		_player.move_state = NONE;
 		_ai.move_state = NONE;
 		cursor(FL_CURSOR_DEFAULT);
@@ -3394,7 +2758,7 @@ public:
 		redraw();
 		while (Fl::first_window() && (_player.cards.size() || _ai.cards.size()))
 		{
-			if (_move == PLAYER)
+			if (_game.move == PLAYER)
 			{
 				cursor(FL_CURSOR_DEFAULT);
 				ai_message(NO_MESSAGE);
@@ -3425,11 +2789,11 @@ public:
 				else
 				{
 					if (check_end()) break;
-					_move = AI;
+					_game.move = AI;
 				}
 			}
 
-			if (_move == AI)
+			if (_game.move == AI)
 			{
 				player_message(NO_MESSAGE);
 				if (check_end()) break;
@@ -3438,7 +2802,7 @@ public:
 				cursor(FL_CURSOR_WAIT);
 				wait(2.0);
 				if (!Fl::first_window()) break;
-				ai_move();
+				_engine.ai_move();
 
 				if (check_end()) break; // if enough from 20/40!!
 
@@ -3455,14 +2819,14 @@ public:
 				else
 				{
 					if (check_end()) break;
-					_move = PLAYER;
+					_game.move = PLAYER;
 				}
 			}
 		}
 		if (!Fl::first_window()) return;
 
 		Fl::remove_timeout(cb_sleep, this);
-		_marriage = NO_MARRIAGE;
+		_game.marriage = NO_MARRIAGE;
 		wait(2.0);
 	}
 
@@ -3501,7 +2865,7 @@ public:
 
 	void unit_tests()
 	{
-		_trump = SPADE;
+		_game.trump = SPADE;
 		Cards temp;
 		temp.push_front(Card(QUEEN, CLUB));
 		temp.push_front(Card(KING, CLUB));
@@ -3510,15 +2874,15 @@ public:
 		Card c(ACE, CLUB);
 		assert(can_trick_with_suite(c, temp) == false);
 		assert(can_trick(c, temp) == true);
-		Cards res(_cards);
-		res += _cards;
+		Cards res(_game.cards);
+		res += _game.cards;
 		assert(res.size() == 40);
-		res -= _cards;
+		res -= _game.cards;
 		assert(res.size() == 20);
-		res = _cards + _cards;
+		res = _game.cards + _game.cards;
 		assert(res.size() == 40);
 		Cards c2("|Q♠|K♥|");
-		res = _cards - c2;
+		res = _game.cards - c2;
 		assert(res.size() == 18);
 		temp = "|K♣|Q♣|T♣|K♥|A♠|";
 		temp.sort();
@@ -3527,39 +2891,40 @@ public:
 		assert(temp[2] == Card(TEN, CLUB));
 		assert(temp[3] == Card(KING, CLUB));
 		assert(temp[4] == Card(QUEEN, CLUB));
-		Cards clubs = suites_in_hand(CLUB, temp);
+		Cards clubs = _engine.suites_in_hand(CLUB, temp);
 		assert(clubs[0] == Card(QUEEN, CLUB)); // lowest first!
-		assert(lowest_card_that_tricks(Card(JACK, CLUB), temp) == 4); // 4=QUEEN/CLUB
-		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 0); // 0=ACE/SPADE (_trump=SPADE)
-		_trump = HEART;
-		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_trump=HEART)
-		_trump = DIAMOND;
-		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_trump=DIAMOND)
+		assert(_engine.lowest_card_that_tricks(Card(JACK, CLUB), temp) == 4); // 4=QUEEN/CLUB
+		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 0); // 0=ACE/SPADE (_game.trump=SPADE)
+		_game.trump = HEART;
+		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_game.trump=HEART)
+		_game.trump = DIAMOND;
+		assert(highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_game.trump=DIAMOND)
 
 		Cards c3("|A♠|K♥|K♣|Q♣|A♠|");
 		_player.deck = "|T♣|";
 		_ai.deck = "|A♣|";
-		res = highest_cards_of_suite_in_hand(c3, CLUB);
+		res = _engine.highest_cards_of_suite_in_hand(c3, CLUB);
 		assert(res.size() == 2 && (res[0] == Card(KING, CLUB)) && (res[1] == Card(QUEEN, CLUB)));
 		_ai.deck.clear();
-		res = highest_cards_of_suite_in_hand(c3, CLUB);
+		res = _engine.highest_cards_of_suite_in_hand(c3, CLUB);
 		assert(res.size() == 0);
 		_player.deck.clear();
 
-		_trump = SPADE;
-		temp = _cards;
-		_cards.clear();
+		_game.trump = SPADE;
+		temp = _game.cards;
+		_game.cards.clear();
 		Cards p1("|A♠|Q♥|Q♦|Q♣|J♣|");
 		Cards a1("|K♠|Q♠|K♥|K♦|A♣|");
-		Cards pull = pull_trump_cards(a1, p1);
+		Cards pull = _engine.pull_trump_cards(a1, p1);
 		assert(pull.size()==3);
 		assert(pull == "|K♥|K♦|A♣|");
-		_cards = temp;
+		_game.cards = temp;
 	}
 
 	void create_welcome()
 	{
-		_welcome = new Welcome(*this);
+		_welcome = new Welcome(w() / 2, h() / 4 * 3);
+		_welcome->stats(make_stats());
 		_welcome->show();
 		_welcome->wait_for_expose();
 		redraw();
@@ -3587,19 +2952,19 @@ public:
 	}
 
 private:
-	GameData _player;
-	GameData _ai;
-	CardImage _back;
-	CardImage _shadow;
-	CardImage _outline;
-	Cards _cards;			// remaining cards
-	CardSuite _trump;		// trump suite
-	Marriage _marriage;
-	Closed _closed;
-	Player _move;
+	// Engine
+	GameState _player;
+	GameState _ai;
+	GameData _game;
+	Engine _engine;
+
+	// UI
 	Message _error_message;
 	bool _disabled;
 	Card _card_template;
+	CardImage _back;
+	CardImage _shadow;
+	CardImage _outline;
 	int _CW;					// card pixel width (used as "unit" for UI)
 	int _CH;					// card pixel height
 	std::vector<std::pair<int, int>> _gamebook;
@@ -3729,88 +3094,6 @@ void parse_arg(int argc_, char *argv_[])
 			exit(0);
 		}
 	}
-}
-
-Welcome::Welcome(const Deck &deck_) : Fl_Double_Window(deck_.w() / 2, deck_.h() / 4 * 3),
-	_deck(deck_)
-{
-	clear_border();
-	set_modal();
-	box(FL_UP_BOX);
-	color(FL_WHITE);
-	redraw_timer(this);
-}
-
-Welcome::~Welcome()
-{
-	Fl::remove_timeout(redraw_timer, this);
-}
-
-/*static*/
-void Welcome::redraw_timer(void *d_)
-{
-	(static_cast<Welcome *>(d_))->redraw();
-	Fl::add_timeout(0.2, redraw_timer, d_);
-}
-
-int Welcome::handle(int e_)
-{
-	if (e_ == FL_NO_EVENT) return 1;
-	if (e_ == FL_PUSH || e_ == FL_KEYDOWN)
-	{
-		delete this;
-		Fl::first_window()->redraw();
-		return 1;
-	}
-	return Fl_Double_Window::handle(e_);
-}
-
-void Welcome::draw()
-{
-	fl_draw_box(box(), 0, 0, w(), h(), color());
-	Rect r(*this, box());
-	fl_push_clip(r.x - x(), r.y - y(), r.w, r.h);
-	fl_font(FL_HELVETICA_BOLD, h() / 7);
-	for (int i = 0; i < 30; i++)
-	{
-		static const std::vector<CardSuite> suites = { HEART, SPADE, DIAMOND, CLUB };
-		int x = random() % w();
-		int y = random() % h();
-		auto s = random() % suites.size();
-		if (suites[s] == HEART || suites[s] == DIAMOND)
-			fl_color(fl_lighter(fl_lighter(FL_RED)));
-		else
-			fl_color(fl_lighter(fl_lighter(FL_BLACK)));
-		fl_draw(suite_symbols[suites[s]].c_str(), x, y + fl_height());
-	}
-	fl_font(FL_COURIER_BOLD, h() / 42);
-	int stat_h = fl_height() + fl_descent();
-
-	Card c(QUEEN, HEART);
-	int W = w() / 2 - w() / 10;
-	int H = 1.5 * W;
-	int Y = h() / 4;
-	if (Y + H > h() - stat_h - 4)
-		H = h() - Y - stat_h - 4;
-	c.image(W, H)->draw(w() / 40, Y);
-	fl_font(FL_HELVETICA_BOLD, w() / 10);
-	fl_color(FL_BLACK);
-	static constexpr char title[] = "^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B";
-	draw_color_text(title, (w() - fl_width("FLTK SCHNAPSEN")) / 2, h() / 7, text_colors);
-	fl_color(FL_BLUE);
-	fl_font(FL_HELVETICA_BOLD, w() / 26);
-	static constexpr char cr[] = "(c) 2025 Christian Grabner <wcout@gmx.net>";
-	fl_draw(cr, (w() - fl_width(cr)) / 2, h() / 7 + h() / 14);
-	fl_color(FL_BLACK);
-	fl_font(FL_HELVETICA_BOLD, h() / 16);
-	fl_draw(message(WELCOME).c_str(), w() / 2 + w() / 60, h() / 2);
-	// draw stats
-	fl_font(FL_COURIER_BOLD, h() / 42);
-	fl_draw_box(FL_FLAT_BOX, 0, h() - stat_h, w(), stat_h, fl_lighter(fl_lighter(FL_YELLOW)));
-	fl_color(FL_BLACK);
-	std::string stat(_deck.make_stats());
-	fl_draw(stat.c_str(), (w() - fl_width(stat.c_str())) / 2, h() - stat_h + fl_height() - 2);
-	fl_pop_clip();
 }
 
 int main(int argc_, char *argv_[])
