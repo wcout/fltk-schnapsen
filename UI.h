@@ -1,5 +1,7 @@
 #pragma once
 
+#include "messages.h"
+
 class UI
 {
 public:

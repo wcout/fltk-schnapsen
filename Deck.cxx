@@ -19,6 +19,7 @@
 #include <chrono>
 #include <filesystem>
 #include <functional>
+#include <cmath>
 
 #ifdef USE_MINIAUDIO
 #define MA_IMPLEMENTATION
@@ -1010,7 +1011,7 @@ public:
 		Y = deck_rect(AI).y;
 		for (size_t i = 0; i < _ai.deck.size(); i++)
 		{
-			_back.image()->draw(X - i * w() / 800, h() / 10 - (i + 1) * w() /800);
+			_back.image()->draw(X - i * w() / 800, Y - i * w() / 800);
 		}
 		if (_player.deck.size())
 		{
@@ -1619,7 +1620,7 @@ public:
 			DBG("AI cards can change Jack!\n")
 	}
 
-	void bell([[maybe_unused]]Message m_ = NO_MESSAGE)
+	void bell([[maybe_unused]]Message m_ = NO_MESSAGE) override
 	{
 #ifdef USE_MINIAUDIO
 		std::string snd = sound[m_];
@@ -1878,7 +1879,7 @@ public:
 		wait(2.0);
 	}
 
-	void wait(double s_)
+	void wait(double s_) override
 	{
 		if (Util::config()["fast"] == "1" && s_ >= 1.0)
 		{

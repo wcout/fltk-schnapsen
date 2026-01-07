@@ -9,7 +9,7 @@ struct Rect
 	int y;
 	int w;
 	int h;
-	Rect (const Fl_Widget& wgt_, Fl_Boxtype box_ = FL_NO_BOX) :
+	explicit Rect (const Fl_Widget& wgt_, Fl_Boxtype box_ = FL_NO_BOX) :
 		x(wgt_.x() + Fl::box_dx(box_)),
 		y(wgt_.y() + Fl::box_dy(box_)),
 		w(wgt_.w() - Fl::box_dw(box_)),

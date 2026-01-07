@@ -44,7 +44,7 @@ public:
 	std::string face_abbr() const;
 	std::string suite_name() const;
 	std::string name() const { return face_name() + " of " + suite_name(); }
-	std::string filename(std::string ext_ = ".svg") const { return face_name() + "_of_" + suite_name() + ext_; }
+	std::string filename(const std::string &ext_ = ".svg") const { return face_name() + "_of_" + suite_name() + ext_; }
 	int suite_weight() const;
 	std::string suite_symbol() const;
 	static std::string suite_symbol(CardSuite suite_);

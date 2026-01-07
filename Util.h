@@ -33,5 +33,5 @@ public:
 	static const std::string& message(const Message m_);
 
 	static void draw_color_text(const std::string &text_, int x_, int y_,
-                               const std::map<char, Fl_Color> &colors_ = text_colors);
+	                            const std::map<char, Fl_Color> &colors_ = text_colors);
 };

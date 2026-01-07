@@ -3,6 +3,7 @@
 #include <sstream>
 #include <algorithm>
 #include <cassert>
+#include <utility>
 
 Cards::Cards() {}
 
@@ -135,7 +136,7 @@ Cards& Cards::from_string(const std::string &s_)
 			}
 		}
 	}
-	*this = cards;
+	*this = std::move(cards);
 	return *this;
 }
 
