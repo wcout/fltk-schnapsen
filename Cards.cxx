@@ -197,7 +197,7 @@ void Cards::shuffle()
 {
 	LOG("shuffle\n");
 	assert(size());
-	std::string cards = config["cards"];
+	std::string cards = Util::config()["cards"];
 	if (cards.size() == 101)
 	{
 		from_string(cards);

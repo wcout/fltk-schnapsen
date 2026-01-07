@@ -5,6 +5,7 @@
 #include <iostream>
 
 typedef std::deque<Card> Cards_;
+typedef std::deque<CardSuite> Suites;
 
 class Cards : public Cards_
 {
