@@ -73,6 +73,32 @@ string_map& Util::stats()
 	return ::stats;
 }
 
+const std::string& Util::config(const std::string &id_)
+{
+	return config()[id_];
+}
+
+void Util::config(const std::string &id_, const std::string &value_)
+{
+	if (value_.empty())
+		config().erase(id_);
+	else
+		config()[id_] = value_;
+}
+
+const std::string& Util::stats(const std::string &id_)
+{
+	return stats()[id_];
+}
+
+void Util::stats(const std::string &id_, const std::string &value_)
+{
+	if (value_.empty())
+		stats().erase(id_);
+	else
+		stats()[id_] = value_;
+}
+
 void Util::load_values_from_file(std::ifstream &if_, string_map &values_, const std::string& id_)
 {
 	std::string line;
@@ -102,6 +128,30 @@ void Util::load_stats()
 {
 	std::ifstream stat(homeDir() + APPLICATION + ".sta");
 	load_values_from_file(stat, ::stats, "stat");
+}
+
+void Util::save_values_to_file(std::ofstream &of_, const string_map &values_, const std::string &id_)
+{
+	for (auto c : values_)
+	{
+		std::string name = c.first;
+		std::string value = c.second;
+		DBG("[save " << id_ << "] " << name << " = " << value << "\n");
+	of_ << name << "=" << value << "\n";
+	}
+}
+
+void Util::save_config()
+{
+	Util::config("cards", std::string()); // don't save cards string!
+	std::ofstream cfg(Util::homeDir() + APPLICATION + ".cfg");
+	save_values_to_file(cfg, ::config, "cfg");
+}
+
+void Util::save_stats()
+{
+	std::ofstream stat(homeDir() + APPLICATION + ".sta");
+	save_values_to_file(stat, ::stats, "stat");
 }
 
 const std::string& Util::message(const Message m_)

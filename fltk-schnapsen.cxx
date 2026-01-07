@@ -105,7 +105,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 
 	if (value_.size() && long_args.find(arg_.substr(2)) != long_args.end())
 	{
-		Util::config()[arg_.substr(2)] = value_;
+		Util::config(arg_.substr(2), value_);
 	}
 	else if (arg_.size() == 2 && arg_[0] == '-' && short_args.find(arg_.substr(1)) != short_args.end())
 	{
@@ -115,13 +115,13 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 				debug++;
 				break;
 			case 'f':
-				Util::config()["fullscreen"] = "1";
+				Util::config("fullscreen", "1");
 			break;
 			case 's':
-				Util::config()["fast"] = "1";
+				Util::config("fast", "1");
 				break;
 			case 'w':
-				Util::config()["welcome"] = "1";
+				Util::config("welcome", "1");
 				break;
 			case 'h':
 				OUT(make_help(long_args, short_args));
@@ -175,7 +175,7 @@ int main(int argc_, char *argv_[])
 	Deck deck;
 	deck.show();
 	deck.wait_for_expose();
-	if (atoi(Util::config()["welcome"].c_str()))
+	if (atoi(Util::config("welcome").c_str()))
 	{
 		deck.welcome();
 	}

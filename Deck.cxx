@@ -121,14 +121,14 @@ public:
 		_animate_xy(std::make_pair(-1, -1)),
 		_animate(nullptr)
 	{
-		_player.games_won = atoi(Util::stats()["player_games_won"].c_str());
-		_ai.games_won = atoi(Util::stats()["ai_games_won"].c_str());
-		_player.matches_won = atoi(Util::stats()["player_matches_won"].c_str());
-		_ai.matches_won = atoi(Util::stats()["ai_matches_won"].c_str());
+		_player.games_won = atoi(Util::stats("player_games_won").c_str());
+		_ai.games_won = atoi(Util::stats("ai_games_won").c_str());
+		_player.matches_won = atoi(Util::stats("player_matches_won").c_str());
+		_ai.matches_won = atoi(Util::stats("ai_matches_won").c_str());
 		copy_label(Util::message(TITLE).c_str());
 		fl_register_images();
 		std::string root = Util::homeDir() + cardDir;
-		std::string cardback = Util::config()["cardback"];
+		std::string cardback = Util::config("cardback");
 		if (cardback.empty())
 			cardback = "Card_back_red.svg";
 		_back.image("card_back", root + "/back/" + cardback);
@@ -149,8 +149,8 @@ public:
 		_redeal_button->hide();
 		resizable(this);
 		size_range(400, 300, 0, 0, 0, 0, 1);
-		int width = atoi(Util::config()["width"].c_str());
-		int height = atoi(Util::config()["height"].c_str());
+		int width = atoi(Util::config("width").c_str());
+		int height = atoi(Util::config("height").c_str());
 		if (width > 400 && height > 300)
 			size(width, height);
 		end();
@@ -158,7 +158,7 @@ public:
 		{
 			static_cast<Deck *>(wgt_->window())->init();
 		});
-		if (Util::config()["fullscreen"] == "1")
+		if (Util::config("fullscreen") == "1")
 		{
 			toggle_fullscreen();
 		}
@@ -743,7 +743,7 @@ public:
 	std::string background_image()
 	{
 		std::string def_image(Util::homeDir() + "rsc/deck.gif");
-		std::string image = Util::config()["background"];
+		std::string image = Util::config("background");
 		if (image == "NONE") return "";
 		if (image == "") return def_image;
 		return image;
@@ -752,7 +752,7 @@ public:
 	Fl_Color background_color()
 	{
 		Fl_Color def_color(FL_CYAN);
-		std::string color = Util::config()["background"];
+		std::string color = Util::config("background");
 		if (color.empty() || !isdigit(color[0]))
 			return def_color;
 		// return color at index in FLTK palette
@@ -1267,7 +1267,7 @@ public:
 		{
 			this->fullscreen();
 		}
-		Util::config()["fullscreen"] = fullscreen_active() ? "1" : "0";
+		Util::config("fullscreen", (fullscreen_active() ? "1" : "0"));
 	}
 
 	void toggle_cmd_input()
@@ -1416,7 +1416,7 @@ public:
 		{
 			LOG("You win match " << pscore << ":" << ascore << "\n");
 			_player.matches_won++;
-			Util::stats()["player_matches_won"] = std::to_string(_player.matches_won);
+			Util::stats("player_matches_won", std::to_string(_player.matches_won));
 			bell(YOU_WIN);
 			show_win_msg();
 			_gamebook.clear();
@@ -1427,7 +1427,7 @@ public:
 		{
 			LOG("AI wins match " << ascore << ":" << pscore << "\n");
 			_ai.matches_won++;
-			Util::stats()["ai_matches_won"] = std::to_string(_ai.matches_won);
+			Util::stats("ai_matches_won", std::to_string(_ai.matches_won));
 			std::string m(Util::message(YOU_LOST));
 			bell(YOU_LOST);
 			fl_message_icon_label("⚫");
@@ -1510,30 +1510,17 @@ public:
 		return 0;
 	}
 
-	void save_values_to_file(std::ofstream &of_, const string_map &values_, const std::string &id_) const
-	{
-		for (auto c : values_)
-		{
-			std::string name = c.first;
-			std::string value = c.second;
-			DBG("[save " << id_ << "] " << name << " = " << value << "\n");
-			of_ << name << "=" << value << "\n";
-		}
-	}
-
 	void save_config() const
 	{
-		Util::config().erase("cards"); // don't save cards string!
-		std::ofstream cfg(Util::homeDir() + APPLICATION + ".cfg");
-		Util::config()["width"] = std::to_string(w());
-		Util::config()["height"] = std::to_string(h());
-		save_values_to_file(cfg, Util::config(), "cfg");
+		Util::config("cards", std::string()); // don't save cards string!
+		Util::config("width", std::to_string(w()));
+		Util::config("height", std::to_string(h()));
+		Util::save_config();
 	}
 
 	void save_stats() const
 	{
-		std::ofstream stat(Util::homeDir() + APPLICATION + ".sta");
-		save_values_to_file(stat, Util::stats(), "stat");
+		Util::save_stats();
 	}
 
 	bool ai_wins(const std::string &log_, Message player_message_ = NO_MESSAGE)
@@ -1542,7 +1529,7 @@ public:
 		ai_message(AI_GAME, true);
 		player_message(player_message_);
 		_ai.games_won++;
-		Util::stats()["ai_games_won"] = std::to_string(_ai.games_won);
+		Util::stats("ai_games_won", std::to_string(_ai.games_won));
 		_ai.display_score = true;
 		wait(2.0);
 		return true;
@@ -1554,7 +1541,7 @@ public:
 		player_message(YOUR_GAME, true);
 		ai_message(ai_message_);
 		_player.games_won++;
-		Util::stats()["player_games_won"] = std::to_string(_player.games_won);
+		Util::stats("player_games_won", std::to_string(_player.games_won));
 		_ai.display_score = true;
 		wait(2.0);
 		return true;
@@ -1881,7 +1868,7 @@ public:
 
 	void wait(double s_) override
 	{
-		if (Util::config()["fast"] == "1" && s_ >= 1.0)
+		if (Util::config("fast") == "1" && s_ >= 1.0)
 		{
 			s_ /= 2;
 		}
