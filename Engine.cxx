@@ -487,7 +487,7 @@ Cards Engine::pull_trump_cards(Cards cards_, Cards from_) const
 		}
 	}
 	res.sort_by_value(false); // sort low to high
-	OUT("pull trump cards: " << res << "\n");
+	DBG("pull trump cards: " << res << "\n");
 	return res;
 }
 

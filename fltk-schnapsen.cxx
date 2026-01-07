@@ -69,14 +69,14 @@ std::string make_help(const string_map &la_, const string_map &sa_)
 	std::ostringstream os;
 	os << APPLICATION << " " << VERSION << "\n\n";
 	os << "Usage:\n";
-	for (auto a : la_)
+	for (const auto &[option, description] : la_)
 	{
-		os << "--" << a.first << "\t" << a.second << "\n";
+		os << "--" << option << "\t" << description << "\n";
 	}
 	os << "\n";
-	for (auto a : sa_)
+	for (const auto &[option, description] : sa_)
 	{
-		os << "-" << a.first << "\t" << a.second << "\n";
+		os << "-" << option << "\t" << description << "\n";
 	}
 	list_decks(os);
 	return os.str();

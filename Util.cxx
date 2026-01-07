@@ -132,12 +132,11 @@ void Util::load_stats()
 
 void Util::save_values_to_file(std::ofstream &of_, const string_map &values_, const std::string &id_)
 {
-	for (auto c : values_)
+	for (const auto &[name, value] : values_)
 	{
-		std::string name = c.first;
-		std::string value = c.second;
+		if (value.empty()) continue;
 		DBG("[save " << id_ << "] " << name << " = " << value << "\n");
-	of_ << name << "=" << value << "\n";
+		of_ << name << "=" << value << "\n";
 	}
 }
 
