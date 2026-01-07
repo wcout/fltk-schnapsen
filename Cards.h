@@ -3,6 +3,7 @@
 #include <string>
 #include <deque>
 #include <iostream>
+#include <optional>
 
 typedef std::deque<Card> Cards_;
 typedef std::deque<CardSuite> Suites;

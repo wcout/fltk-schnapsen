@@ -8,6 +8,7 @@ typedef std::unordered_map<std::string, std::string> string_map;
 
 #include "messages.h"
 
+#include <FL/Enumerations.H>
 static const std::map<char, Fl_Color> text_colors = {
 	{ 'r', FL_RED },
 	{ 'g', FL_GREEN },

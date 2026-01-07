@@ -1,5 +1,6 @@
 #include "Cards.h"
 
+#include <sstream>
 #include <algorithm>
 #include <cassert>
 

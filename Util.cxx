@@ -3,6 +3,8 @@
 #include <FL/fl_ask.H>
 #include <FL/fl_draw.H>
 
+#include <fstream>
+
 const std::string &cardDir = "svg_cards";
 
 // config values (from fltk-schnapsen.cfg)

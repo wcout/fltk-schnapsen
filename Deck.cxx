@@ -4,6 +4,7 @@
 #include "Util.h"
 
 #include <FL/Fl_Double_Window.H>
+#include <FL/Fl_Box.H>
 #include <FL/Fl_Button.H>
 #include <FL/Fl_SVG_Image.H>
 #include <FL/Fl_PNG_Image.H>
@@ -12,6 +13,12 @@
 #include <FL/Fl_Input.H>
 #include <FL/fl_draw.H>
 #include <FL/fl_utf8.h>
+
+#include <string>
+#include <vector>
+#include <chrono>
+#include <filesystem>
+#include <functional>
 
 #ifdef USE_MINIAUDIO
 #define MA_IMPLEMENTATION
@@ -118,6 +125,7 @@ public:
 		_player.matches_won = atoi(Util::stats()["player_matches_won"].c_str());
 		_ai.matches_won = atoi(Util::stats()["ai_matches_won"].c_str());
 		copy_label(Util::message(TITLE).c_str());
+		fl_register_images();
 		std::string root = Util::homeDir() + cardDir;
 		std::string cardback = Util::config()["cardback"];
 		if (cardback.empty())

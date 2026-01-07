@@ -68,7 +68,6 @@ void Welcome::draw()
 	fl_font(FL_HELVETICA_BOLD, w() / 10);
 	fl_color(FL_BLACK);
 	static constexpr char title[] = "^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B";
-//	draw_color_text(title, (w() - fl_width("FLTK SCHNAPSEN")) / 2, h() / 7, text_colors);
 	Util::draw_color_text(title, (w() - fl_width("FLTK SCHNAPSEN")) / 2, h() / 7);
 	fl_color(FL_BLUE);
 	fl_font(FL_HELVETICA_BOLD, w() / 26);

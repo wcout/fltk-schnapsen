@@ -3,27 +3,13 @@
 //
 // Copyright 2025-2026 Christian Grabner.
 //
-#include <FL/Fl.H>
-#include <FL/Fl_Box.H>
-#include <FL/fl_ask.H>
-#include <FL/filename.H>
-#include <FL/names.h>
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <deque>
-#include <map>
-#include <functional>
 #include <filesystem>
-#include <algorithm>
-#include <chrono>
-#include <cstdio>
-#include <cassert>
-#include <optional>
-#include <utility>
-#include <locale>
-#include <math.h>
+#include <string>
+#include <sstream>
+#include <cstdlib>
+
+#include <FL/Fl.H>
+#include <FL/fl_ask.H>
 
 #if ( defined APPLE ) || ( defined __linux__ ) || ( defined __MING32__ )
 #include <unistd.h>
@@ -180,7 +166,6 @@ int main(int argc_, char *argv_[])
 	fl_message_title_default(Util::message(TITLE).c_str());
 	Fl::get_system_colors();
 	Fl::background(240, 240,240); // brighter color for message background
-	fl_register_images();
 	Util::load_config();
 	Util::load_stats();
 	LOG("homeDir: " << Util::homeDir() << "\n");

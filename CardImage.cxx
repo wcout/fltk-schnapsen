@@ -3,6 +3,8 @@
 #include <FL/Fl_SVG_Image.H>
 #include <FL/Fl_PNG_Image.H>
 
+#include <cassert>
+
 Fl_RGB_Image *rotate_90_CCW(const Fl_RGB_Image &svg_)
 {
 	int w = svg_.data_w();
