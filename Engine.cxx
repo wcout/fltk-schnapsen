@@ -519,14 +519,6 @@ void Engine::ai_move_closed_lead()
 			}
 		}
 	}
-	if (ai_test_close())
-	{
-		if (_game.marriage == NO_MARRIAGE)
-		{
-			move = find(highest_cards_in_hand(_ai.cards)[0], _ai.cards);
-		}
-	}
-
 	if (move == NO_MOVE)
 	{
 		Cards pull = pull_trump_cards(_ai.cards, _player.cards);
