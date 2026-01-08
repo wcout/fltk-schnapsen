@@ -175,6 +175,14 @@ public:
 		redraw();
 	}
 
+	void message(Message m_, bool bell_ = false) override
+	{
+		if (m_ == CLOSED)  m_ = _game.move == AI ? AI_CLOSED : YOU_CLOSED;
+		// NOTE: conflict with Fl_Widget::CHANGED!
+		if (m_ == Message::CHANGED) m_ = _game.move == AI ? AI_CHANGED : YOU_CHANGED;
+		_game.move == AI ? ai_message(m_, bell_) : player_message(m_, bell_);
+	}
+
 	void ai_message(Message m_, bool bell_ = false)
 	{
 		if (bell_) bell(m_);
@@ -213,13 +221,10 @@ public:
 				return false;
 			}
 			// make change
-			LOG("Player changes jack for " << _game.cards.back() << "\n");
-			Card c = _game.cards.back();
-			_game.cards.pop_back();
-			_game.cards.push_back(_player.card);
-			_player.card = c;
-			_player.changed = c;
-			player_message(YOU_CHANGED, true);
+			_player.move_state = NONE;
+			_player.cards.push_back(_player.card);
+			_player.cards.sort();
+			_engine.test_change(_player, true);
 			return true;
 		}
 		return false;
@@ -903,14 +908,14 @@ public:
 		_animate = nullptr;
 	}
 
-	void animate_ai_move() override
+	void animate_move() override
 	{
-//		int src_X = cards_rect(AI).center().first;
-		int src_X = cards_rect(AI).x + _CW / 2;
-		int src_Y = cards_rect(AI).center().second;
+//		int src_X = cards_rect(_game.move).center().first;
+		int src_X = cards_rect(_game.move).x + _CW / 2;
+		int src_Y = cards_rect(_game.move).center().second;
 
-		int dest_X = move_rect(AI).center().first;
-		int dest_Y = move_rect(AI).center().second;
+		int dest_X = move_rect(_game.move).center().first;
+		int dest_Y = move_rect(_game.move).center().second;
 
 		_animate = &Deck::draw_animated_move;
 
@@ -1101,7 +1106,7 @@ public:
 		int X = _animate_xy.first - _CW / 2;
 		int Y = _animate_xy.second - _CH / 2;
 		_shadow.image()->draw(X + _CW / 12, Y + _CH / 12);
-		_ai.card.image()->draw(X, Y);
+		_game.move == AI ? _ai.card.image()->draw(X, Y) : _player.card.image()->draw(X, Y);
 	}
 
 	void draw_animated_change()

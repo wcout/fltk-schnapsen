@@ -27,7 +27,7 @@ Card::Card(CardFace f_, CardSuite s_) :
 
 Card& Card::load()
 {
-	if (!_images.image(name()))
+	if (face() != NO_FACE && !_images.image(name()))
 	{
 		std::string pathname = Util::cardset_dir() + filename();
 		DBG("load '" << pathname << "'\n");

@@ -40,14 +40,14 @@ class Engine
 {
 public:
 	explicit Engine(GameData &game_, GameState &player_, GameState &ai_, UI &ui_) :
-		_game(game_), _player(player_), _ai(ai_), _ui(ui_)
+		_game(game_), _player(player_), _ai(ai_), _ui(ui_), _move(NO_MOVE)
 	{
 	}
 	size_t ai_move();
-	size_t ai_move_follow();
-	size_t ai_move_lead();
-	size_t ai_move_closed_follow();
-	size_t ai_move_closed_lead();
+	void ai_move_follow();
+	void ai_move_lead();
+	void ai_move_closed_follow();
+	void ai_move_closed_lead();
 
 	Suites have_20(const Cards &cards_);
 	Suites have_40(const Cards &cards_);
@@ -60,7 +60,8 @@ public:
 	bool can_trick_with_suite(const Card &c_, const Cards &cards_) const;
 	bool card_tricks(const Card &c1_, const Card &c2_) const;
 	size_t best_trick_card(const Card &c_, Cards &tricks_) const;
-	bool test_change(Cards &cards_);
+//	bool test_change(Cards &cards_);
+	bool test_change(GameState &player_, bool change_ = false);
 	size_t ai_play_20_40();
 	bool ai_test_close();
 	Cards highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suite_);
@@ -79,4 +80,5 @@ private:
 	GameState &_player;
 	GameState &_ai;
 	UI &_ui;
+	size_t _move;
 };

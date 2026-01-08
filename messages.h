@@ -6,6 +6,8 @@
 enum class Message
 {
 	NO_MESSAGE,
+	CHANGED,
+	CLOSED,
 	YOU_CHANGED,
 	YOU_CLOSED,
 	YOUR_GAME,

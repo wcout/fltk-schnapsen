@@ -205,33 +205,36 @@ size_t Engine::find(const Card &c_, const Cards &cards_) const
 	return NO_MOVE;
 }
 
-bool Engine::test_change(Cards &cards_)
+bool Engine::test_change(GameState &player_, bool change_/*=false*/)
 {
 	if (_game.cards.size() < 4 || _game.closed != NOT) return false;
-	auto i = cards_.find_pos(Card(JACK, _game.cards.back().suite()));
-	if (!i) return false;
-
+	auto i = player_.cards.find_pos(Card(JACK, _game.cards.back().suite()));
+	if (change_ == false) return !!i;
+	assert(i);
 	// make change
-	LOG("AI changes jack for " << _game.cards.back() << "\n");
-	Card jack = cards_[i.value()];
-	cards_.erase(cards_.begin() + i.value());
+	LOG((_game.move == AI ? "AI" : "Player") << " changes jack for " << _game.cards.back() << "\n");
+	Card jack = player_.cards[i.value()];
+	player_.cards.erase(player_.cards.begin() + i.value());
 
-	_ai.card = jack;
-	_ui.animate_change(true); // jack from hand to deck
+	if (player_.card != jack)
+	{
+		player_.card = jack;
+		_ui.animate_change(true); // jack from hand to deck
+	}
 
-	_ui.ai_message(AI_CHANGED, true);
+	_ui.message(CHANGED, true);
 	_ui.update();
 
 	Card c = _game.cards.back();
 	_game.cards.pop_back();
-	_game.cards.push_back(jack);
+	_game.cards.push_back(player_.card);
 
-	_ai.card = c;
+	player_.card = c;
 	_ui.animate_change();		// trump from deck to hand
 
-	cards_.push_back(c);
-	cards_.sort();
-	_ai.changed = c;
+	player_.cards.push_back(c);
+	player_.cards.sort();
+	player_.changed = c;
 	_ui.wait(1.5);
 	return true;
 }
@@ -337,7 +340,7 @@ bool Engine::ai_test_close()
 		{
 			LOG("closed by AI!\n");
 			_game.closed = BY_AI;
-			_ui.ai_message(AI_CLOSED, true);
+			_ui.message(CLOSED, true);
 			_ui.update();
 			_ui.wait(1.5);
 			return true;
@@ -491,11 +494,10 @@ Cards Engine::pull_trump_cards(Cards cards_, Cards from_) const
 	return res;
 }
 
-size_t Engine::ai_move_closed_lead()
+void Engine::ai_move_closed_lead()
 {
 	// end game, ai plays out
 	size_t move = NO_MOVE;
-
 	size_t m = ai_play_20_40();
 	if (m != NO_MOVE)
 	{
@@ -531,45 +533,38 @@ size_t Engine::ai_move_closed_lead()
 		if (pull.size())
 			move = find(pull[0], _ai.cards);
 	}
-
-	return move;
+	if (move != NO_MOVE)
+		_move = move;
 }
 
-size_t Engine::ai_move_closed_follow()
+void Engine::ai_move_closed_follow()
 {
 	// end game, player has moved, ai to follow
-	size_t move = must_give_color_or_trick(_player.card, _ai.cards);
-	assert(move != NO_MOVE);
-
-	return move;
+	_move = must_give_color_or_trick(_player.card, _ai.cards);
+	assert(_move != NO_MOVE);
 }
 
-size_t Engine::ai_move_lead()
+void Engine::ai_move_lead()
 {
 	// normal game, ai plays out
-	size_t move = NO_MOVE;
-
-	test_change(_ai.cards);
+	test_change(_ai) && test_change(_ai, true);
 
 	size_t m = ai_play_20_40();
 	if (m != NO_MOVE)
-		move = m;
+		_move = m;
 
 	if (ai_test_close())
 	{
 		if (_game.marriage == NO_MARRIAGE)
 		{
-			move = find(highest_cards_in_hand(_ai.cards)[0], _ai.cards);
+			_move = find(highest_cards_in_hand(_ai.cards)[0], _ai.cards);
 		}
 	}
-
-	return move;
 }
 
-size_t Engine::ai_move_follow()
+void Engine::ai_move_follow()
 {
 	// normal game, player has moved, ai to follow
-	size_t move = NO_MOVE;
 	Suites s20 = have_20(_ai.cards);
 	Suites s40 = have_40(_ai.cards);
 	if (s20.size() || s40.size() || _player.card.value() >= 10)
@@ -585,7 +580,7 @@ size_t Engine::ai_move_follow()
 		size_t m = lowest_card_that_tricks(_player.card, temp);
 		if (m != NO_MOVE)
 		{
-			move = find(temp[m], _ai.cards);
+			_move = find(temp[m], _ai.cards);
 		}
 	}
 	else
@@ -606,13 +601,17 @@ size_t Engine::ai_move_follow()
 				trick = true;
 			else if (_player.card.suite() != _game.trump && c.suite() != _game.trump)
 				trick = true;
-//			else if (_game.cards.size() > 2 && _player.score + _player.pending + _player.card.value() + _ai.card.value() >= 52)
-//				trick = true;
+#if 0
+			else if (_game.cards.size() > 2 && _player.score + _player.pending + _player.card.value() + _ai.cards[lowest_card(_ai.cards)].value() >= 52)
+			{
+				DBG("trick because player is about to win..\n");
+				trick = true;
+			}
+#endif
 			if (trick)
-				move = m;
+				_move = m;
 		}
 	}
-	return move;
 }
 
 size_t Engine::ai_move()
@@ -620,46 +619,36 @@ size_t Engine::ai_move()
 	_game.marriage = NO_MARRIAGE;
 	assert(_ai.cards.size());
 
-	size_t move = lowest_card(_ai.cards); // default move lowest card
-	assert(move != NO_MOVE);
-	_ai.card = _ai.cards[move]; // default move
+	_move = lowest_card(_ai.cards); // default move lowest card
+	assert(_move != NO_MOVE);
 
 	if (_game.closed != NOT && _player.move_state == ON_TABLE)
 	{
-		size_t m = ai_move_closed_follow();
-		if (m != NO_MOVE)
-			move = m;
+		ai_move_closed_follow();
 	}
 	else if (_game.closed != NOT)
 	{
-		size_t m = ai_move_closed_lead();
-		if (m != NO_MOVE)
-			move = m;
+		ai_move_closed_lead();
 	}
 	else
 	{
 		if (_player.move_state == ON_TABLE)
 		{
-			size_t m = ai_move_follow();
-			if (m != NO_MOVE)
-				move = m;
+			ai_move_follow();
 		}
 		else
 		{
-			size_t m = ai_move_lead();
-			if (m != NO_MOVE)
-				move = m;
+			ai_move_lead();
 		}
 	}
-	assert(move != NO_MOVE);
-	_ai.card = _ai.cards[move];
+	assert(_move != NO_MOVE);
+	_ai.card = _ai.cards[_move];
 
-	_ai.cards.erase(_ai.cards.begin() + move);
-
-	_ui.animate_ai_move();
+	_ai.cards.erase(_ai.cards.begin() + _move);
+	_ui.animate_move();
 
 	_ai.move_state = ON_TABLE;
 	_ui.update();
 	LOG("AI move: " << _ai.card << "\n");
-	return move;
+	return _move;
 }
