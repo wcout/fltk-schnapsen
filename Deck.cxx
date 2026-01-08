@@ -1035,20 +1035,18 @@ public:
 		// cards moving or on table
 		if (_ai.move_state == ON_TABLE)
 		{
-			Fl_RGB_Image *image = _ai.card.image();
 			int X =  move_rect(AI).x;
 			int Y =  move_rect(AI).y;
-			image->draw(X, Y);
+			_ai.card.image()->draw(X, Y);
 			_ai.card.rect(move_rect(AI));
 		}
 		if (_player.move_state != NONE)
 		{
-			Fl_RGB_Image *image = _player.card.image();
 			int X = move_rect(PLAYER).x;
 			int Y = move_rect(PLAYER).y;
 			if (_player.move_state == MOVING)
-				_shadow.image()->draw(X + image->w() / 12, Y + image->w() / 12);
-			image->draw(X, Y);
+				_shadow.image()->draw(X + _CW / 12, Y + _CW / 12);
+			_player.card.image()->draw(X, Y);
 			_player.card.rect(move_rect(PLAYER));
 		}
 		// marriage declarations
@@ -1105,7 +1103,7 @@ public:
 	{
 		int X = _animate_xy.first - _CW / 2;
 		int Y = _animate_xy.second - _CH / 2;
-		_shadow.image()->draw(X + _CW / 12, Y + _CH / 12);
+		_shadow.image()->draw(X + _CW / 12, Y + _CW / 12);
 		_game.move == AI ? _ai.card.image()->draw(X, Y) : _player.card.image()->draw(X, Y);
 	}
 
