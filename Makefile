@@ -21,6 +21,7 @@ $(APPLICATION): $(APPLICATION).cxx debug.h \
                                    CardImage.h CardImage.cxx \
                                    Cards.h Cards.cxx \
                                    Util.h Util.cxx \
+                                   Unittest.h Unittest.cxx \
                                    messages.h
 	$(FLTK)$(FLTK_CONFIG) --use-images --compile $(APPLICATION).cxx $(cxxflags)
 #	g++ -o $(APPLICATION) -fsanitize=address `$(FLTK)$(FLTK_CONFIG) --use-images --cxxflags` $(cxxflags) $(APPLICATION).cxx `$(FLTK)$(FLTK_CONFIG) --use-images --ldflags` -static-libasan

@@ -57,6 +57,7 @@ public:
 	size_t highest_card_that_tricks(const Card &c_, const Cards &cards_) const;
 	Cards all_cards_that_trick(const Card &c_, const Cards &cards_) const;
 	bool has_suite(const Cards &cards_, CardSuite suite_) const;
+	bool can_trick(const Card &c_, const Cards &cards_) const;
 	bool can_trick_with_suite(const Card &c_, const Cards &cards_) const;
 	bool card_tricks(const Card &c1_, const Card &c2_) const;
 	size_t best_trick_card(const Card &c_, Cards &tricks_) const;
@@ -74,6 +75,8 @@ public:
 	int max_cards_player(CardSuite suite_) const;
 	int max_trumps_player() const;
 	Cards pull_trump_cards(Cards cards_, Cards from_) const;
+	Cards closed_lead_no_trick(Cards leader_, Cards follower_);
+	bool unit_tests();
 private:
 	GameData &_game;
 	GameState &_player;

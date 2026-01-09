@@ -1,11 +1,19 @@
 #include "Engine.h"
 
+#include <ranges>
+
 using enum Player;
 using enum CardState;
 using enum Message;
 using enum Closed;
 using enum Marriage;
 
+#include "Unittest.cxx"
+bool Engine::unit_tests()
+{
+	Unittest ut(_game, _player, _ai, *this);
+	return ut.run();
+}
 
 size_t Engine::best_trick_card(const Card &c_, Cards &tricks_) const
 {
@@ -47,6 +55,15 @@ bool Engine::has_suite(const Cards &cards_, CardSuite suite_) const
 	for (auto &c : cards_)
 	{
 		if (c.suite() == suite_) return true;
+	}
+	return false;
+}
+
+bool Engine::can_trick(const Card &c_, const Cards &cards_) const
+{
+	for (auto &c : cards_)
+	{
+		if (card_tricks(c, c_)) return true;
 	}
 	return false;
 }
@@ -283,7 +300,8 @@ size_t Engine::ai_play_20_40()
 
 Cards Engine::suites_in_hand(CardSuite suite_, const Cards &cards_) const
 {
-	// TODO: push_back() to keep sort order highest -> lowest?
+	// NOTE: returns cards in low -> high order!
+	// Use: push_back() to keep sort order highest -> lowest?
 	Cards res;
 	for (auto &c : cards_)
 		if (c.suite() == suite_) res.push_front(c);
@@ -494,6 +512,40 @@ Cards Engine::pull_trump_cards(Cards cards_, Cards from_) const
 	return res;
 }
 
+Cards Engine::closed_lead_no_trick(Cards leader_, Cards follower_)
+{
+	// Finds out if there is no immedeate trick possible,
+	// which card of suite to play, to gain the highest card of suite
+	// in next move.
+	auto for_suite = [&](CardSuite suite_) -> Cards
+	{
+		Cards cards;
+		Cards leader = suites_in_hand(suite_, leader_);
+		Cards follower = suites_in_hand(suite_, follower_);
+		if (leader.size() < 2 || follower.size() < 2) return cards;
+		leader.sort();
+		follower.sort();
+//		DBG("leader: " << leader << " follower: " << follower << "\n");
+		for (const auto& c : leader | std::views::reverse)
+		{
+			if (card_tricks(c, follower[1]))
+			{
+				cards.push_back(c);
+				break;
+			}
+		}
+		cards.sort();
+		return cards;
+	};
+	Cards res;
+	res += for_suite(SPADE);
+	res += for_suite(HEART);
+	res += for_suite(DIAMOND);
+	res += for_suite(CLUB);
+	DBG("closed_lead_no_trick: " << res << "\n");
+	return res;
+}
+
 void Engine::ai_move_closed_lead()
 {
 	// end game, ai plays out
@@ -525,6 +577,14 @@ void Engine::ai_move_closed_lead()
 		if (pull.size())
 			move = find(pull[0], _ai.cards);
 	}
+
+	if (move == NO_MOVE && _game.cards.empty())
+	{
+		Cards no_trick = closed_lead_no_trick(_ai.cards, _player.cards);
+		if (no_trick.size())
+			move = find(no_trick[0], _ai.cards);
+	}
+
 	if (move != NO_MOVE)
 		_move = move;
 }
