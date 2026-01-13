@@ -3,7 +3,8 @@ project(fltk-schnapsen LANGUAGES CXX)
 
 find_package(FLTK CONFIG REQUIRED components images)
 
-add_executable(${PROJECT_NAME} fltk-schnapsen.cxx)
+add_executable(${PROJECT_NAME} fltk-schnapsen.cxx src)
+target_include_directories(fltk-schnapsen PRIVATE include/ src/)
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/miniaudio.h")
 set(cxxflags "-DUSE_MINIAUDIO")
