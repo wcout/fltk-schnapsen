@@ -62,6 +62,8 @@ CardImage& CardImage::image(const std::string &id_, const std::string &pathname_
 		exit(EXIT_FAILURE);
 	}
 	assert(svg && svg->w() > 0 && svg->h() > 0);
+	if (svg->as_svg_image())
+		svg->as_svg_image()->proportional = 0;
 	_images[id_] = svg;
 	_last_id = id_;
 	return *this;

@@ -104,6 +104,8 @@ void Util::load_values_from_file(std::ifstream &if_, string_map &values_, const 
 	std::string line;
 	while (std::getline(if_, line))
 	{
+		if (line.size() && line.back() == '\r')
+			line.pop_back();
 		size_t pos = line.find("=");
 		if (pos != std::string::npos)
 		{
@@ -143,30 +145,35 @@ void Util::save_values_to_file(std::ofstream &of_, const string_map &values_, co
 void Util::save_config()
 {
 	Util::config("cards", std::string()); // don't save cards string!
-	std::ofstream cfg(Util::homeDir() + APPLICATION + ".cfg");
+	std::ofstream cfg(Util::homeDir() + APPLICATION + ".cfg", std::ios::binary);
 	save_values_to_file(cfg, ::config, "cfg");
 }
 
 void Util::save_stats()
 {
-	std::ofstream stat(homeDir() + APPLICATION + ".sta");
+	std::ofstream stat(homeDir() + APPLICATION + ".sta", std::ios::binary);
 	save_values_to_file(stat, ::stats, "stat");
 }
 
 const std::string& Util::message(const Message m_)
 {
 	std::string lang = ::config["lang"];
+#ifndef WIN32
+	// TODO: Fix for WIN32
 	if (lang.empty())
 	{
 		static std::string locale_name;
 		if (locale_name.empty())
 		{
 			std::locale system_locale("");
-			locale_name = system_locale.name().substr(0, 2);
+			locale_name = system_locale.name();
+			if (locale_name.size() >= 2)
+				locale_name.erase(2);
 			DBG("locale_name: '" << locale_name << "'\n");
 		}
 		lang = locale_name;
 	}
+#endif
 	auto &m = lang.empty() || lang == "de" ? messages_de : messages_en;
 	return m[m_];
 }
@@ -202,5 +209,24 @@ void Util::draw_color_text(const std::string &text_, int x_, int y_,
 			fl_draw(text.c_str(), x_, y_);
 			break;
 		}
+	}
+}
+
+/*static*/
+void Util::draw_string(const std::string &text_, int x_, int y_)
+{
+	// NOTE: fl_draw(str, x, y) does not handle control characters under WIN32
+	//       so we need to split lines at '\n' ourselves...
+	size_t pos;
+	std::string text(text_);
+	while ((pos = text.find('\n')) != std::string::npos)
+	{
+		fl_draw(text.substr(0, pos).c_str(), x_, y_);
+		text.erase(0, pos + 1);
+		y_ += fl_height();
+	}
+	if (text.size())
+	{
+		fl_draw(text.c_str(), x_, y_);
 	}
 }

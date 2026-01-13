@@ -715,7 +715,7 @@ public:
 		fl_pie(x_-D / 2, y_- D / 2, D, D, 0., 360.);
 		fl_color(FL_WHITE);
 		fl_font(FL_HELVETICA|FL_BOLD, D / 2);
-		fl_draw(text_, x_ - fl_width(text_) / 2, y_ + fl_height() / 2 - fl_descent());
+		Util::draw_string(text_, x_ - fl_width(text_) / 2, y_ + fl_height() / 2 - fl_descent());
 	}
 
 	void draw_suite_symbol(CardSuite suite_, int x_, int y_)
@@ -785,7 +785,7 @@ public:
 			std::string player_message = Util::message(_player.message);
 			fl_font(FL_HELVETICA, h()/(player_message.back() == '!' ? 15 : 25));
 			fl_color(FL_RED);
-			fl_draw(player_message.c_str(), w() / 4 - fl_width(player_message.c_str()) / 2, h() - h() / 8);
+			Util::draw_string(player_message, w() / 4 - fl_width(player_message.c_str()) / 2, h() - h() / 8);
 		}
 		if (_ai.message != NO_MESSAGE)
 		{
@@ -795,7 +795,7 @@ public:
 			if (pos != std::string::npos)
 				ai_message.erase(pos, 2);
 			fl_color(FL_RED);
-			fl_draw(ai_message.c_str(), w() / 4 - fl_width(ai_message.c_str()) / 2, h() / 8);
+			Util::draw_string(ai_message, w() / 4 - fl_width(ai_message.c_str()) / 2, h() / 8);
 		}
 		if (_error_message != NO_MESSAGE)
 		{
@@ -804,7 +804,7 @@ public:
 			fl_rectf(0, h() - h() / 40, w(), h() / 40);
 			fl_font(FL_HELVETICA|FL_BOLD, h() / 50);
 			fl_color(FL_WHITE);
-			fl_draw(error_message.c_str(), w() / 2 - fl_width(error_message.c_str()) / 2, h() - fl_descent());
+			Util::draw_string(error_message, w() / 2 - fl_width(error_message.c_str()) / 2, h() - fl_descent());
 		}
 		if (_game.closed != NOT && _ai.display_score == false)
 		{
@@ -815,13 +815,13 @@ public:
 			{
 				int X = w() / 4 - fl_width(closed_sym.c_str()) / 2;
 				int Y = h() / 8 - _CH / 7;
-				fl_draw(closed_sym.c_str(), X, Y);
+				Util::draw_string(closed_sym, X, Y);
 			}
 			if (_game.closed == BY_PLAYER)
 			{
 				int X = w() / 4 - fl_width(closed_sym.c_str()) / 2;
 				int Y = h() - h() / 16;
-				fl_draw(closed_sym.c_str(), X, Y);
+				Util::draw_string(closed_sym, X, Y);
 			}
 		}
 	}
@@ -1062,7 +1062,7 @@ public:
 			fl_color(FL_BLUE);
 			char buf[20];
 			snprintf(buf, sizeof(buf), "%d", _player.score);
-			fl_draw(buf, w() - fl_width(buf), h() - fl_descent());
+			Util::draw_string(buf, w() - fl_width(buf), h() - fl_descent());
 		}
 		if (_ai.score && (_ai.display_score | ::debug))
 		{
@@ -1070,7 +1070,7 @@ public:
 			fl_color(FL_BLUE);
 			char buf[20];
 			snprintf(buf, sizeof(buf), "%d", _ai.score);
-			fl_draw(buf, w() - fl_width(buf), fl_height() - fl_descent());
+			Util::draw_string(buf, w() - fl_width(buf), fl_height() - fl_descent());
 		}
 	}
 
@@ -1080,7 +1080,7 @@ public:
 		fl_color(FL_YELLOW);
 		char buf[30];
 		snprintf(buf, sizeof(buf), " v%s", VERSION);
-		fl_draw(buf, 0, fl_height() - fl_descent());
+		Util::draw_string(buf, 0, fl_height() - fl_descent());
 	}
 
 	void draw_grayout()
@@ -1898,13 +1898,14 @@ public:
 	{
 		std::ostringstream os;
 		os << Util::message(GAMES_WON) << _player.games_won << " / " << _ai.games_won;
-		os << "\t" << Util::message(MATCHES_WON) <<  _player.matches_won << " / " << _ai.matches_won;
+		os << "    " << Util::message(MATCHES_WON) <<  _player.matches_won << " / " << _ai.matches_won;
 		return os.str();
 	}
 
 	void create_welcome()
 	{
 		_welcome = new Welcome(w() / 2, h() / 4 * 3);
+		_welcome->position((w() - _welcome->w()) / 2, (h() - _welcome->h()) / 2);
 		_welcome->stats(make_stats());
 		_welcome->show();
 		_welcome->wait_for_expose();

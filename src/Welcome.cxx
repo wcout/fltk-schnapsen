@@ -53,7 +53,7 @@ void Welcome::draw()
 			fl_color(fl_lighter(fl_lighter(FL_RED)));
 		else
 			fl_color(fl_lighter(fl_lighter(FL_BLACK)));
-		fl_draw(suite_symbols[suites[s]].c_str(), x, y + fl_height());
+		Util::draw_string(suite_symbols[suites[s]], x, y + fl_height());
 	}
 	fl_font(FL_COURIER_BOLD, h() / 42);
 	int stat_h = fl_height() + fl_descent();
@@ -72,14 +72,14 @@ void Welcome::draw()
 	fl_color(FL_BLUE);
 	fl_font(FL_HELVETICA_BOLD, w() / 26);
 	static constexpr char cr[] = "(c) 2025 Christian Grabner <wcout@gmx.net>";
-	fl_draw(cr, (w() - fl_width(cr)) / 2, h() / 7 + h() / 14);
+	Util::draw_string(cr, (w() - fl_width(cr)) / 2, h() / 7 + h() / 14);
 	fl_color(FL_BLACK);
 	fl_font(FL_HELVETICA_BOLD, h() / 16);
-	fl_draw(Util::message(WELCOME).c_str(), w() / 2 + w() / 60, h() / 2);
+	Util::draw_string(Util::message(WELCOME), w() / 2 + w() / 60, h() / 2);
 	// draw stats
 	fl_font(FL_COURIER_BOLD, h() / 42);
 	fl_draw_box(FL_FLAT_BOX, 0, h() - stat_h, w(), stat_h, fl_lighter(fl_lighter(FL_YELLOW)));
 	fl_color(FL_BLACK);
-	fl_draw(_stats.c_str(), (w() - fl_width(_stats.c_str())) / 2, h() - stat_h + fl_height() - 2);
+	Util::draw_string(_stats, (w() - fl_width(_stats.c_str())) / 2, h() - stat_h + fl_height() - 2);
 	fl_pop_clip();
 }
