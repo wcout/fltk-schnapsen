@@ -63,7 +63,7 @@ CardImage& CardImage::image(const std::string &id_, const std::string &pathname_
 	}
 	assert(svg && svg->w() > 0 && svg->h() > 0);
 	if (svg->as_svg_image())
-		svg->as_svg_image()->proportional = 0;
+		svg->as_svg_image()->proportional = false;
 	_images[id_] = svg;
 	_last_id = id_;
 	return *this;
@@ -90,8 +90,7 @@ Fl_RGB_Image *CardImage::skewed_image(const std::string &id_)
 	assert(svg && svg->w() > 0 && svg->h() > 0);
 	assert(_W != 0 && _H != 0);
 	Fl_RGB_Image *skewed_image = _images[id_ + "_skewed"];
-	if (svg->as_svg_image())
-		svg->as_svg_image()->resize(_W, _H);
+	svg->normalize();
 	if (!skewed_image
 		|| skewed_image->w() != _W || skewed_image->h() != _H / 3)
 	{
@@ -110,8 +109,7 @@ Fl_RGB_Image *CardImage::quer_image(const std::string &id_)
 	assert(svg && svg->w() > 0 && svg->h() > 0);
 	assert(_W != 0 && _H != 0);
 	Fl_RGB_Image *quer_image = _images[id_ + "_quer"];
-	if (svg->as_svg_image())
-		svg->as_svg_image()->resize(_W, _H);
+	svg->normalize();
 	if (!quer_image
 		|| quer_image->w() != _H || quer_image->h() != _W)
 	{
