@@ -1528,7 +1528,7 @@ public:
 
 	int run()
 	{
-		Player playout(PLAYER);
+		Player playout(::first_to_move);
 		while (Fl::first_window())
 		{
 			game(playout);

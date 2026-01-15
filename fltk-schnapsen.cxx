@@ -35,6 +35,9 @@ constexpr char VERSION[] = "1.0";
 // only for testing
 int debug = 0;
 
+#include "Deck.h"
+Player first_to_move = Player::PLAYER;
+
 #include "debug.h"
 #include "Util.cxx"
 #include "CardImage.cxx"
@@ -99,6 +102,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 		{ "d", "enable debug" },
 		{ "f", "run fullscreen" },
 		{ "w", "show welcome screen" },
+		{ "r", "start with AI move" },
 		{ "s", "faster response" },
 		{ "h", "this help" }
 	};
@@ -117,6 +121,9 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 			case 'f':
 				Util::config("fullscreen", "1");
 			break;
+			case 'r':
+				first_to_move = AI;
+				break;
 			case 's':
 				Util::config("fast", "1");
 				break;
