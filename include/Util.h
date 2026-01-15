@@ -45,4 +45,6 @@ public:
 	static void draw_color_text(const std::string &text_, int x_, int y_,
 	                            const std::map<char, Fl_Color> &colors_ = text_colors);
 	static void draw_string(const std::string &text, int x_, int y_);
+	static int string_size(const std::string &text_, int &w_, int &h_);
+	static int string_size(const std::string &text_);
 };

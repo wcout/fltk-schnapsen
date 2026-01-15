@@ -153,6 +153,9 @@ public:
 		int height = atoi(Util::config("height").c_str());
 		if (width > 400 && height > 300)
 			size(width, height);
+		int xpos = atoi(Util::config("xpos").c_str());
+		int ypos = atoi(Util::config("ypos").c_str());
+		position(xpos, ypos);
 		end();
 		_redeal_button->callback([](Fl_Widget *wgt_, void *)
 		{
@@ -730,19 +733,15 @@ public:
 			os << "^B";
 
 		std::string symbol_image = Util::cardset_dir() + suite_symbol_image(c.suite());
-		if (std::filesystem::exists(symbol_image))
+		if (std::filesystem::exists(symbol_image + ".svg"))
 		{
-			Fl_SVG_Image svg(symbol_image.c_str());
-			svg.resize(svg.w(), svg.h());
-			svg.scale(fl_width("M"), fl_height() - 2 * fl_descent(), 0, 1);
-			svg.draw(x_ - svg.w(), y_ - fl_height() + fl_descent());
+			os << "^|" << symbol_image << "|";
 		}
 		else
 		{
 			os << c.suite_symbol();
-			std::string text = os.str();
-			Util::draw_color_text(text, x_ - fl_width(text.c_str()) / 2, y_);
 		}
+		Util::draw_string(os.str(), x_ - Util::string_size(os.str()) / 2, y_);
 	}
 
 	std::string background_image()
@@ -785,7 +784,7 @@ public:
 			std::string player_message = Util::message(_player.message);
 			fl_font(FL_HELVETICA, h()/(player_message.back() == '!' ? 15 : 25));
 			fl_color(FL_RED);
-			Util::draw_string(player_message, w() / 4 - fl_width(player_message.c_str()) / 2, h() - h() / 8);
+			Util::draw_string(player_message, w() / 4 - Util::string_size(player_message) / 2, h() - h() / 8);
 		}
 		if (_ai.message != NO_MESSAGE)
 		{
@@ -795,7 +794,7 @@ public:
 			if (pos != std::string::npos)
 				ai_message.erase(pos, 2);
 			fl_color(FL_RED);
-			Util::draw_string(ai_message, w() / 4 - fl_width(ai_message.c_str()) / 2, h() / 8);
+			Util::draw_string(ai_message, w() / 4 - Util::string_size(ai_message) / 2, h() / 8);
 		}
 		if (_error_message != NO_MESSAGE)
 		{
@@ -810,7 +809,12 @@ public:
 		{
 			fl_font(FL_HELVETICA, _CH / 7);
 			fl_color(FL_GRAY);
-			static const std::string closed_sym = "⛒";
+			static const std::string closed_sym =
+#ifndef WIN32
+				"⛔";
+#else
+				"^|26d4|";
+#endif
 			if (_game.closed == BY_AI)
 			{
 				int X = w() / 4 - fl_width(closed_sym.c_str()) / 2;
@@ -819,7 +823,7 @@ public:
 			}
 			if (_game.closed == BY_PLAYER)
 			{
-				int X = w() / 4 - fl_width(closed_sym.c_str()) / 2;
+				int X = w() / 4 - Util::string_size(closed_sym) / 2;
 				int Y = h() - h() / 16;
 				Util::draw_string(closed_sym, X, Y);
 			}
@@ -1225,9 +1229,15 @@ public:
 			Message m = (Message)atoi(_cmd.substr(8).c_str());
 			Fl::add_timeout(0., [](void *d_) { (static_cast<Deck *>(d_))->redraw();	}, this);
 			if (m == YOU_WIN)
+			{
 				show_win_msg();
+			}
 			else
+			{
+				DBG("fl_alert(" << Util::message(m) << ")\n");
+				fl_message_position(x() + w() / 2, y() + h() / 2, 1);
 				fl_alert("%s", Util::message(m).c_str());
+			}
 		}
 		else if (_cmd.find("gb=") == 0)
 		{
@@ -1369,8 +1379,20 @@ public:
 	void show_win_msg()
 	{
 		std::string m(Util::message(YOU_WIN));
-		fl_message_icon_label("🏆");
 		fl_message_icon()->box(FL_NO_BOX);
+#ifndef WIN32
+		fl_message_icon_label("🏆");
+#else
+		static Fl_SVG_Image icon((Util::homeDir() + "rsc/" + "1f3c6.svg").c_str());
+		if (icon.w() > 0 && icon.h() > 0)
+		{
+			icon.normalize();
+			icon.scale(fl_message_icon()->w(), fl_message_icon()->h(), 1, 1);
+			fl_message_icon()->image(&icon);
+			fl_message_icon()->align(FL_ALIGN_IMAGE_BACKDROP);
+			fl_message_icon_label("");
+		}
+#endif
 		Fl::add_timeout(0.0, [](void *d_)
 		{
 			Fl_Window *win = Fl::first_window();
@@ -1400,7 +1422,9 @@ public:
 			win->insert(*box, 99);
 			win->redraw();
 		}, &m);
+		fl_message_position(x() + w() / 2, y() + h() / 2, 1);
 		fl_alert("%s", m.c_str());
+		fl_message_icon()->image(nullptr);
 	}
 
 	bool check_end_match()
@@ -1433,9 +1457,23 @@ public:
 			Util::stats("ai_matches_won", std::to_string(_ai.matches_won));
 			std::string m(Util::message(YOU_LOST));
 			bell(YOU_LOST);
-			fl_message_icon_label("⚫");
 			fl_message_icon()->box(FL_NO_BOX);
+#ifndef WIN32
+			fl_message_icon_label("⚫");
+#else
+			static Fl_SVG_Image icon((Util::homeDir() + "rsc/" + "26ab.svg").c_str());
+			if (icon.w() > 0 && icon.h() > 0)
+			{
+				icon.normalize();
+				icon.scale(fl_message_icon()->w(), fl_message_icon()->h(), 1, 1);
+				fl_message_icon()->image(&icon);
+				fl_message_icon()->align(FL_ALIGN_IMAGE_BACKDROP);
+				fl_message_icon_label("");
+			}
+#endif
+			fl_message_position(x() + w() / 2, y() + h() / 2, 1);
 			fl_alert("%s", m.c_str());
+			fl_message_icon()->image(nullptr);
 			_gamebook.clear();
 			redraw();
 			return true;
@@ -1518,6 +1556,8 @@ public:
 		Util::config("cards", std::string()); // don't save cards string!
 		Util::config("width", std::to_string(w()));
 		Util::config("height", std::to_string(h()));
+		Util::config("xpos", std::to_string(x()));
+		Util::config("ypos", std::to_string(y()));
 		Util::save_config();
 	}
 
@@ -1905,7 +1945,7 @@ public:
 	void create_welcome()
 	{
 		_welcome = new Welcome(w() / 2, h() / 4 * 3);
-		_welcome->position((w() - _welcome->w()) / 2, (h() - _welcome->h()) / 2);
+		_welcome->position(x() + (w() - _welcome->w()) / 2, y() + (h() - _welcome->h()) / 2);
 		_welcome->stats(make_stats());
 		_welcome->show();
 		_welcome->wait_for_expose();

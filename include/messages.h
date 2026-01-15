@@ -51,7 +51,11 @@ std::map<Message, std::string> messages_de = {
 	{NO_MESSAGE, ""},
 	{YOU_CHANGED, "Du hast den Buben getauscht"},
 	{YOU_CLOSED, "Du hast zugedreht"},
+#ifndef WIN32
 	{YOUR_GAME, "👍Gratuliere, dein Spiel!"},
+#else
+	{YOUR_GAME, "^|1f44d|Gratuliere, dein Spiel!"},
+#endif
 	{YOUR_TRICK, "Dein Stich"},
 	{YOUR_TURN, "Du bist dran"},
 	{YOU_LEAD, "Du spielst aus"},
@@ -60,8 +64,16 @@ std::map<Message, std::string> messages_de = {
 	{AI_CLOSED, "AI hat zugedreht"},
 	{AI_GAME, "AI gewinnt das Spiel!"},
 	{AI_TRICK, "AI hat gestochen"},
+#ifndef WIN32
 	{AI_TURN, "AI ist am Spiel ... 💭"},
+#else
+	{AI_TURN, "AI ist am Spiel ... ^|1f4ad|"},
+#endif
+#ifndef WIN32
 	{AI_LEADS, "AI spielt aus ... 💭"},
+#else
+	{AI_LEADS, "AI spielt aus ... ^|1f4ad|"},
+#endif
 	{AI_NOT_ENOUGH, "AI hat nicht genug"},
 	{TRUMP, "Trumpf"},
 	{TITLE, "Schnapsen zu zweit"},
@@ -86,13 +98,21 @@ std::map<Message, std::string> messages_de = {
 	{WELCOME, "Servas Oida!\n\nHast Lust auf\na Bummerl?"},
 	{GAMES_WON, "Spiele gewonnen (PL/AI): "},
 	{MATCHES_WON, "Partien: "},
+#ifndef WIN32
 	{AI_SLEEP, "😴!!"}
+#else
+	{AI_SLEEP, "^|1f634|!!"}
+#endif
 };
 
 std::map<Message, std::string> messages_en = {
 	{YOU_CHANGED, "You changed the jack"},
 	{YOU_CLOSED, "You closed the game"},
+#ifndef WIN32
 	{YOUR_GAME, "👍Congrats, your game!"},
+#else
+	{YOUR_GAME, "^|1f44d|Congrats, your game!"},
+#endif
 	{YOUR_TRICK, "Your trick"},
 	{YOUR_TURN, "Your turn"},
 	{YOU_LEAD, "Your lead"},
@@ -100,8 +120,16 @@ std::map<Message, std::string> messages_en = {
 	{AI_CLOSED, "AI has closed"},
 	{AI_GAME, "AI wins the game!"},
 	{AI_TRICK, "AI makes trick"},
+#ifndef WIN32
 	{AI_TURN, "AI playing ... 💭"},
+#else
+	{AI_TURN, "AI playing ... ^|1f4ad|"},
+#endif
+#ifndef WIN32
 	{AI_LEADS, "AI leading ... 💭"},
+#else
+	{AI_LEADS, "AI leading ... ^|1f4ad|"},
+#endif
 	{TRUMP, "Trump"},
 	{TITLE, "Schnapsen for two"},
 	{GAMEBOOK, "**Game book**"},
@@ -125,7 +153,11 @@ std::map<Message, std::string> messages_en = {
 	{WELCOME, "Hey dude!\n\nDo you want\na 'bummerl'?"},
 	{GAMES_WON, "Games won (PL/AI): "},
 	{MATCHES_WON, "Matches: "},
+#ifndef WIN32
 	{AI_SLEEP, "😴!!"}
+#else
+	{AI_SLEEP, "^|1f634|!!"}
+#endif
 };
 
 std::map<Message, std::string> sound = {

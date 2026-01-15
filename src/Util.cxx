@@ -2,6 +2,7 @@
 #include <FL/filename.H>
 #include <FL/fl_ask.H>
 #include <FL/fl_draw.H>
+#include <FL/Fl_SVG_Image.H>
 
 #include <fstream>
 
@@ -217,16 +218,114 @@ void Util::draw_string(const std::string &text_, int x_, int y_)
 {
 	// NOTE: fl_draw(str, x, y) does not handle control characters under WIN32
 	//       so we need to split lines at '\n' ourselves...
+
+	auto draw_line = [&](std::string line) -> void
+	{
+		size_t image_pos;
+		int dx = 0;
+		while ((image_pos = line.find("^|")) != std::string::npos)
+		{
+			std::string sub = line.substr(0, image_pos);
+			draw_color_text(sub, x_ + dx, y_);
+			size_t pos;
+			while ((pos = sub.find('^')) != std::string::npos)
+				sub.erase(pos, 2);
+			dx += fl_width(sub.c_str());
+			line.erase(0, image_pos + 2);
+			size_t end_image = line.find('|');
+			if (end_image == std::string::npos) continue;
+			std::string image_name = line.substr(0, end_image);
+			image_name += ".svg";
+			if (image_name.find('/') == std::string::npos)
+				image_name = homeDir() + "rsc/" + image_name;
+			Fl_SVG_Image svg(image_name.c_str());
+			if (svg.w() > 0 && svg.h() > 0)
+			{
+				svg.normalize();
+				svg.scale(fl_width("W"), fl_height(), 1, 1);
+				svg.draw(x_ + dx, y_ + fl_descent() - fl_height() + fl_descent());
+				dx += svg.w();
+			}
+			line.erase(0, end_image + 1);
+		}
+		if (line.size())
+		{
+			draw_color_text(line, x_ + dx, y_);
+		}
+	};
+
 	size_t pos;
 	std::string text(text_);
 	while ((pos = text.find('\n')) != std::string::npos)
 	{
-		fl_draw(text.substr(0, pos).c_str(), x_, y_);
+		draw_line(text.substr(0, pos));
 		text.erase(0, pos + 1);
 		y_ += fl_height();
 	}
 	if (text.size())
 	{
-		fl_draw(text.c_str(), x_, y_);
+		draw_line(text.c_str());
 	}
+}
+
+/*static*/
+int Util::string_size(const std::string &text_, int &w_, int &h_)
+{
+	w_ = 0;
+	h_ = 0;
+	auto parse_line = [&](std::string line) -> int
+	{
+		size_t image_pos;
+		int w = 0;
+		std::string text;
+		while ((image_pos = line.find("^|")) != std::string::npos)
+		{
+			text += line.substr(0, image_pos);
+			line.erase(0, image_pos + 2);
+			size_t end_image = line.find('|');
+			if (end_image == std::string::npos) continue;
+			std::string image_name = line.substr(0, end_image);
+			image_name += ".svg";
+			if (image_name.find('/') == std::string::npos)
+				image_name = homeDir() + "rsc/" + image_name;
+			Fl_SVG_Image svg(image_name.c_str());
+			if (svg.w() > 0 && svg.h() > 0)
+			{
+				svg.normalize();
+				svg.scale(fl_width("W"), fl_height(), 1, 1);
+				w += svg.w();
+			}
+			line.erase(0, end_image + 1);
+		}
+		text += line;
+		size_t pos;
+		while ((pos = text.find('^')) != std::string::npos)
+			text.erase(pos, 2);
+		w += fl_width(text.c_str());
+		return w;
+	};
+
+	size_t pos;
+	std::string text(text_);
+	while ((pos = text.find('\n')) != std::string::npos)
+	{
+		int w = parse_line(text.substr(0, pos));
+		if (w > w_) w_ = w;
+		text.erase(0, pos + 1);
+		h_ += fl_height();
+	}
+	if (text.size())
+	{
+		int w = parse_line(text.c_str());
+		if (w > w_) w_ = w;
+		h_ += fl_height();
+	}
+	return w_;
+}
+
+/*static*/
+int Util::string_size(const std::string &text_)
+{
+	int W, H;
+	return string_size(text_, W, H);
 }
