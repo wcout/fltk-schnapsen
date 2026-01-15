@@ -308,6 +308,11 @@ Cards Engine::suites_in_hand(CardSuite suite_, const Cards &cards_) const
 	return res;
 }
 
+Cards Engine::trumps_in_hand(const Cards &cards_) const
+{
+	return suites_in_hand(_game.trump, cards_);
+}
+
 Cards Engine::highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suite_)
 {
 	Cards res;
@@ -546,10 +551,77 @@ Cards Engine::closed_lead_no_trick(Cards leader_, Cards follower_)
 	return res;
 }
 
+size_t Engine::ai_play_for_last_trick_lead()
+{
+	return NO_MOVE;
+}
+
+size_t Engine::ai_play_for_last_trick_follow()
+{
+	return NO_MOVE;
+}
+
+size_t Engine::ai_play_for_closed_lead()
+{
+	// Test if it is of advantage to have the lead after
+	// the pack is cleared.
+
+	if (_player.move_state == ON_TABLE)
+	{
+		// following last trick before pack clear
+		LOG("ai_play_for_closed_lead: following\n");
+		Cards tricks = all_cards_that_trick(_player.card, _ai.cards);
+		if (tricks.size())
+		{
+			// we could trick, but that's maybe not what we want..
+			LOG("ai_play_for_closed_lead: we could trick with: " << tricks << "\n");
+			if ((_game.cards.back().face() == QUEEN && _ai.cards.find(Card(KING, _game.trump))) ||
+			    (_game.cards.back().face() == KING  && _ai.cards.find(Card(QUEEN, _game.trump))))
+			{
+				// we could gain 40, if we do **not** trick
+				Cards not_tricks = _ai.cards - tricks;
+				if (not_tricks.size())
+				{
+					not_tricks.sort_by_value(false); // low-high
+					LOG("ai_play_for_closed_lead: we could gain 40, when **not** tricking!\n");
+					return find(not_tricks[0], _ai.cards);
+				}
+			}
+
+			// is back card (talon) valuable for us?
+			if ((int)trumps_in_hand(_ai.cards).size() < max_trumps_player())
+			{
+				// let's say yes (TODO: look into more detail)
+				Cards not_tricks = _ai.cards - tricks;
+				if (not_tricks.size())
+				{
+					not_tricks.sort_by_value(false); // low-high
+					LOG("ai_play_for_closed_lead: want trump, so **not** tricking!\n");
+					return find(not_tricks[0], _ai.cards);
+				}
+			}
+		}
+	}
+	else
+	{
+		// leading last trick before pack clear
+		LOG("ai_play_for_closed_lead: leading\n");
+	}
+	return NO_MOVE;
+}
+
 void Engine::ai_move_closed_lead()
 {
 	// end game, ai plays out
 	size_t move = NO_MOVE;
+
+	if (_ai.cards.size() == 2)
+	{
+		// special case, before last trick
+		// TODO: implement
+		size_t m = ai_play_for_last_trick_lead();
+	}
+
 	size_t m = ai_play_20_40();
 	if (m != NO_MOVE)
 	{
@@ -592,6 +664,13 @@ void Engine::ai_move_closed_lead()
 void Engine::ai_move_closed_follow()
 {
 	// end game, player has moved, ai to follow
+	if (_ai.cards.size() == 2)
+	{
+		// special case, before last trick
+		// TODO: implement
+		size_t m = ai_play_for_last_trick_follow();
+	}
+
 	_move = must_give_color_or_trick(_player.card, _ai.cards);
 	assert(_move != NO_MOVE);
 }
@@ -600,6 +679,13 @@ void Engine::ai_move_lead()
 {
 	// normal game, ai plays out
 	test_change(_ai) && test_change(_ai, true);
+
+	if (_game.cards.size() == 2)
+	{
+		// special case, before pack clearing
+		// TODO: implement
+		size_t m = ai_play_for_closed_lead();
+	}
 
 	size_t m = ai_play_20_40();
 	if (m != NO_MOVE)
@@ -617,6 +703,24 @@ void Engine::ai_move_lead()
 void Engine::ai_move_follow()
 {
 	// normal game, player has moved, ai to follow
+	if (_game.cards.size() == 2)
+	{
+		// special case, before pack clearing
+		// TODO: implement
+		size_t m = ai_play_for_closed_lead();
+		if (m != NO_MOVE)
+		{
+			DBG("ai_play_for_closed_lead suggested " << _ai.cards[m] << "\n");
+			if (::debug)
+			{
+				std::ostringstream os;
+				os << "ai_play_for_closed_lead\nsuggested " << _ai.cards[m];
+				fl_alert("%s", os.str().c_str());
+			}
+			_move = m;
+		}
+	}
+
 	Suites s20 = have_20(_ai.cards);
 	Suites s40 = have_40(_ai.cards);
 	if (s20.size() || s40.size() || _player.card.value() >= 10)

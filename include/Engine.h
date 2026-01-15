@@ -49,6 +49,10 @@ public:
 	void ai_move_closed_follow();
 	void ai_move_closed_lead();
 
+	size_t ai_play_for_last_trick_lead();
+	size_t ai_play_for_last_trick_follow();
+	size_t ai_play_for_closed_lead();
+
 	Suites have_20(const Cards &cards_);
 	Suites have_40(const Cards &cards_);
 	size_t find(const Card &c_, const Cards &cards_) const;
@@ -67,6 +71,7 @@ public:
 	Cards highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suite_);
 	Cards highest_cards_in_hand(const Cards &cards_);
 	Cards suites_in_hand(CardSuite suite_, const Cards &cards_) const;
+	Cards trumps_in_hand(const Cards &cards_) const;
 	size_t must_give_color_or_trick(const Card &c_, Cards &cards_) const;
 	Cards cards_to_claim(CardSuite suite_ = ANY_SUITE) const;
 	Cards trumps_to_claim() const;
