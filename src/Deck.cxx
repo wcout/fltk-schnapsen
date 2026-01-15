@@ -633,12 +633,12 @@ public:
 		};
 
 		// limit display to last 8 scores
-		size_t first = _gamebook.size() > 8 ? _gamebook.size() - 8 : 0;
+		size_t first = _game.book.size() > 8 ? _game.book.size() - 8 : 0;
 		if (first == 0)
 			draw_score(std::make_pair(0, 0));
-		for (size_t i = 0; i < _gamebook.size(); i++)
+		for (size_t i = 0; i < _game.book.size(); i++)
 		{
-			auto s = _gamebook[i];
+			auto s = _game.book[i];
 			player_score += s.first;
 			ai_score += s.second;
 			if (i < first) continue;
@@ -1244,12 +1244,12 @@ public:
 		{
 			std::string args = _cmd.substr(3);
 			if (args.empty())
-				_gamebook.clear();
+				_game.book.clear();
 			else if(args.size() >= 3)
 			{
 				auto first = atoi(args.c_str());
 				auto second = atoi(&args[2]);
-				_gamebook.push_back(std::make_pair(first, second));
+				_game.book.push_back(std::make_pair(first, second));
 			}
 		}
 		else if (_cmd.find("cip") == 0)
@@ -1432,7 +1432,7 @@ public:
 	{
 		int pscore = 0;
 		int ascore = 0;
-		for (auto s : _gamebook)
+		for (auto s : _game.book)
 		{
 			pscore += s.first;
 			ascore += s.second;
@@ -1447,7 +1447,7 @@ public:
 			Util::stats("player_matches_won", std::to_string(_player.matches_won));
 			bell(YOU_WIN);
 			show_win_msg();
-			_gamebook.clear();
+			_game.book.clear();
 			redraw();
 			return true;
 		}
@@ -1475,7 +1475,7 @@ public:
 			fl_message_position(x() + w() / 2, y() + h() / 2, 1);
 			fl_alert("%s", m.c_str());
 			fl_message_icon()->image(nullptr);
-			_gamebook.clear();
+			_game.book.clear();
 			redraw();
 			return true;
 		}
@@ -1491,12 +1491,12 @@ public:
 			{
 				if (_player.score >= 66)
 				{
-					_gamebook.push_back(std::make_pair(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 1, 0));
+					_game.book.push_back(std::make_pair(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 1, 0));
 				}
 				else
 				{
 					// TODO: officially the points are counted at the moment of closing
-					_gamebook.push_back(std::make_pair(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 2));
+					_game.book.push_back(std::make_pair(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 2));
 				}
 			}
 			else
@@ -1504,12 +1504,12 @@ public:
 				// closed by AI
 				if (_ai.score >= 66)
 				{
-					_gamebook.push_back(std::make_pair(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 1));
+					_game.book.push_back(std::make_pair(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 1));
 				}
 				else
 				{
 					// TODO: officially the points are counted at the moment of closing
-					_gamebook.push_back(std::make_pair(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 2, 0));
+					_game.book.push_back(std::make_pair(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 2, 0));
 				}
 			}
 		}
@@ -1518,11 +1518,11 @@ public:
 			// normal game (not closed)
 			if (_game.move == PLAYER)
 			{
-				_gamebook.push_back(std::make_pair(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 1, 0));
+				_game.book.push_back(std::make_pair(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 1, 0));
 			}
 			else
 			{
-				_gamebook.push_back(std::make_pair(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 1));
+				_game.book.push_back(std::make_pair(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 1));
 			}
 		}
 	}
@@ -1539,7 +1539,7 @@ public:
 
 			if (!Fl::first_window()) break;
 
-			auto &[pscore, ascore] = _gamebook.back();
+			auto &[pscore, ascore] = _game.book.back();
 			if (pscore)
 				LOG("PL scores " << pscore << "\n");
 			if (ascore)
@@ -1990,7 +1990,6 @@ private:
 	CardImage _outline;
 	int _CW;					// card pixel width (used as "unit" for UI)
 	int _CH;					// card pixel height
-	std::vector<std::pair<int, int>> _gamebook;
 	Cmd_Input *_cmd_input;
 	Button *_redeal_button;
 	Welcome *_welcome;
