@@ -848,13 +848,14 @@ public:
 		_ai.score = 56;
 #endif
 
+		fl_font(FL_HELVETICA, _CH / 7);
 		for (size_t i = 0; i < _player.s20_40.size(); i++)
 		{
-			draw_suite_symbol(_player.s20_40[i], w() - w() / 30 * (i + 1), h() - 6);
+			draw_suite_symbol(_player.s20_40[i], w() - w() / 30 * (i + 1) - fl_descent(), h() - fl_descent());
 		}
 		for (size_t i = 0; i < _ai.s20_40.size(); i++)
 		{
-			draw_suite_symbol(_ai.s20_40[i], w() - w() / 30 * (i + 1), _CH / 6);
+			draw_suite_symbol(_ai.s20_40[i], w() - w() / 30 * (i + 1) - fl_descent(), fl_height() - fl_descent());
 		}
 	}
 
@@ -1181,7 +1182,7 @@ public:
 			draw_ai_deck_info(Fl::event_x(), Fl::event_y());
 		if (_cmd_input)
 			_cmd_input->draw();
-		if (!_disabled && _redeal_button && _redeal_button->visible())
+		if (!_disabled && _redeal_button && _redeal_button->visible() && !::debug)
 			_redeal_button->draw();
 		draw_version();
 		if (::debug >= 3)
