@@ -11,7 +11,7 @@ std::map<CardSuite, std::string> suite_names = { {CLUB, "clubs"}, {DIAMOND, "dia
 std::map<CardFace, int> card_value = { {TEN, 10}, {JACK, 2}, {QUEEN, 3}, {KING, 4}, {ACE, 11} };
 std::map<CardSuite, int> suite_weights = { {SPADE, 4}, {HEART,3}, {DIAMOND,2}, {CLUB,1} };
 std::map<CardSuite, std::string> suite_symbols = { {SPADE, "♠"}, {HEART, "♥"}, {DIAMOND, "♦"}, {CLUB, "♣"} };
-std::map<CardSuite, std::string> suite_symbols_image = { {SPADE, "laub.svg"}, {HEART, "herz.svg"}, {DIAMOND, "schelle.svg"}, {CLUB, "eichel.svg"} };
+std::map<CardSuite, std::string> suite_symbols_image = { {SPADE, "laub"}, {HEART, "herz"}, {DIAMOND, "schelle"}, {CLUB, "eichel"} };
 
 
 Card::Card() : _f(NO_FACE), _s(NO_SUITE),
