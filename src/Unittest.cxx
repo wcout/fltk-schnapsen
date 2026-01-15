@@ -78,6 +78,18 @@ bool Unittest::run()
 	move = _engine.closed_lead_no_trick(acards, pcards);
 	assert(move == "|K♦|K♣|");	// nevertheless ok
 
+	Cards tcards("|T♦|K♦|J♦|T♣|K♦|K♣|");
+	tcards &= Card(KING, DIAMOND); // remove (all instances of this) card from set
+	assert(tcards == "|T♦|J♦|T♣|K♣|");
+
+	tcards = "|T♦|K♦|J♦|T♣|K♦|T♣|K♣|";
+	tcards &= Cards("|K♦|T♣|"); // remove (all instances of this) cards from set
+	assert(tcards == "|T♦|J♦|K♣|");
+
+	tcards = "|T♦|J♦|K♦|T♣|K♣|";
+	tcards -= Cards("|K♦|T♣|"); // remove single cards from set
+	assert(tcards == "|T♦|J♦|K♣|");
+
 	LOG("Unittests run successfully.\n");
 	return true;
 }

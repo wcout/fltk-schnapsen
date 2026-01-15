@@ -13,18 +13,21 @@ class Cards : public Cards_
 public:
 	Cards();
 	Cards(const Cards_ &cards_);
+	Cards(const Card &card_);
 	explicit Cards(const std::string &s_);
 	Cards operator = (const std::string &s_);
 	Cards operator += (const Cards &c_);
 	Cards operator + (const Cards &c_) const;
 	Cards operator -= (const Cards &c_);
+	Cards operator &= (const Cards &c_);
 	Cards operator - (const Cards &c_) const;
 	Cards operator += (const Card &c_);
 	Cards operator + (const Card &c_) const;
 	Cards operator -= (const Card &c_);
+	Cards operator &= (const Card &c_);
 	Cards operator - (const Card &c_) const;
 	bool operator == (const std::string& s_);
-	Cards &from_string(const std::string &s_);
+	Cards& from_string(const std::string &s_);
 	void check();
 	std::optional<size_t> find_face(CardFace f_) const;
 	std::optional<size_t> find_pos(const Card &c_) const;

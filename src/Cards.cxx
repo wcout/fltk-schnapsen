@@ -12,6 +12,12 @@ Cards::Cards(const Cards_ &cards_)
 	*this = cards_;
 }
 
+Cards::Cards(const Card &card_)
+{
+	this->clear();
+	this->push_back(card_);
+}
+
 /*explicit*/
 Cards::Cards(const std::string &s_)
 {
@@ -50,6 +56,23 @@ Cards Cards::operator -= (const Cards &c_)
 	return *this;
 }
 
+Cards Cards::operator &= (const Cards &c_)
+{
+	for (auto &c : c_)
+	{
+		while (1)
+		{
+			auto i = find_pos(c);
+			if (i)
+			{
+				erase(begin() + i.value());
+			}
+			else break;
+		}
+	}
+	return *this;
+}
+
 Cards Cards::operator - (const Cards &c_) const
 {
 	Cards res(*this);
@@ -83,6 +106,20 @@ Cards Cards::operator -= (const Card &c_)
 	if (i)
 	{
 		erase(begin() + i.value());
+	}
+	return *this;
+}
+
+Cards Cards::operator &= (const Card &c_)
+{
+	while (1)
+	{
+		auto i = find_pos(c_);
+		if (i)
+		{
+			erase(begin() + i.value());
+		}
+		else break;
 	}
 	return *this;
 }
