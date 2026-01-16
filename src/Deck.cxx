@@ -333,11 +333,6 @@ public:
 		return false;
 	}
 
-	bool must_give_color(const Card &c_, const Cards &cards_) const
-	{
-		return _engine.has_suite(cards_, c_.suite());
-	}
-
 	void handle_move()
 	{
 		bool player_deck_info = _player.deck_info;
