@@ -953,11 +953,11 @@ public:
 	void draw_pack()
 	{
 		// _game.cards.back() is the trump card
-		if (_game.cards.size() && _game.cards.size() != 20)
+		if (_game.cards.size())
 		{
 			int X = w() / 3 - _CW + _CW/4;
 			int Y = (h() - _CW) / 2;
-			if (_game.closed == NOT)
+			if (_game.closed == NOT && _game.cards.size() != 20)
 			{
 				_game.cards.back().quer_image()->draw(X, Y);
 				_game.cards.back().rect(Rect(X, Y, _game.cards.back().image()->h(), _game.cards.back().image()->w()));
@@ -1161,7 +1161,8 @@ public:
 		}
 		draw_table();
 		draw_gamebook();
-		draw_suite_symbol(_game.trump, w() / 3 - _CW / 4, h() - h() / 2 + _CH / 2 + _CH / 5);
+		if (_game.trump != NO_SUITE)
+			draw_suite_symbol(_game.trump, w() / 3 - _CW / 4, h() - h() / 2 + _CH / 2 + _CH / 5);
 		draw_messages();
 		draw_20_40_suites();
 		draw_cards();
@@ -1341,6 +1342,7 @@ public:
 		error_message(NO_MESSAGE);
 		_game.closed = NOT;
 		_game.marriage = NO_MARRIAGE;
+		_game.trump = NO_SUITE;
 		_player.s20_40.clear();
 		_ai.s20_40.clear();
 		_game.move = PLAYER;
@@ -1938,23 +1940,16 @@ public:
 		return os.str();
 	}
 
-	void create_welcome()
+	void welcome()
 	{
 		_welcome = new Welcome(w() / 2, h() / 4 * 3);
 		_welcome->position(x() + (w() - _welcome->w()) / 2, y() + (h() - _welcome->h()) / 2);
 		_welcome->stats(make_stats());
+		bell(WELCOME);
 		_welcome->show();
 		_welcome->wait_for_expose();
+		_welcome->run();
 		redraw();
-		bell(WELCOME);
-	}
-
-	void welcome()
-	{
-		Fl::add_timeout(0.0, [](void *d_)
-		{
-			(static_cast<Deck *>(d_))->create_welcome();
-		}, this);
 	}
 
 	void flicker()

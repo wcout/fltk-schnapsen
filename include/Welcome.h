@@ -6,6 +6,7 @@ class Welcome : public Fl_Double_Window
 {
 public:
 	Welcome(int w_, int h_);
+	void run();
 	void stats(std::string stats_) { _stats = stats_; }
 	~Welcome();
 	static void redraw_timer(void *d_);

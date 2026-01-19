@@ -11,6 +11,7 @@ using enum Marriage;
 
 bool Unittest::run()
 {
+	CardSuite trump = _game.trump;
 	_game.trump = SPADE;
 	Cards temp;
 	temp.push_front(Card(QUEEN, CLUB));
@@ -90,6 +91,7 @@ bool Unittest::run()
 	tcards -= Cards("|K♦|T♣|"); // remove single cards from set
 	assert(tcards == "|T♦|J♦|K♣|");
 
+	_game.trump = trump;
 	LOG("Unittests run successfully.\n");
 	return true;
 }

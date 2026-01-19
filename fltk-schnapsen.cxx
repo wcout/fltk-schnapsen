@@ -55,15 +55,22 @@ void list_decks(std::ostringstream &os_)
 	{
 		std::filesystem::path card(dir_entry.path());
 		card /= Card(QUEEN, HEART).filename();
-		if (dir_entry.is_directory() && std::filesystem::exists(card))
+		std::filesystem::path card_png(dir_entry.path());
+		card_png /= Card(QUEEN, HEART).filename(".png");
+		if (dir_entry.is_directory() &&
+			(std::filesystem::exists(card) || std::filesystem::exists(card_png)))
+		{
 			os_ << "\t" << dir_entry.path().filename() << "\n";
+		}
 	}
 	std::filesystem::path back(Util::homeDir() + cardDir + "/back");
 	os_ << "\navailaible card backs:\n";
 	for (auto const &dir_entry : std::filesystem::directory_iterator(back))
 	{
 		if (dir_entry.is_regular_file())
+		{
 			os_ << "\t" << dir_entry.path().filename() << "\n";
+		}
 	}
 }
 

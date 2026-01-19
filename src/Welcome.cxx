@@ -30,8 +30,7 @@ int Welcome::handle(int e_)
 	if (e_ == FL_NO_EVENT) return 1;
 	if (e_ == FL_PUSH || e_ == FL_KEYDOWN)
 	{
-		delete this;
-		Fl::first_window()->redraw();
+		hide();
 		return 1;
 	}
 	return Fl_Double_Window::handle(e_);
@@ -82,4 +81,13 @@ void Welcome::draw()
 	fl_color(FL_BLACK);
 	Util::draw_string(_stats, (w() - fl_width(_stats.c_str())) / 2, h() - stat_h + fl_height() - 2);
 	fl_pop_clip();
+}
+
+void Welcome::run()
+{
+	while (shown())
+	{
+		Fl::wait();
+	}
+	delete this;
 }
