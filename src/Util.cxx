@@ -242,8 +242,8 @@ void Util::draw_string(const std::string &text_, int x_, int y_)
 			if (svg.w() > 0 && svg.h() > 0)
 			{
 				svg.normalize();
-				svg.scale(fl_width("W"), fl_height(), 1, 1);
-				svg.draw(x_ + dx, y_ + fl_descent() - fl_height() + fl_descent());
+				svg.scale(fl_height(), fl_height(), 1, 1);
+				svg.draw(x_ + dx, y_ - fl_height() + fl_descent());
 				dx += svg.w();
 			}
 			line.erase(0, end_image + 1);
@@ -292,7 +292,7 @@ int Util::string_size(const std::string &text_, int &w_, int &h_)
 			if (svg.w() > 0 && svg.h() > 0)
 			{
 				svg.normalize();
-				svg.scale(fl_width("W"), fl_height(), 1, 1);
+				svg.scale(fl_height(), fl_height(), 1, 1);
 				w += svg.w();
 			}
 			line.erase(0, end_image + 1);
