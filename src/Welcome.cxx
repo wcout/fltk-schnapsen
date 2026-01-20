@@ -30,6 +30,7 @@ int Welcome::handle(int e_)
 	if (e_ == FL_NO_EVENT) return 1;
 	if (e_ == FL_PUSH || e_ == FL_KEYDOWN)
 	{
+		Fl::event_key(0); // allows to close Welcome with ESC, without exiting whole application
 		hide();
 		return 1;
 	}
