@@ -777,14 +777,14 @@ public:
 		if (_player.message != NO_MESSAGE)
 		{
 			std::string player_message = Util::message(_player.message);
-			fl_font(FL_HELVETICA, h()/(player_message.back() == '!' ? 15 : 25));
+			fl_font(FL_HELVETICA, w() / (player_message.back() == '!' ? 24 : 34));
 			fl_color(FL_RED);
 			Util::draw_string(player_message, w() / 4 - Util::string_size(player_message) / 2, h() - h() / 8);
 		}
 		if (_ai.message != NO_MESSAGE)
 		{
 			std::string ai_message = Util::message(_ai.message);
-			fl_font(FL_HELVETICA, h() / (ai_message.back() == '!' ? 15 : 25));
+			fl_font(FL_HELVETICA, w() / (ai_message.back() == '!' ? 24 : 34));
 			size_t pos = ai_message.find("!!");
 			if (pos != std::string::npos)
 				ai_message.erase(pos, 2);
@@ -846,11 +846,11 @@ public:
 		fl_font(FL_HELVETICA, _CH / 7);
 		for (size_t i = 0; i < _player.s20_40.size(); i++)
 		{
-			draw_suite_symbol(_player.s20_40[i], w() - w() / 30 * (i + 1) - fl_descent(), h() - fl_descent());
+			draw_suite_symbol(_player.s20_40[i], w() - w() / 30 * (4 - i) - fl_descent(), h() - fl_descent());
 		}
 		for (size_t i = 0; i < _ai.s20_40.size(); i++)
 		{
-			draw_suite_symbol(_ai.s20_40[i], w() - w() / 30 * (i + 1) - fl_descent(), fl_height() - fl_descent());
+			draw_suite_symbol(_ai.s20_40[i], w() - w() / 30 * (4 - i) - fl_descent(), fl_height() - fl_descent());
 		}
 	}
 
@@ -1058,7 +1058,7 @@ public:
 	{
 		if (_player.score)
 		{
-			fl_font(FL_HELVETICA, h() / 25);
+			fl_font(FL_HELVETICA, w() / 42);
 			fl_color(FL_BLUE);
 			char buf[20];
 			snprintf(buf, sizeof(buf), "%d", _player.score);
@@ -1066,7 +1066,7 @@ public:
 		}
 		if (_ai.score && (_ai.display_score | ::debug))
 		{
-			fl_font(FL_HELVETICA, h() / 25);
+			fl_font(FL_HELVETICA, w() / 42);
 			fl_color(FL_BLUE);
 			char buf[20];
 			snprintf(buf, sizeof(buf), "%d", _ai.score);
@@ -1219,6 +1219,16 @@ public:
 			debug();
 		else if (_cmd.find("error=") == 0)
 			error_message((Message)atoi(_cmd.substr(6).c_str()));
+		else if (_cmd.find("player_message=") == 0)
+		{
+			Message m = (Message)atoi(_cmd.substr(15).c_str());
+			player_message(m);
+		}
+		else if (_cmd.find("ai_message=") == 0)
+		{
+			Message m = (Message)atoi(_cmd.substr(11).c_str());
+			ai_message(m);
+		}
 		else if (_cmd.find("message=") == 0)
 		{
 			fl_message_font_ = FL_COURIER;
