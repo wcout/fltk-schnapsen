@@ -9,6 +9,9 @@ typedef std::unordered_map<std::string, std::string> string_map;
 #include "messages.h"
 
 #include <FL/Enumerations.H>
+const Fl_Color GRAY = fl_rgb_color(128, 128, 128);
+// NOTE: FL_GRAY takes value from FL_BACKGROUND, which is maybe changed by application
+
 static const std::map<char, Fl_Color> text_colors = {
 	{ 'r', FL_RED },
 	{ 'g', FL_GREEN },
@@ -16,7 +19,7 @@ static const std::map<char, Fl_Color> text_colors = {
 	{ 'w', FL_WHITE },
 	{ 'B', FL_BLACK },
 	{ 'y', FL_YELLOW },
-	{ 'G', FL_GRAY }
+	{ 'G', GRAY }
 };
 
 class Util

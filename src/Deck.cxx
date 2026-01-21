@@ -583,7 +583,7 @@ public:
 		int W = gamebook_rect().w;
 		int H = gamebook_rect().h;
 		fl_rectf(X, Y, W, H);
-		fl_color(FL_GRAY);
+		fl_color(GRAY);
 		fl_rect(X, Y, W, H);
 		fl_color(FL_BLACK);
 		fl_font(FL_COURIER, _CH / 14);
@@ -654,7 +654,7 @@ public:
 	{
 		fl_color(fl_lighter(fl_lighter(FL_YELLOW)));
 		fl_rectf(x_, y_, w() / 10, w() / 7);
-		fl_color(FL_GRAY);
+		fl_color(GRAY);
 		fl_rect(x_, y_, w() / 10, w() / 7);
 		fl_color(FL_BLACK);
 		fl_font(FL_COURIER, w() / 50);
@@ -803,7 +803,7 @@ public:
 		if (_game.closed != NOT && _ai.display_score == false)
 		{
 			fl_font(FL_HELVETICA, _CH / 7);
-			fl_color(FL_GRAY);
+			fl_color(GRAY);
 			static const std::string closed_sym =
 #ifndef WIN32
 				"⛔";
