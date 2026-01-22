@@ -16,6 +16,7 @@
 
 #include <string>
 #include <vector>
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <functional>
@@ -892,8 +893,11 @@ public:
 		}
 	}
 
-	void do_animate(int src_X_, int src_Y_, int dest_X_, int dest_Y_, int steps_ = 5)
+	void do_animate(DeckMemberFn animate_,
+	                int src_X_, int src_Y_, int dest_X_, int dest_Y_, int steps_ = 5)
 	{
+		_animate = animate_;
+
 		int dx = dest_X_ - src_X_;
 		int dy = dest_Y_ - src_Y_;
 
@@ -919,9 +923,7 @@ public:
 		int dest_X = move_rect(_game.move).center().x;
 		int dest_Y = move_rect(_game.move).center().y;
 
-		_animate = &Deck::draw_animated_move;
-
-		do_animate(src_X, src_Y, dest_X, dest_Y);
+		do_animate(&Deck::draw_animated_move, src_X, src_Y, dest_X, dest_Y);
 	}
 
 	void animate_deal(Player player_)
@@ -939,8 +941,7 @@ public:
 
 		for (size_t i = 0; i < cards_to_deal; i++)
 		{
-			_animate = &Deck::draw_animated_trick;
-			do_animate(src_X, src_Y, dest_X, dest_Y);
+			do_animate(&Deck::draw_animated_trick, src_X, src_Y, dest_X, dest_Y);
 		}
 	}
 
@@ -957,7 +958,6 @@ public:
 		int dest_X = pack_rect().center().x;
 		int dest_Y = pack_rect().center().y;
 
-
 		static constexpr int step = 3;
 		for (size_t i = 0; i < save.size(); i += step)
 		{
@@ -966,9 +966,7 @@ public:
 				if (i + c < save.size())
 					_game.cards.push_back(save[i + c]);
 			}
-
-			_animate = &Deck::draw_animated_trick;
-			do_animate(src_X, src_Y, dest_X, dest_Y);
+			do_animate(&Deck::draw_animated_trick, src_X, src_Y, dest_X, dest_Y);
 		}
 		assert(_game.cards == save);
 		_game.cards = save;
@@ -984,9 +982,7 @@ public:
 		int dest_X = deck_rect(_game.move).center().x;
 		int dest_Y = deck_rect(_game.move).center().y;
 
-		_animate = &Deck::draw_animated_trick;
-
-		do_animate(src_X, src_Y, dest_X, dest_Y);
+		do_animate(&Deck::draw_animated_trick, src_X, src_Y, dest_X, dest_Y);
 	}
 
 	void animate_change(bool from_hand_ = false) override
@@ -999,11 +995,12 @@ public:
 		int dest_X = cards_rect(_game.move).center().x;
 		int dest_Y = cards_rect(_game.move).center().y;
 
-		_animate = &Deck::draw_animated_change;
 		if (from_hand_)
-			do_animate(dest_X, dest_Y, src_X, src_Y, 10);
-		else
-			do_animate(src_X, src_Y, dest_X, dest_Y, 10);
+		{
+			std::swap(src_X, dest_X);
+			std::swap(src_Y, dest_Y);
+		}
+		do_animate(&Deck::draw_animated_change, src_X, src_Y, dest_X, dest_Y, 10);
 	}
 
 	void draw_pack()
