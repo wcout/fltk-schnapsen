@@ -924,12 +924,40 @@ public:
 		do_animate(src_X, src_Y, dest_X, dest_Y);
 	}
 
+	void animate_deal(Player player_)
+	{
+		if (Util::config("animate") < "2") return;
+
+		int src_X = pack_rect().center().x;
+		int src_Y = pack_rect().center().y;
+
+		int dest_X = cards_rect(player_).center().x;
+		int dest_Y = cards_rect(player_).center().y;
+
+		size_t cards_to_deal = (_ai.cards.size() < 5 && _player.cards.size() < 5) ? 3 : 2;
+		DBG("animate_deal(" << (player_ == PLAYER ? "PLAYER" : "AI") << "): " << cards_to_deal << " cards\n");
+
+		for (size_t i = 0; i < cards_to_deal; i++)
+		{
+			_animate = &Deck::draw_animated_trick;
+			do_animate(src_X, src_Y, dest_X, dest_Y);
+		}
+	}
+
 	void animate_shuffle()
 	{
 		if (Util::config("animate") < "2") return;
 
 		Cards save = _game.cards;
 		_game.cards.clear();
+
+		int src_X = pack_rect().x;
+		int src_Y = pack_rect().y;
+
+		int dest_X = pack_rect().center().x;
+		int dest_Y = pack_rect().center().y;
+
+
 		static constexpr int step = 3;
 		for (size_t i = 0; i < save.size(); i += step)
 		{
@@ -938,12 +966,6 @@ public:
 				if (i + c < save.size())
 					_game.cards.push_back(save[i + c]);
 			}
-
-			int src_X = pack_rect().x;
-			int src_Y = pack_rect().y;
-
-			int dest_X = pack_rect().center().x;
-			int dest_Y = pack_rect().center().y;
 
 			_animate = &Deck::draw_animated_trick;
 			do_animate(src_X, src_Y, dest_X, dest_Y);
@@ -991,7 +1013,7 @@ public:
 		{
 			int X = w() / 3 - _CW + _CW/4;
 			int Y = (h() - _CW) / 2;
-			if (_game.closed == NOT && _game.cards.size() != 20 && _player.cards.size())
+			if (_game.closed == NOT && _game.cards.size() != 20 && _player.cards.size() > 3)
 			{
 				_game.cards.back().quer_image()->draw(X, Y);
 				_game.cards.back().rect(Rect(X, Y, _game.cards.back().image()->h(), _game.cards.back().image()->w()));
@@ -1636,6 +1658,7 @@ public:
 
 	void deal()
 	{
+		LOG("dealer is " << (_game.move == PLAYER ? "AI" : "PLAYER") << "\n");
 		// 3 cards to player
 		for (int i = 0; i < 3; i++)
 		{
@@ -1643,6 +1666,7 @@ public:
 			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
 			_game.cards.pop_front();
 		}
+		animate_deal(_game.move == PLAYER ? PLAYER : AI);
 		// 3 cards to ai
 		for (int i = 0; i < 3; i++)
 		{
@@ -1650,12 +1674,14 @@ public:
 			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
 			_game.cards.pop_front();
 		}
+		animate_deal(_game.move == PLAYER ? AI : PLAYER);
 		// trump card
 		Card trump = _game.cards.front();
 		_game.cards.pop_front();
 		_game.cards.push_back(trump); // will be the last card (_game.cards.back())
 		_game.trump = trump.suite();
 		LOG("trump: " << suite_symbol(_game.trump) << "\n");
+		redraw();
 
 		// 2 cards to player
 		for (int i = 0; i < 2; i++)
@@ -1664,6 +1690,7 @@ public:
 			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
 			_game.cards.pop_front();
 		}
+		animate_deal(_game.move == PLAYER ? PLAYER : AI);
 		// 2 cards to ai
 		for (int i = 0; i < 2; i++)
 		{
@@ -1671,6 +1698,7 @@ public:
 			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
 			_game.cards.pop_front();
 		}
+		animate_deal(_game.move == PLAYER ? AI : PLAYER);
 
 		// TEST TEST
 		Suites res;
@@ -1871,9 +1899,9 @@ public:
 
 	void game(Player playout_)
 	{
+		_game.move = playout_;
 		init();
 		wait(1.0);
-		_game.move = playout_;
 		_player.move_state = NONE;
 		_ai.move_state = NONE;
 		cursor(FL_CURSOR_DEFAULT);
