@@ -910,25 +910,57 @@ public:
 
 	void animate_move() override
 	{
-//		int src_X = cards_rect(_game.move).center().first;
-		int src_X = cards_rect(_game.move).x + _CW / 2;
-		int src_Y = cards_rect(_game.move).center().second;
+		if (Util::config("animate") == "0") return;
 
-		int dest_X = move_rect(_game.move).center().first;
-		int dest_Y = move_rect(_game.move).center().second;
+//		int src_X = cards_rect(_game.move).center().x;
+		int src_X = cards_rect(_game.move).x + _CW / 2;
+		int src_Y = cards_rect(_game.move).center().y;
+
+		int dest_X = move_rect(_game.move).center().x;
+		int dest_Y = move_rect(_game.move).center().y;
 
 		_animate = &Deck::draw_animated_move;
 
 		do_animate(src_X, src_Y, dest_X, dest_Y);
 	}
 
+	void animate_shuffle()
+	{
+		if (Util::config("animate") < "2") return;
+
+		Cards save = _game.cards;
+		_game.cards.clear();
+		static constexpr int step = 3;
+		for (size_t i = 0; i < save.size(); i += step)
+		{
+			for (int c = 0; c < step; c++)
+			{
+				if (i + c < save.size())
+					_game.cards.push_back(save[i + c]);
+			}
+
+			int src_X = pack_rect().x;
+			int src_Y = pack_rect().y;
+
+			int dest_X = pack_rect().center().x;
+			int dest_Y = pack_rect().center().y;
+
+			_animate = &Deck::draw_animated_trick;
+			do_animate(src_X, src_Y, dest_X, dest_Y);
+		}
+		assert(_game.cards == save);
+		_game.cards = save;
+	}
+
 	void animate_trick()
 	{
-		int src_X = move_rect(_game.move).center().first;
-		int src_Y = move_rect(_game.move).center().second;
+		if (Util::config("animate") == "0") return;
 
-		int dest_X = deck_rect(_game.move).center().first;
-		int dest_Y = deck_rect(_game.move).center().second;
+		int src_X = move_rect(_game.move).center().x;
+		int src_Y = move_rect(_game.move).center().y;
+
+		int dest_X = deck_rect(_game.move).center().x;
+		int dest_Y = deck_rect(_game.move).center().y;
 
 		_animate = &Deck::draw_animated_trick;
 
@@ -937,11 +969,13 @@ public:
 
 	void animate_change(bool from_hand_ = false) override
 	{
-		int src_X = change_rect().center().first;
-		int src_Y = change_rect().center().second;
+		if (Util::config("animate") == "0") return;
 
-		int dest_X = cards_rect(_game.move).center().first;
-		int dest_Y = cards_rect(_game.move).center().second;
+		int src_X = change_rect().center().x;
+		int src_Y = change_rect().center().y;
+
+		int dest_X = cards_rect(_game.move).center().x;
+		int dest_Y = cards_rect(_game.move).center().y;
 
 		_animate = &Deck::draw_animated_change;
 		if (from_hand_)
@@ -957,7 +991,7 @@ public:
 		{
 			int X = w() / 3 - _CW + _CW/4;
 			int Y = (h() - _CW) / 2;
-			if (_game.closed == NOT && _game.cards.size() != 20)
+			if (_game.closed == NOT && _game.cards.size() != 20 && _player.cards.size())
 			{
 				_game.cards.back().quer_image()->draw(X, Y);
 				_game.cards.back().rect(Rect(X, Y, _game.cards.back().image()->h(), _game.cards.back().image()->w()));
@@ -975,7 +1009,8 @@ public:
 					//       But the pack with 10 cards after dealing just look
 					//       better, when single cards are visible.
 					//       So a compromise...
-					double h = (double)_CW / (_game.cards.size() == 20 ? 200 : 100);
+					double h = (double)_CW /
+						((_game.cards.size() == 20 || _player.cards.empty()) ? 200 : 100);
 					if (h > 1.) h = (int)h;
 					double x = (double)X - i * h +.5;
 					double y = (double)Y - i * h + .5;
@@ -1372,6 +1407,7 @@ public:
 		_game.cards.shuffle();
 		assert(_game.cards.size() == 20);
 		bell(SHUFFLE);
+		animate_shuffle();
 		debug();
 		deal();
 		assert(_player.cards.size() == 5);

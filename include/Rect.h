@@ -16,6 +16,6 @@ struct Rect
 		h(wgt_.h() - Fl::box_dh(box_))
 	{}
 	bool includes(int x_, int y_) const { return x_ >= x && y_ >= y && x_ < x + w && y_ < y + h; }
-	std::pair<int, int> center() const { return std::make_pair(x + w / 2, y + h / 2); }
+	Rect center() const { return Rect(x + w / 2, y + h / 2, 1, 1); }
 	Rect& get(int &x_, int &y_, int &w_, int &h_) { x_ = x; y_ = y; w_ = w; h_ = h; return *this; }
 };

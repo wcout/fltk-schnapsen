@@ -101,7 +101,8 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 		{ "background", "{name/number}\tset background image or color [imagepath/[0-255]]" },
 		{ "cardset", "{directory}\tuse cardset [name]" },
 		{ "cardback", "{file}\t\tuse cardback image [svg]" },
-		{ "cards", "\t{cards-string}\tuse this cards to play (for debugging only)" }
+		{ "cards", "\t{cards-string}\tuse this cards to play (for debugging only)" },
+		{ "animate", "{level}\t\tanimate card moves [0-2] 0=off, 2=all" }
 	};
 	static const string_map short_args =
 	{
