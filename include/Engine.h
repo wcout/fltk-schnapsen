@@ -29,7 +29,7 @@ struct GameState
 
 struct GameData
 {
-	GameData() : marriage(Marriage::NO_MARRIAGE),
+	GameData() : trump(CardSuite::NO_SUITE), marriage(Marriage::NO_MARRIAGE),
 	             closed(Closed::NOT), move(Player::PLAYER) {}
 	Cards     cards;    // remaining cards
 	CardSuite trump;    // trump suite (initially NO_SUITE)

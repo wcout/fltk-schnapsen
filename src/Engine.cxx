@@ -589,7 +589,8 @@ size_t Engine::ai_play_for_closed_lead()
 			}
 
 			// is back card (talon) valuable for us?
-			if ((int)trumps_in_hand(_ai.cards).size() < max_trumps_player())
+			if ((int)trumps_in_hand(_ai.cards).size() <
+			    max_trumps_player() + 1/*the one, player would get if tricking*/)
 			{
 				// let's say yes (TODO: look into more detail)
 				Cards not_tricks = _ai.cards - tricks;
