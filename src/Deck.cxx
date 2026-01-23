@@ -1490,14 +1490,46 @@ public:
 		fl_message_icon()->image(nullptr);
 	}
 
+	void save_gamebook()
+	{
+		assert(_game.book.size());
+		// convert gamebook to string
+		std::ostringstream os;
+		for (auto &[player, ai] : _game.book)
+		{
+			os << player << " " << ai << ",";
+		}
+		std::string gamebook(os.str());
+		gamebook.pop_back(); // remove last ','
+
+		// append to saved gamebooks
+		std::string gb = Util::stats("gamebook");
+		int entries = gb.empty() ? 0 : 1;
+		size_t pos = 0;
+		while ((pos = gb.find(';', pos++)) != std::string::npos) entries++;
+
+		// limit to last 10
+		for (int i = 0; i < entries - 10; i++)
+		{
+			pos = gb.find(';');
+			if (pos == std::string::npos) break;
+			gb.erase(0, pos + 1);
+		}
+		// add current gamebook to back of entries
+		gamebook = gb + ";" + gamebook;
+
+		// write to file
+		Util::stats("gamebook", gamebook);
+	}
+
 	bool check_end_match()
 	{
 		int pscore = 0;
 		int ascore = 0;
-		for (auto s : _game.book)
+		for (auto &[player, ai] : _game.book)
 		{
-			pscore += s.first;
-			ascore += s.second;
+			pscore += player;
+			ascore += ai;
 		}
 		LOG("match score PL:AI: " << pscore << ":" << ascore << "\n");
 		fl_message_font_ = FL_COURIER;
@@ -1509,6 +1541,7 @@ public:
 			Util::stats("player_matches_won", std::to_string(_player.matches_won));
 			bell(YOU_WIN);
 			show_win_msg();
+			save_gamebook();
 			_game.book.clear();
 			redraw();
 			return true;
@@ -1537,6 +1570,7 @@ public:
 			fl_message_position(x() + w() / 2, y() + h() / 2, 1);
 			fl_alert("%s", m.c_str());
 			fl_message_icon()->image(nullptr);
+			save_gamebook();
 			_game.book.clear();
 			redraw();
 			return true;
