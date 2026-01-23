@@ -3,8 +3,8 @@
 #include "UI.h"
 #include "Cards.h"
 #include "Deck.h"
+#include "GameBook.h"
 #include <vector>
-#include <utility>
 
 struct GameState
 {
@@ -36,7 +36,7 @@ struct GameData
 	Marriage  marriage;
 	Closed    closed;
 	Player    move;
-	std::vector<std::pair<int, int>> book;
+	GameBook  book;
 };
 
 class Engine

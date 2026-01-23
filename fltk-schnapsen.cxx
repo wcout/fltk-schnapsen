@@ -43,6 +43,7 @@ Player first_to_move = Player::PLAYER;
 #include "CardImage.cxx"
 #include "Card.cxx"
 #include "Cards.cxx"
+#include "GameBook.cxx"
 #include "Engine.cxx"
 #include "Welcome.cxx"
 #include "Deck.cxx"

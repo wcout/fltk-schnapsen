@@ -20,6 +20,7 @@ $(APPLICATION): $(APPLICATION).cxx include/debug.h \
                                    include/Cards.h src/Cards.cxx \
                                    include/Util.h src/Util.cxx \
                                    include/Deck.h src/Deck.cxx \
+                                   include/GameBook.h src/GameBook.cxx \
                                    include/Engine.h src/Engine.cxx \
                                    include/Welcome.h src/Welcome.cxx \
                                    include/Unittest.h src/Unittest.cxx

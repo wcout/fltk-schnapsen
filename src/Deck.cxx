@@ -1493,22 +1493,16 @@ public:
 	void save_gamebook()
 	{
 		assert(_game.book.size());
-		// convert gamebook to string
-		std::ostringstream os;
-		for (auto &[player, ai] : _game.book)
-		{
-			os << player << " " << ai << ",";
-		}
-		std::string gamebook(os.str());
-		gamebook.pop_back(); // remove last ','
 
-		// append to saved gamebooks
+		// append current gamebook to saved gamebooks
 		std::string gb = Util::stats("gamebook");
+
+		// count entries
 		int entries = gb.empty() ? 0 : 1;
 		size_t pos = 0;
 		while ((pos = gb.find(';', pos++)) != std::string::npos) entries++;
 
-		// limit to last 10
+		// limit to last 10 entries
 		for (int i = 0; i < entries - 10; i++)
 		{
 			pos = gb.find(';');
@@ -1516,7 +1510,7 @@ public:
 			gb.erase(0, pos + 1);
 		}
 		// add current gamebook to back of entries
-		gamebook = gb + ";" + gamebook;
+		std::string gamebook = gb + ";" + _game.book.str();
 
 		// write to file
 		Util::stats("gamebook", gamebook);
