@@ -116,7 +116,7 @@ size_t Engine::lowest_card(Cards &cards_, bool no_trump_/* = true*/) const
 	int lowest_value_trump = 20;
 	size_t lowest = NO_MOVE;
 	size_t lowest_trump = NO_MOVE;
-	for (size_t i=0; i < cards_.size(); i++)
+	for (size_t i = 0; i < cards_.size(); i++)
 	{
 		if (cards_[i].suite() == _game.trump)
 		{
