@@ -1510,7 +1510,7 @@ public:
 			gb.erase(0, pos + 1);
 		}
 		// add current gamebook to back of entries
-		std::string gamebook = gb + ";" + _game.book.str();
+		std::string gamebook = gb + (gb.size() ? ";" : "") + _game.book.str();
 
 		// write to file
 		Util::stats("gamebook", gamebook);
