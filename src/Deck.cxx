@@ -1409,7 +1409,6 @@ public:
 		_game.trump = NO_SUITE;
 		_player.s20_40.clear();
 		_ai.s20_40.clear();
-		_game.move = PLAYER;
 		_player.score = 0;
 		_player.pending = 0;
 		_ai.score = 0;
@@ -1924,6 +1923,7 @@ public:
 
 	void game(Player playout_)
 	{
+		DBG("new game: " << (playout_ == PLAYER ? "PLAYER" : "AI") << " to lead\n");
 		_game.move = playout_;
 		init();
 		wait(1.0);
