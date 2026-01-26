@@ -253,6 +253,7 @@ public:
 			{
 				LOG("closed by player!\n");
 				_game.closed = BY_PLAYER;
+				_ai.score_closed = _ai.score; // memorize score at close time
 				player_message(YOU_CLOSED, true);
 				return true;
 			}
@@ -1410,8 +1411,10 @@ public:
 		_player.s20_40.clear();
 		_ai.s20_40.clear();
 		_player.score = 0;
+		_player.score_closed = 0;
 		_player.pending = 0;
 		_ai.score = 0;
+		_ai.score_closed = 0;
 		_ai.pending = 0;
 		_ai.display_score = false;
 		_player.message = NO_MESSAGE;

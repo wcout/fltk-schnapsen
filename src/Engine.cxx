@@ -363,6 +363,7 @@ bool Engine::ai_test_close()
 		{
 			LOG("closed by AI!\n");
 			_game.closed = BY_AI;
+			_player.score_closed = _player.score; // memorize score at close time
 			_ui.message(CLOSED, true);
 			_ui.update();
 			_ui.wait(1.5);
