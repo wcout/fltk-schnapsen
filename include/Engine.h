@@ -8,13 +8,14 @@
 
 struct GameState
 {
-	GameState() : score(0), pending(false),
+	GameState() : score(0), score_closed(0), pending(false),
 	              message(Message::NO_MESSAGE), deck_info(false), games_won(0),
 	              matches_won(0), display_score(false), move_state(CardState::NONE) {}
 	Cards     cards;    // hand
 	Cards     deck;     // stack
 	Card      card;     // card that is moved to play
 	int       score;    // current score
+	int       score_closed;
 	int       pending;  // from 20/40 will score *after* won trick
 	Suites    s20_40;
 	Message   message;
