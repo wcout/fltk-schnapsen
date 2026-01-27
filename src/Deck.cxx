@@ -120,7 +120,9 @@ public:
 		_welcome(nullptr),
 		_grayout(false),
 		_animate_xy(std::make_pair(-1, -1)),
-		_animate(nullptr)
+		_animate_func(nullptr),
+		_strictness(atoi(Util::config("strict").c_str())),
+		_animation_level(atoi(Util::config("animate").c_str()))
 	{
 		_player.games_won = atoi(Util::stats("player_games_won").c_str());
 		_ai.games_won = atoi(Util::stats("ai_games_won").c_str());
@@ -894,10 +896,10 @@ public:
 		}
 	}
 
-	void do_animate(DeckMemberFn animate_,
+	void do_animate(DeckMemberFn animate_func_,
 	                int src_X_, int src_Y_, int dest_X_, int dest_Y_, int steps_ = 5)
 	{
-		_animate = animate_;
+		_animate_func = animate_func_;
 
 		int dx = dest_X_ - src_X_;
 		int dy = dest_Y_ - src_Y_;
@@ -910,12 +912,12 @@ public:
 			wait(1./50);
 			redraw();
 		}
-		_animate = nullptr;
+		_animate_func = nullptr;
 	}
 
 	void animate_move() override
 	{
-		if (Util::config("animate") == "0") return;
+		if (_animation_level == 0) return;
 
 //		int src_X = cards_rect(_game.move).center().x;
 		int src_X = cards_rect(_game.move).x + _CW / 2;
@@ -929,7 +931,7 @@ public:
 
 	void animate_deal(Player player_)
 	{
-		if (Util::config("animate") < "2") return;
+		if (_animation_level < 2) return;
 
 		int src_X = pack_rect().center().x;
 		int src_Y = pack_rect().center().y;
@@ -948,7 +950,7 @@ public:
 
 	void animate_shuffle()
 	{
-		if (Util::config("animate") < "2") return;
+		if (_animation_level < 2) return;
 
 		Cards save = _game.cards;
 		_game.cards.clear();
@@ -975,7 +977,7 @@ public:
 
 	void animate_trick()
 	{
-		if (Util::config("animate") == "0") return;
+		if (_animation_level == 0) return;
 
 		int src_X = move_rect(_game.move).center().x;
 		int src_Y = move_rect(_game.move).center().y;
@@ -988,7 +990,7 @@ public:
 
 	void animate_change(bool from_hand_ = false) override
 	{
-		if (Util::config("animate") == "0") return;
+		if (_animation_level == 0) return;
 
 		int src_X = change_rect().center().x;
 		int src_Y = change_rect().center().y;
@@ -1113,18 +1115,20 @@ public:
 	{
 		if (_player.score)
 		{
+			bool show_closed_score = _game.closed == BY_AI && _strictness > 0;
 			fl_font(FL_HELVETICA, w() / 42);
-			fl_color(FL_BLUE);
+			fl_color(show_closed_score ? FL_RED : FL_BLUE);
 			char buf[20];
-			snprintf(buf, sizeof(buf), "%d", _player.score);
+			snprintf(buf, sizeof(buf), "%d", (show_closed_score ? _player.score_closed : _player.score));
 			Util::draw_string(buf, w() - fl_width(buf), h() - fl_descent());
 		}
 		if (_ai.score && (_ai.display_score | ::debug))
 		{
+			bool show_closed_score = _game.closed == BY_PLAYER && _strictness > 0;
 			fl_font(FL_HELVETICA, w() / 42);
-			fl_color(FL_BLUE);
+			fl_color(show_closed_score ? FL_RED : FL_BLUE);
 			char buf[20];
-			snprintf(buf, sizeof(buf), "%d", _ai.score);
+			snprintf(buf, sizeof(buf), "%d", (show_closed_score ? _ai.score_closed : _ai.score));
 			Util::draw_string(buf, w() - fl_width(buf), fl_height() - fl_descent());
 		}
 	}
@@ -1225,8 +1229,8 @@ public:
 		draw_decks();
 		draw_move();
 		draw_scores();
-		if (_animate)
-			std::invoke(_animate, this);
+		if (_animate_func)
+			std::invoke(_animate_func, this);
 		if (_player.deck_info)
 			draw_player_deck_info(Fl::event_x(), Fl::event_y());
 		if (_ai.deck_info)
@@ -1583,7 +1587,8 @@ public:
 			{
 				if (_player.score >= 66)
 				{
-					_game.book.push_back(std::make_pair(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 1, 0));
+					int score = _strictness >= 1 ? _ai.score_closed : _ai.score;
+					_game.book.push_back(std::make_pair(score < 33 ? score == 0 ? 3 : 2 : 1, 0));
 				}
 				else
 				{
@@ -1596,7 +1601,8 @@ public:
 				// closed by AI
 				if (_ai.score >= 66)
 				{
-					_game.book.push_back(std::make_pair(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 1));
+					int score = _strictness >= 1 ? _player.score_closed : _player.score;
+					_game.book.push_back(std::make_pair(0, score < 33 ? score == 0 ? 3 : 2 : 1));
 				}
 				else
 				{
@@ -1875,7 +1881,6 @@ public:
 			player_message(NO_MESSAGE);
 			redraw();
 		}
-
 	}
 
 	void fillup_cards()
@@ -2091,5 +2096,7 @@ private:
 #endif
 	std::string _cmd;
 	std::pair<int, int> _animate_xy;
-	DeckMemberFn _animate;
+	DeckMemberFn _animate_func;
+	int _strictness;
+	int _animation_level;
 };
