@@ -1390,14 +1390,28 @@ public:
 		if (_game.cards.size() == 20 || _game.cards.size() == 10)
 			dump_cards(_game.cards, "Deck");
 		LOG("AI cards: " << _ai.cards);
-		LOG("\tscore: " << _ai.score << " pending: " << _ai.pending);
+		if (_strictness >= 1 && _game.closed == BY_PLAYER)
+		{
+			LOG("\tscore closed: " << _ai.score_closed);
+		}
+		else
+		{
+			LOG("\tscore: " << _ai.score << " pending: " << _ai.pending);
+		}
 		LOG("\t20/40: ");
 		for ([[maybe_unused]]auto s : _ai.s20_40)
 			LOG(suite_symbol(s));
 		LOG("\n");
 
 		LOG("PL cards: " << _player.cards);
-		LOG("\tscore: " << _player.score << " pending: " << _player.pending);
+		if (_strictness >= 1 && _game.closed == BY_AI)
+		{
+			LOG("\tscore closed: " << _player.score_closed);
+		}
+		else
+		{
+			LOG("\tscore: " << _player.score << " pending: " << _player.pending);
+		}
 		LOG("\t20/40: ");
 		for ([[maybe_unused]]auto s : _player.s20_40)
 			LOG(suite_symbol(s));
