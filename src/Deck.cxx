@@ -122,7 +122,7 @@ public:
 		_animate_xy(std::make_pair(-1, -1)),
 		_animate_func(nullptr),
 		_strictness(atoi(Util::config("strict").c_str())),
-		_animation_level(atoi(Util::config("animate").c_str()))
+		_animation_level(Util::config("animate").empty() ? 1 : atoi(Util::config("animate").c_str()))
 	{
 		_player.games_won = atoi(Util::stats("player_games_won").c_str());
 		_ai.games_won = atoi(Util::stats("ai_games_won").c_str());
