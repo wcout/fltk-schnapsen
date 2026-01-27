@@ -168,6 +168,7 @@ public:
 		{
 			toggle_fullscreen();
 		}
+		LOG("strictness: " << _strictness << ", animation_level: " << _animation_level << "\n");
 	}
 
 	~Deck()
