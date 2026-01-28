@@ -718,7 +718,7 @@ public:
 		fl_pie(x_-D / 2, y_- D / 2, D, D, 0., 360.);
 		fl_color(FL_WHITE);
 		fl_font(FL_HELVETICA|FL_BOLD, D / 2);
-		Util::draw_string(text_, x_ - fl_width(text_) / 2, y_ + fl_height() / 2 - fl_descent());
+		Util::draw_string(text_, x_ - Util::string_size(text_) / 2, y_ + fl_height() / 2 - fl_descent());
 	}
 
 	void draw_suite_symbol(CardSuite suite_, int x_, int y_)
@@ -803,7 +803,7 @@ public:
 			fl_rectf(0, h() - h() / 40, w(), h() / 40);
 			fl_font(FL_HELVETICA|FL_BOLD, h() / 50);
 			fl_color(FL_WHITE);
-			Util::draw_string(error_message, w() / 2 - fl_width(error_message.c_str()) / 2, h() - fl_descent());
+			Util::draw_string(error_message, w() / 2 - Util::string_size(error_message) / 2, h() - fl_descent());
 		}
 		if (_game.closed != NOT && _ai.display_score == false)
 		{
@@ -817,7 +817,7 @@ public:
 #endif
 			if (_game.closed == BY_AI)
 			{
-				int X = w() / 4 - fl_width(closed_sym.c_str()) / 2;
+				int X = w() / 4 - Util::string_size(closed_sym) / 2;
 				int Y = h() / 8 - _CH / 7;
 				Util::draw_string(closed_sym, X, Y);
 			}
@@ -1121,7 +1121,7 @@ public:
 			fl_color(show_closed_score ? FL_RED : FL_BLUE);
 			char buf[20];
 			snprintf(buf, sizeof(buf), "%d", (show_closed_score ? _player.score_closed : _player.score));
-			Util::draw_string(buf, w() - fl_width(buf), h() - fl_descent());
+			Util::draw_string(buf, w() - Util::string_size(buf), h() - fl_descent());
 		}
 		if (_ai.score && (_ai.display_score | ::debug))
 		{
@@ -1130,7 +1130,7 @@ public:
 			fl_color(show_closed_score ? FL_RED : FL_BLUE);
 			char buf[20];
 			snprintf(buf, sizeof(buf), "%d", (show_closed_score ? _ai.score_closed : _ai.score));
-			Util::draw_string(buf, w() - fl_width(buf), fl_height() - fl_descent());
+			Util::draw_string(buf, w() - Util::string_size(buf), fl_height() - fl_descent());
 		}
 	}
 
