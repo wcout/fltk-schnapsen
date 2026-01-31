@@ -935,7 +935,7 @@ public:
 		int dest_Y = cards_rect(player_).center().y;
 
 		size_t cards_to_deal = (_ai.cards.size() < 5 && _player.cards.size() < 5) ? 3 : 2;
-		DBG("animate_deal(" << (player_ == PLAYER ? "PLAYER" : "AI") << "): " << cards_to_deal << " cards\n");
+//		DBG("animate_deal(" << (player_ == PLAYER ? "PLAYER" : "AI") << "): " << cards_to_deal << " cards\n");
 
 		for (size_t i = 0; i < cards_to_deal; i++)
 		{
