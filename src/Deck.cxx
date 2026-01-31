@@ -513,7 +513,7 @@ public:
 			std::chrono::time_point<std::chrono::system_clock> end =
 				std::chrono::system_clock::now();
 			std::chrono::duration<double> diff = end - start;
-			if (diff.count() < 1./20) return ret;
+			if (diff.count() < 1. / 20) return ret;
 			start = end;
 			handle_move();
 		}
@@ -536,7 +536,7 @@ public:
 
 	Rect gamebook_rect() const
 	{
-		return Rect(w()/40, h() / 2 - _CH / 2, _CW, _CH);
+		return Rect(w() / 40, h() / 2 - _CH / 2, _CW, _CH);
 	}
 
 	Rect cards_rect(Player player_) const
@@ -663,7 +663,7 @@ public:
 		fl_rect(x_, y_, w() / 10, w() / 7);
 		fl_color(FL_BLACK);
 		fl_font(FL_COURIER, w() / 50);
-		for (size_t i = 0; i < deck_.size(); i +=2)
+		for (size_t i = 0; i < deck_.size(); i += 2)
 		{
 			max_tricks_--;
 			if (max_tricks_ < 0) break;
@@ -910,7 +910,7 @@ public:
 			int X = src_X_ + (floor)(((double)dx / steps_) * i);
 			int Y = src_Y_ + (floor)(((double)dy / steps_) * i);
 			_animate_xy = std::make_pair(X, Y);
-			wait(1./50);
+			wait(1. / 50);
 			redraw();
 		}
 		_animate_func = nullptr;
@@ -1012,7 +1012,7 @@ public:
 		// _game.cards.back() is the trump card
 		if (_game.cards.size())
 		{
-			int X = w() / 3 - _CW + _CW/4;
+			int X = w() / 3 - _CW + _CW / 4;
 			int Y = (h() - _CW) / 2;
 			if (_game.closed == NOT && _game.cards.size() != 20 && _player.cards.size() > 3)
 			{
@@ -2040,7 +2040,7 @@ public:
 			DBG("wait(" << s_ << ")\n");
 		}
 		_disabled = true;
-		double min_wait = s_ > 1./50 ? 1./50 : s_;
+		double min_wait = s_ > 1. / 50 ? 1. / 50 : s_;
 		std::chrono::time_point<std::chrono::system_clock> start =
 			std::chrono::system_clock::now();
 		while (Fl::first_window() && _disabled)

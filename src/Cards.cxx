@@ -206,7 +206,7 @@ void Cards::check()
 
 std::optional<size_t> Cards::find_face(CardFace f_) const
 {
-	for (size_t i=0; i < size(); i++)
+	for (size_t i = 0; i < size(); i++)
 	{
 		if (at(i).face() == f_)
 			return i;

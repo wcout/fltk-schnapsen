@@ -9,20 +9,20 @@ std::map<CardFace, std::string> face_names = { {TEN, "10"}, {JACK, "jack"}, {QUE
 std::map<CardFace, std::string> face_abbrs = { {TEN, "T"}, {JACK, "J"}, {QUEEN, "Q"}, {KING, "K"}, {ACE, "A"} };
 std::map<CardSuite, std::string> suite_names = { {CLUB, "clubs"}, {DIAMOND, "diamonds"}, {HEART, "hearts"}, {SPADE, "spades"} };
 std::map<CardFace, int> card_value = { {TEN, 10}, {JACK, 2}, {QUEEN, 3}, {KING, 4}, {ACE, 11} };
-std::map<CardSuite, int> suite_weights = { {SPADE, 4}, {HEART,3}, {DIAMOND,2}, {CLUB,1} };
+std::map<CardSuite, int> suite_weights = { {SPADE, 4}, {HEART, 3}, {DIAMOND, 2}, {CLUB, 1} };
 std::map<CardSuite, std::string> suite_symbols = { {SPADE, "♠"}, {HEART, "♥"}, {DIAMOND, "♦"}, {CLUB, "♣"} };
 std::map<CardSuite, std::string> suite_symbols_image = { {SPADE, "laub"}, {HEART, "herz"}, {DIAMOND, "schelle"}, {CLUB, "eichel"} };
 
 
 Card::Card() : _f(NO_FACE), _s(NO_SUITE),
-	_rect(0,0,0,0)
+	_rect(0, 0, 0, 0)
 {}
 
 /*explicit*/
 Card::Card(CardFace f_, CardSuite s_) :
 	_f(f_),
 	_s(s_),
-	_rect(0,0,0,0)
+	_rect(0, 0, 0, 0)
 {}
 
 Card& Card::load()
