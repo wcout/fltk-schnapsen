@@ -183,7 +183,7 @@ int main(int argc_, char *argv_[])
 	fl_message_title_default(Util::message(TITLE).c_str());
 	fl_message_hotspot(0);
 	Fl::get_system_colors();
-	Fl::background(240, 240,240); // brighter color for message background
+	Fl::background(240, 240, 240); // brighter color for message background
 	Util::load_config();
 	Util::load_stats();
 	LOG("homeDir: " << Util::homeDir() << "\n");

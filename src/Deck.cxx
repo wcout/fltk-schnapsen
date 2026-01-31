@@ -171,12 +171,6 @@ public:
 		LOG("strictness: " << _strictness << ", animation_level: " << _animation_level << "\n");
 	}
 
-	~Deck()
-	{
-		delete _redeal_button;
-		delete _cmd_input;
-	}
-
 	void update() override
 	{
 		redraw();
@@ -1236,14 +1230,11 @@ public:
 			draw_player_deck_info(Fl::event_x(), Fl::event_y());
 		if (_ai.deck_info)
 			draw_ai_deck_info(Fl::event_x(), Fl::event_y());
-		if (_cmd_input)
-			_cmd_input->draw();
-		if (!_disabled && _redeal_button && _redeal_button->visible() && !::debug)
-			_redeal_button->draw();
 		draw_version();
 		if (::debug >= 3)
 			draw_debug_rects();
-
+		if (!_disabled)
+			draw_children();
 		draw_grayout();
 	}
 
