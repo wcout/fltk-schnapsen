@@ -695,24 +695,21 @@ public:
 		if (!(_player.move_state != NONE || _ai.move_state == ON_TABLE))
 			return;
 
+		Rect r(x_, y_, 1, 1);
 		if (_player.move_state == ON_TABLE)
 		{
-			Rect r(_player.card.rect());
-			x_ = r.x + r.w / 2 ;
-			y_ = r.y + r.h / 2;
+			r = _player.card.rect().center();
 		}
 		else if (_ai.move_state == ON_TABLE)
 		{
-			Rect r(_ai.card.rect());
-			x_ = r.x + r.w / 2 ;
-			y_ = r.y + r.h / 2;
+			r = _ai.card.rect().center();
 		}
 		int D = h() / 10;
 		fl_color(c_);
-		fl_pie(x_-D / 2, y_- D / 2, D, D, 0., 360.);
+		fl_pie(r.x - D / 2, r.y - D / 2, D, D, 0., 360.);
 		fl_color(FL_WHITE);
 		fl_font(FL_HELVETICA|FL_BOLD, D / 2);
-		Util::draw_string(text_, x_ - Util::string_size(text_) / 2, y_ + fl_height() / 2 - fl_descent());
+		Util::draw_string(text_, r.x - Util::string_size(text_) / 2, r.y + fl_height() / 2 - fl_descent());
 	}
 
 	void draw_suite_symbol(CardSuite suite_, int x_, int y_)
