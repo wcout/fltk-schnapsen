@@ -33,7 +33,7 @@ public:
 	explicit Card(CardFace f_, CardSuite s_);
 	Card& load();
 	Fl_RGB_Image *image(int w_ = 0, int h_ = 0) { load(); return _images.image(name(), w_, h_); }
-	Fl_RGB_Image *quer_image() { load(); return _images.quer_image(name()); }
+	Fl_RGB_Image *rot90_image() { load(); return _images.rot90_image(name()); }
 	Fl_RGB_Image *skewed_image() { load(); return _images.skewed_image(name()); }
 	Card &rect(const Rect &rect_) { _rect = rect_; return *this; }
 	CardSuite suite() const { return _s; }

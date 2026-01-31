@@ -1007,7 +1007,7 @@ public:
 			int Y = (h() - _CW) / 2;
 			if (_game.closed == NOT && _game.cards.size() != 20 && _player.cards.size() > 3)
 			{
-				_game.cards.back().quer_image()->draw(X, Y);
+				_game.cards.back().rot90_image()->draw(X, Y);
 				_game.cards.back().rect(Rect(X, Y, _game.cards.back().image()->h(), _game.cards.back().image()->w()));
 			}
 
@@ -1048,7 +1048,7 @@ public:
 		{
 			int X = w() / 3 - _CW + _CW / 4;
 			int Y = (h() - _CW) / 2;
-			_back.quer_image()->draw(X - w() / 16, Y);
+			_back.rot90_image()->draw(X - w() / 16, Y);
 		}
 	}
 

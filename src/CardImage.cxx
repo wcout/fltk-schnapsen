@@ -104,31 +104,31 @@ Fl_RGB_Image *CardImage::skewed_image(const std::string &id_)
 	return skewed_image;
 }
 
-Fl_RGB_Image *CardImage::quer_image(const std::string &id_)
+Fl_RGB_Image *CardImage::rot90_image(const std::string &id_)
 {
 	Fl_RGB_Image *svg = image(id_);
 	assert(svg && svg->w() > 0 && svg->h() > 0);
 	assert(_W != 0 && _H != 0);
-	Fl_RGB_Image *quer_image = _images[id_ + "_quer"];
+	Fl_RGB_Image *rot90_image = _images[id_ + "_quer"];
 	if (svg->as_svg_image())
 		svg->as_svg_image()->resize(_W, _H);
-	if (!quer_image
-		|| quer_image->w() != _H || quer_image->h() != _W)
+	if (!rot90_image
+		|| rot90_image->w() != _H || rot90_image->h() != _W)
 	{
-		delete quer_image;
-		quer_image = rotate_90_CCW(*svg);
-		_images[id_ + "_quer"] = quer_image;
-		DBG("rotate image '" << id_ << "' size (before scale): " << quer_image->w() << "x" << quer_image->h() << "\n");
+		delete rot90_image;
+		rot90_image = rotate_90_CCW(*svg);
+		_images[id_ + "_quer"] = rot90_image;
+		DBG("rotate image '" << id_ << "' size (before scale): " << rot90_image->w() << "x" << rot90_image->h() << "\n");
 	}
-	assert(quer_image);
-	quer_image->scale(_H, _W, 0, 1);
-	return quer_image;
+	assert(rot90_image);
+	rot90_image->scale(_H, _W, 0, 1);
+	return rot90_image;
 }
 
-Fl_RGB_Image *CardImage::quer_image()
+Fl_RGB_Image *CardImage::rot90_image()
 {
 	assert(_last_id.size());
-	return quer_image(_last_id);
+	return rot90_image(_last_id);
 }
 
 Fl_RGB_Image *CardImage::skewed_image()
