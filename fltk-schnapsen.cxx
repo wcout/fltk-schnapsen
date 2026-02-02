@@ -156,7 +156,7 @@ void parse_arg(int argc_, char *argv_[])
 		}
 		if (process_arg(arg, value) == false)
 		{
-			exit(0);
+			exit(EXIT_FAILURE);
 		}
 	}
 }
@@ -183,10 +183,11 @@ int main(int argc_, char *argv_[])
 		{
 			deck.welcome();
 		}
-		deck.run();
+		return deck.run();
 	}
 	catch (const std::runtime_error &e_)
 	{
 		fl_alert("%s", e_.what());
 	}
+	return EXIT_FAILURE;
 }
