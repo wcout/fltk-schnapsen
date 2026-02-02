@@ -113,6 +113,7 @@ public:
 		_engine(_game, _player, _ai, *this),
 		_error_message(NO_MESSAGE),
 		_disabled(false),
+		_redeal(false),
 		_card_template(QUEEN, SPADE),
 		_CW(w() / 8),
 		_CH(1.5 * w()),
@@ -163,7 +164,7 @@ public:
 		end();
 		_redeal_button->callback([](Fl_Widget *wgt_, void *)
 		{
-			static_cast<Deck *>(wgt_->window())->init();
+			static_cast<Deck *>(wgt_->window())->redeal();
 		});
 		if (Util::config("fullscreen") == "1")
 		{
@@ -364,7 +365,7 @@ public:
 	{
 		if (Fl::event_key('q') && !_disabled) // just for testing -> redeal
 		{
-			init();
+			redeal();
 		}
 		else if (Fl::event_key('d')) // just for testing -> debug
 		{
@@ -1431,6 +1432,7 @@ public:
 		_player.move_state = NONE;
 		_ai.move_state = NONE;
 		_disabled = false;
+		_redeal = false;
 		_player.deck_info = false;
 		_ai.deck_info = false;
 		_game.cards.shuffle();
@@ -1509,8 +1511,8 @@ public:
 
 		// count entries
 		int entries = gb.empty() ? 0 : 1;
-		size_t pos = 0;
-		while ((pos = gb.find(';', pos++)) != std::string::npos) entries++;
+		size_t pos = (size_t)-1;
+		while ((pos = gb.find(';', ++pos)) != std::string::npos) entries++;
 
 		// limit to last 10 entries
 		for (int i = 0; i < entries - 10; i++)
@@ -1634,7 +1636,9 @@ public:
 		Player playout(::first_to_move);
 		while (Fl::first_window())
 		{
+			_redeal = true;
 			game(playout);
+			if (_redeal) continue;
 			cursor(FL_CURSOR_DEFAULT);
 			playout = playout == PLAYER ? AI : PLAYER;
 			update_gamebook();
@@ -1933,17 +1937,22 @@ public:
 			(static_cast<Deck *>(d_))->ai_message(AI_SLEEP);
 	}
 
+	void redeal()
+	{
+		LOG("***redeal***\n");
+		_redeal = true;
+	}
+
 	void game(Player playout_)
 	{
 		DBG("new game: " << (playout_ == PLAYER ? "PLAYER" : "AI") << " to lead\n");
 		_game.move = playout_;
 		init();
 		wait(1.0);
-		_player.move_state = NONE;
-		_ai.move_state = NONE;
 		cursor(FL_CURSOR_DEFAULT);
 		_redeal_button->show();
 		redraw();
+
 		while (Fl::first_window() && (_player.cards.size() || _ai.cards.size()))
 		{
 			if (_game.move == PLAYER)
@@ -1954,12 +1963,14 @@ public:
 				_player.move_state = NONE;
 				if (check_end()) break;
 				player_message(_ai.move_state == NONE ? YOU_LEAD : YOUR_TURN);
-				while (Fl::first_window() && _player.move_state != ON_TABLE)
+				while (Fl::first_window() && _player.move_state != ON_TABLE && _redeal == false)
 				{
 					Fl::wait();
 				}
 				Fl::remove_timeout(cb_sleep, this);
 				ai_message(NO_MESSAGE);
+				if (_redeal) break;
+
 				_redeal_button->hide();
 				if (check_end()) break; // if enough from 20/40!!
 
@@ -2015,6 +2026,8 @@ public:
 
 		Fl::remove_timeout(cb_sleep, this);
 		_game.marriage = NO_MARRIAGE;
+		if (_redeal == true) return;
+
 		wait(2.0);
 	}
 
@@ -2085,6 +2098,7 @@ private:
 	// UI
 	Message _error_message;
 	bool _disabled;
+	bool _redeal;
 	Card _card_template;
 	CardImage _back;
 	CardImage _shadow;
