@@ -110,7 +110,12 @@ inline std::ostream &operator << (std::ostream &os_, const Card &c_)
 
 
 #ifdef STANDALONE
+// Compile: fltk-config --use-images --compile src/Card.cxx -std=c++20 -Iinclude -DSTANDALONE
+#include "system.h"
+const char APPLICATION[] = "Card-Test";
 #include <iostream>
+#include "CardImage.cxx"
+#include "Util.cxx"
 
 using enum CardSuite;
 using enum CardFace;

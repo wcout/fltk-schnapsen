@@ -4,6 +4,8 @@
 #include <FL/Fl_PNG_Image.H>
 
 #include <cassert>
+#include <sstream>
+#include <stdexcept>
 
 Fl_RGB_Image *rotate_90_CCW(const Fl_RGB_Image &svg_)
 {
@@ -58,8 +60,9 @@ CardImage& CardImage::image(const std::string &id_, const std::string &pathname_
 	}
 	if ((!svg || svg->w() <= 0 || svg->h() <= 0))
 	{
-		fl_alert("Card image '%s' not found!", pathname_.c_str());
-		exit(EXIT_FAILURE);
+		std::ostringstream os;
+		os << "Card image '" << pathname << "' not found!";
+		throw std::runtime_error(os.str());
 	}
 	assert(svg && svg->w() > 0 && svg->h() > 0);
 	if (svg->as_svg_image())

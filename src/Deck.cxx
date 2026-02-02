@@ -49,10 +49,10 @@ class Cmd_Input : public Fl_Input
 public:
 	Cmd_Input(int x_, int y_, int w_, int h_) : Fl_Input(x_, y_, w_, h_)
 	{
+		box(FL_BORDER_BOX);
 		textsize(h() / 3 * 2);
 	}
 public:
-	void draw() { Fl_Input::draw_box(); Fl_Input::draw(); }
 	void resize(int x_, int y_, int w_, int h_)
 	{
 		Fl_Input::resize(x_, y_, w_, h_);
@@ -66,11 +66,12 @@ public:
 	Button(int x_, int y_, int w_, int h_, const char *l_ = nullptr) :
 		Fl_Button(x_, y_, w_, h_, l_)
 	{
+		box(FL_FLAT_BOX);
+		down_box(FL_BORDER_BOX);
 		labelfont(FL_HELVETICA_BOLD);
 		labelsize(h() / 2);
 		visible_focus(0);
 	}
-	void draw() { Fl_Button::draw_box(); Fl_Button::draw(); }
 	void resize(int x_, int y_, int w_, int h_)
 	{
 		Fl_Button::resize(x_, y_, w_, h_);

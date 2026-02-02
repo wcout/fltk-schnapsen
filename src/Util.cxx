@@ -1,10 +1,11 @@
 #include "Util.h"
 #include <FL/filename.H>
-#include <FL/fl_ask.H>
 #include <FL/fl_draw.H>
 #include <FL/Fl_SVG_Image.H>
 
 #include <fstream>
+#include <stdexcept>
+
 
 const std::string &cardDir = "svg_cards";
 
@@ -43,8 +44,7 @@ const std::string& Util::homeDir()
 			}
 			else
 			{
-				fl_message("%s", "Required resources not in place!\nAborting...");
-				exit(EXIT_FAILURE);
+				throw std::runtime_error("Required resources not in place!\nAborting...");
 			}
 		}
 	}

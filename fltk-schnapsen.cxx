@@ -11,23 +11,7 @@
 #include <FL/Fl.H>
 #include <FL/fl_ask.H>
 
-#if ( defined APPLE ) || ( defined __linux__ ) || ( defined __MING32__ )
-#include <unistd.h>
-#include <sys/types.h>
-#endif
-
-#ifdef WIN32
-#include <windows.h>
-#include <io.h>	// _access
-#define random rand
-#define srandom srand
-#endif
-
-// fallback Windows native
-#ifndef R_OK
-#define R_OK	4
-#endif
-#define _access access
+#include "system.h"
 
 constexpr char APPLICATION[] = "fltk-schnapsen";
 constexpr char VERSION[] = "1.0";
@@ -190,12 +174,19 @@ int main(int argc_, char *argv_[])
 	parse_arg(argc_, argv_);
 	fl_message_title_default(Util::message(TITLE).c_str()); // redo ... maybe language changed
 	srand(time(nullptr));
-	Deck deck;
-	deck.show();
-	deck.wait_for_expose();
-	if (atoi(Util::config("welcome").c_str()))
+	try
 	{
-		deck.welcome();
+		Deck deck;
+		deck.show();
+		deck.wait_for_expose();
+		if (atoi(Util::config("welcome").c_str()))
+		{
+			deck.welcome();
+		}
+		deck.run();
 	}
-	return deck.run();
+	catch (const std::runtime_error &e_)
+	{
+		fl_alert("%s", e_.what());
+	}
 }

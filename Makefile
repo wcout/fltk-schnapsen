@@ -11,7 +11,8 @@ else
 cxxflags += -DUSE_MINIAUDIO
 endif
 
-$(APPLICATION): $(APPLICATION).cxx include/debug.h \
+$(APPLICATION): $(APPLICATION).cxx include/system.h \
+                                   include/debug.h \
                                    include/messages.h \
                                    include/Rect.h \
                                    include/UI.h \
