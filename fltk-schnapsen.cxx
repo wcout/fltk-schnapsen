@@ -114,7 +114,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 				break;
 			case 'f':
 				Util::config("fullscreen", "1");
-			break;
+				break;
 			case 'r':
 				first_to_move = AI;
 				break;
