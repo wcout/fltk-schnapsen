@@ -54,6 +54,7 @@ std::vector<std::pair<int, int>> GameBook::to_value(const std::string &str_)
 		ss >> ai_score;
 		ss >> c;	// ','
 		if (player_score < 0 || ai_score < 0) break;
+//		LOG("\t" << player_score << " | " << ai_score << "\n");
 		v.push_back(std::make_pair(player_score, ai_score));
 	}
 	return v;
@@ -68,9 +69,11 @@ GameBook& GameBook::history(const std::string &history_)
 	{
 		std::string hs = h.substr(0, pos);
 		h.erase(0, pos + 1);
-		_history.push_back(to_value(hs));
+//		LOG("history: '" << hs << "'" << "\n");
+		_history.push_front(to_value(hs));
 	}
-	_history.push_back(to_value(h));
+//	LOG("history: '" << h << "'" << "\n");
+	_history.push_front(to_value(h));
 	return *this;
 }
 
