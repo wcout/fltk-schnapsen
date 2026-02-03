@@ -20,7 +20,7 @@ public:
 	GameBook& history(const std::string &history_);
 	void draw(int x_, int y_, int w_, int h_);
 	void reset_current() { _current = 0; }
-	GameBook& next_current() { _current++; if (_current > _history.size()) _current = 0; return *this; }
+	GameBook& next_current();
 private:
 	std::deque<std::vector<std::pair<int, int>>> _history;
 	size_t _current;

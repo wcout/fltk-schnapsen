@@ -73,7 +73,18 @@ GameBook& GameBook::history(const std::string &history_)
 		_history.push_front(to_value(hs));
 	}
 //	LOG("history: '" << h << "'" << "\n");
-	_history.push_front(to_value(h));
+	if (h.size())
+		_history.push_front(to_value(h));
+	return *this;
+}
+
+GameBook& GameBook::next_current()
+{
+	_current++;
+	if (_current > _history.size())
+	{
+		_current = 0;
+	}
 	return *this;
 }
 
