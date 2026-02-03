@@ -430,7 +430,7 @@ public:
 			}
 
 			if (_game.closed == NOT && _game.cards.size() && _ai.move_state == NONE &&
-		    _game.cards.back().rect().includes(Fl::event_x(), Fl::event_y()))
+			    _game.cards.back().rect().includes(Fl::event_x(), Fl::event_y()))
 			{
 				test_change();
 				return;
