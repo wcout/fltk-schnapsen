@@ -4,6 +4,7 @@
 #include <FL/Fl_SVG_Image.H>
 
 #include <fstream>
+#include <filesystem>
 #include <stdexcept>
 
 
@@ -23,7 +24,7 @@ const std::string& Util::homeDir()
 	if (home.empty())
 	{
 		char home_path[FL_PATH_MAX];
-		if (access(cardDir.c_str(), R_OK ) == 0)
+		if (std::filesystem::exists(cardDir))
 		{
 			home = "./";
 			LOG("use local home dir: " << home << "\n");
@@ -38,7 +39,7 @@ const std::string& Util::homeDir()
 			home = home_path;
 			home += APPLICATION;
 			home += "/";
-			if (access((home + cardDir).c_str(), R_OK) == 0)
+			if (std::filesystem::exists(home + cardDir))
 			{
 				LOG("use installed home dir: " << home << "\n");
 			}
