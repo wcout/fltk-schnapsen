@@ -171,6 +171,7 @@ public:
 			toggle_fullscreen();
 		}
 		LOG("strictness: " << _strictness << ", animation_level: " << _animation_level << "\n");
+		_game.book.history(Util::stats("gamebook"));
 	}
 
 	void update() override
@@ -400,7 +401,7 @@ public:
 		}
 	}
 
-	void handle_click()
+	void handle_click(int x_, int y_)
 	{
 		if (_disabled)
 		{
@@ -408,10 +409,16 @@ public:
 			return;
 		}
 		_game.marriage = NO_MARRIAGE;
-		if (test_close(Fl::event_x(), Fl::event_y()) == true)
+		if (gamebook_rect().includes(x_, y_) && idle())
+		{
+			_game.book.next_current();
+			return;
+		}
+		if (test_close(x_, y_) == true)
 		{
 			return;
 		}
+		_game.book.reset_current();
 		if (_player.move_state != NONE)
 		{
 			if (_player.move_state == MOVING &&
@@ -426,17 +433,17 @@ public:
 			}
 			if (_ai.move_state == NONE)
 			{
-				test_20_40(Fl::event_x(), Fl::event_y());
+				test_20_40(x_, y_);
 			}
 
 			if (_game.closed == NOT && _game.cards.size() && _ai.move_state == NONE &&
-			    _game.cards.back().rect().includes(Fl::event_x(), Fl::event_y()))
+			    _game.cards.back().rect().includes(x_, y_))
 			{
 				test_change();
 				return;
 			}
 			// beware of unwanted (unsucessfull) click on change
-			if (Fl::event_x() < w() / 2)
+			if (x_ < w() / 2)
 				return;
 
 			// make accepted move
@@ -482,7 +489,7 @@ public:
 		for (size_t i = 0; i < _player.cards.size(); i++)
 		{
 			const Card &c = _player.cards[i];
-			if (c.rect().includes(Fl::event_x(), Fl::event_y()))
+			if (c.rect().includes(x_, y_))
 			{
 				_player.card = _player.cards[i];
 				_player.cards.erase(_player.cards.begin() + i);
@@ -524,7 +531,7 @@ public:
 			Fl::add_timeout(20., cb_sleep, this);
 			ai_message(NO_MESSAGE);
 			_game.move == AI ? _ai.last_drawn = Card() : _player.last_drawn = Card();
-			handle_click();
+			handle_click(Fl::event_x(), Fl::event_y());
 			return 1;
 		}
 		return ret;
@@ -578,77 +585,9 @@ public:
 
 	void draw_gamebook()
 	{
-		fl_color(fl_lighter(fl_lighter(FL_YELLOW)));
-		int X = gamebook_rect().x;
-		int Y = gamebook_rect().y;
-		int W = gamebook_rect().w;
-		int H = gamebook_rect().h;
-		fl_rectf(X, Y, W, H);
-		fl_color(GRAY);
-		fl_rect(X, Y, W, H);
-		fl_color(FL_BLACK);
-		fl_font(FL_COURIER, _CH / 14);
-		X += _CW / 20;
-		Y += fl_descent() + fl_height();
-		Util::draw_color_text(Util::message(GAMEBOOK), X, Y, text_colors);
-		fl_line_style(FL_SOLID, 2);
-		fl_line(X, Y + fl_descent(), X + _CW - _CW / 10, Y + fl_descent());
-		Y += _CH / 10;
-		Util::draw_color_text(Util::message(GB_HEADLINE), X, Y);
-		H = _CH - _CH / 5;
-		fl_line_style(FL_SOLID, 1);
-		W = _CW - _CW / 10;
-		fl_line(X, Y + fl_descent(), X + W, Y + fl_descent());
-		fl_line(X + W / 2, Y - fl_height(), X + W / 2, Y + H - fl_descent());
-		Y += fl_descent();
-
-		int player_score = 0;
-		int ai_score = 0;
-
-		auto draw_score = [&](std::pair<int, int> s) -> void
-		{
-			char buf[50];
-			char pbuf[20];
-			char abuf[20];
-			if (MATCH_SCORE - player_score <= 0 || MATCH_SCORE - ai_score <= 0) return;
-			if (!s.first && !s.second)
-			{
-				snprintf(pbuf, sizeof(pbuf), "%d", MATCH_SCORE - player_score);
-				snprintf(abuf, sizeof(abuf), "%d", MATCH_SCORE - ai_score);
-			}
-			else
-			{
-				snprintf(pbuf, sizeof(pbuf), "%d", MATCH_SCORE - player_score);
-				if (!s.first || pbuf[0] == '0') pbuf[0] = '-';
-				snprintf(abuf, sizeof(abuf), "%d", MATCH_SCORE - ai_score);
-				if (!s.second || abuf[0] == '0') abuf[0] = '-';
-			}
-			snprintf(buf, sizeof(buf),"  %2s      %2s", pbuf, abuf);
-			Y += _CH / 12;
-			Util::draw_color_text(buf, X, Y);
-		};
-
-		// limit display to last 8 scores
-		size_t first = _game.book.size() > 8 ? _game.book.size() - 8 : 0;
-		if (first == 0)
-			draw_score(std::make_pair(0, 0));
-		for (size_t i = 0; i < _game.book.size(); i++)
-		{
-			auto s = _game.book[i];
-			player_score += s.first;
-			ai_score += s.second;
-			if (i < first) continue;
-			draw_score(s);
-		}
-		if (ai_score >= MATCH_SCORE || player_score >= MATCH_SCORE)
-		{
-			// draw "bummerl"
-			char buf[40];
-			Y += _CH / 12;
-			snprintf(buf, sizeof(buf),"   %s       %s",
-				(ai_score >= MATCH_SCORE ? "●" : " "), (player_score >= MATCH_SCORE ? "●" : " "));
-			Util::draw_color_text(buf, X, Y);
-		}
+		int X, Y, W, H;
+		gamebook_rect().get(X, Y, W, H);
+		_game.book.draw(X, Y, W, H);
 	}
 
 	void draw_deck_info(int x_, int y_, const Cards &deck_, int max_tricks_ = 8)
@@ -1506,6 +1445,8 @@ public:
 	{
 		assert(_game.book.size());
 
+		_game.book.reset_current();
+
 		// append current gamebook to saved gamebooks
 		std::string gb = Util::stats("gamebook");
 
@@ -1526,17 +1467,15 @@ public:
 
 		// write to file
 		Util::stats("gamebook", gamebook);
+
+		// update history display
+		_game.book.history(gb);
 	}
 
 	bool check_end_match()
 	{
-		int pscore = 0;
-		int ascore = 0;
-		for (auto &[player, ai] : _game.book)
-		{
-			pscore += player;
-			ascore += ai;
-		}
+		int pscore = _game.book.player_score();
+		int ascore = _game.book.ai_score();
 		LOG("match score PL:AI: " << pscore << ":" << ascore << "\n");
 		fl_message_font_ = FL_COURIER;
 		fl_message_size_ = h() / 40;
