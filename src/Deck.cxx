@@ -1475,7 +1475,7 @@ public:
 		Util::stats("gamebook", gamebook);
 
 		// update history display
-		_game.book.history(gb);
+		_game.book.history(gamebook);
 	}
 
 	bool check_end_match()
