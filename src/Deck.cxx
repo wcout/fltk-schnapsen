@@ -52,7 +52,11 @@ public:
 		box(FL_BORDER_BOX);
 		textsize(h() / 3 * 2);
 	}
-public:
+	void draw()
+	{
+		damage(FL_DAMAGE_ALL);
+		Fl_Input::draw();
+	}
 	void resize(int x_, int y_, int w_, int h_)
 	{
 		Fl_Input::resize(x_, y_, w_, h_);
