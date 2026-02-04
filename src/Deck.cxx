@@ -124,7 +124,8 @@ public:
 		_animate_xy(std::make_pair(-1, -1)),
 		_animate_func(nullptr),
 		_strictness(atoi(Util::config("strict").c_str())),
-		_animation_level(Util::config("animate").empty() ? 1 : atoi(Util::config("animate").c_str()))
+		_animation_level(Util::config("animate").empty() ? 1 : atoi(Util::config("animate").c_str())),
+		_show_ai_cards(false)
 	{
 		_player.games_won = atoi(Util::stats("player_games_won").c_str());
 		_ai.games_won = atoi(Util::stats("ai_games_won").c_str());
@@ -412,6 +413,11 @@ public:
 		if (gamebook_rect().includes(x_, y_) && idle())
 		{
 			_game.book.next_current();
+			return;
+		}
+		if (cards_rect(AI).includes(x_, y_))
+		{
+			_show_ai_cards = !_show_ai_cards;
 			return;
 		}
 		if (test_close(x_, y_) == true)
@@ -797,7 +803,7 @@ public:
 		{
 			int X = cards_rect(AI).x + i * w() / 20;
 			int Y = cards_rect(AI).y;
-			if (::debug > 1)
+			if (::debug > 1 && _show_ai_cards)
 			{
 				_ai.cards[i].skewed_image()->draw(X, Y);
 			}
@@ -2056,4 +2062,5 @@ private:
 	DeckMemberFn _animate_func;
 	int _strictness;
 	int _animation_level;
+	bool _show_ai_cards;
 };
