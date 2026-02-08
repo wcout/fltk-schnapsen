@@ -1585,10 +1585,12 @@ public:
 		Player playout(::first_to_move);
 		while (Fl::first_window())
 		{
+			cursor(FL_CURSOR_DEFAULT);
 			_redeal = true;
+			_redeal_button->show();
+			redraw();
 			game(playout);
 			if (_redeal) continue;
-			cursor(FL_CURSOR_DEFAULT);
 			playout = playout == PLAYER ? AI : PLAYER;
 			update_gamebook();
 
@@ -1826,7 +1828,6 @@ public:
 			_player.pending = 0;
 			player_message(YOUR_TRICK);
 			ai_message(NO_MESSAGE);
-			redraw();
 		}
 		else
 		{
@@ -1836,7 +1837,6 @@ public:
 			_ai.pending = 0;
 			ai_message(AI_TRICK);
 			player_message(NO_MESSAGE);
-			redraw();
 		}
 	}
 
@@ -1897,10 +1897,6 @@ public:
 		DBG("new game: " << (playout_ == PLAYER ? "PLAYER" : "AI") << " to lead\n");
 		_game.move = playout_;
 		init();
-		wait(1.0);
-		cursor(FL_CURSOR_DEFAULT);
-		_redeal_button->show();
-		redraw();
 
 		while (Fl::first_window() && (_player.cards.size() || _ai.cards.size()))
 		{
@@ -1908,7 +1904,6 @@ public:
 			{
 				cursor(FL_CURSOR_DEFAULT);
 				ai_message(NO_MESSAGE);
-				redraw();
 				_player.move_state = NONE;
 				if (check_end()) break;
 				player_message(_ai.move_state == NONE ? YOU_LEAD : YOUR_TURN);
