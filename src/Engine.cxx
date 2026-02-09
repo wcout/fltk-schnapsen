@@ -717,7 +717,7 @@ void Engine::ai_move_follow()
 			{
 				std::ostringstream os;
 				os << "ai_play_for_closed_lead\nsuggested " << _ai.cards[m];
-				fl_alert("%s", os.str().c_str());
+				fl_alert("%s", os.str().c_str()); // TESTONLY!!
 			}
 			_move = m;
 		}

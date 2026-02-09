@@ -44,6 +44,10 @@ using enum Closed;
 using enum Marriage;
 
 
+//
+// UI dependent (drawing/event handling) stuff
+//
+
 class Cmd_Input : public Fl_Input
 {
 public:
@@ -184,41 +188,6 @@ public:
 		redraw();
 	}
 
-	void message(Message m_, bool bell_ = false) override
-	{
-		if (m_ == CLOSED)  m_ = _game.move == AI ? AI_CLOSED : YOU_CLOSED;
-		// NOTE: conflict with Fl_Widget::CHANGED!
-		if (m_ == Message::CHANGED) m_ = _game.move == AI ? AI_CHANGED : YOU_CHANGED;
-		_game.move == AI ? ai_message(m_, bell_) : player_message(m_, bell_);
-	}
-
-	void ai_message(Message m_, bool bell_ = false)
-	{
-		if (bell_) bell(m_);
-		_ai.message = m_;
-		std::string m(Util::message(m_));
-		DBG("ai_message(" << m << ")\n")
-		redraw();
-	}
-
-	void player_message(Message m_, bool bell_ = false)
-	{
-		if (bell_) bell(m_);
-		_player.message = m_;
-		std::string m(Util::message(m_));
-		DBG("player_message(" << m << ")\n")
-		redraw();
-	}
-
-	void error_message(Message m_, bool bell_ = false)
-	{
-		if (bell_) bell(m_);
-		_error_message = m_;
-		std::string m(Util::message(m_));
-		DBG("error_message(" << m << ")\n")
-		redraw();
-	}
-
 	bool test_change()
 	{
 		if (_game.cards.size() && _game.cards.back().face() != JACK &&
@@ -237,11 +206,6 @@ public:
 			return true;
 		}
 		return false;
-	}
-
-	bool idle() const
-	{
-		return _player.move_state == NONE && _ai.move_state == NONE;
 	}
 
 	bool test_close(int x_, int y_)
@@ -292,6 +256,15 @@ public:
 		return false;
 	}
 
+	bool can_trick(const Card &c_, const Cards &cards_) const
+	{
+		for (auto &c : cards_)
+		{
+			if (_engine.card_tricks(c, c_)) return true;
+		}
+		return false;
+	}
+
 	bool valid_move(const Card &card_)
 	{
 		// check closed game and AI has card on table
@@ -329,15 +302,6 @@ public:
 		}
 		// player can't trick and has no suite color
 		return true;
-	}
-
-	bool can_trick(const Card &c_, const Cards &cards_) const
-	{
-		for (auto &c : cards_)
-		{
-			if (_engine.card_tricks(c, c_)) return true;
-		}
-		return false;
 	}
 
 	void handle_move()
@@ -509,7 +473,7 @@ public:
 		}
 	}
 
-	int handle(int e_)
+	int handle(int e_) override
 	{
 		if (e_ == FL_NO_EVENT)
 		{
@@ -872,7 +836,7 @@ public:
 		do_animate(&Deck::draw_animated_move, src_X, src_Y, dest_X, dest_Y);
 	}
 
-	void animate_deal(Player player_)
+	void animate_deal(Player player_) override
 	{
 		if (_animation_level < 2) return;
 
@@ -891,7 +855,7 @@ public:
 		}
 	}
 
-	void animate_shuffle()
+	void animate_shuffle() override
 	{
 		if (_animation_level < 2) return;
 
@@ -918,7 +882,7 @@ public:
 		_game.cards = save;
 	}
 
-	void animate_trick()
+	void animate_trick() override
 	{
 		if (_animation_level == 0) return;
 
@@ -1144,7 +1108,7 @@ public:
 		fl_rect(X, Y, W, H);
 	}
 
-	void draw()
+	void draw() override
 	{
 		// measure a "standard card"
 		int W = w() / 8;
@@ -1184,31 +1148,6 @@ public:
 		if (!_disabled)
 			draw_children();
 		draw_grayout();
-	}
-
-	void collect()
-	{
-		LOG("collect\n");
-		for (auto &c : _player.cards)
-			_game.cards.push_front(c);
-		for (auto &c : _player.deck)
-			_game.cards.push_front(c);
-		for (auto &c :_ai.cards)
-			_game.cards.push_front(c);
-		for (auto &c :_ai.deck)
-			_game.cards.push_front(c);
-		_player.cards.clear();
-		_ai.cards.clear();
-		_player.deck.clear();
-		_ai.deck.clear();
-		if (_player.move_state != NONE)
-			_game.cards.push_front(_player.card);
-		if (_ai.move_state != NONE)
-			_game.cards.push_front(_ai.card);
-		if (_game.cards.size() != 20)
-			DBG("#cards: " << _game.cards.size())
-		assert(_game.cards.size() == 20);
-		_game.cards.check();
 	}
 
 	void onCmd()
@@ -1321,6 +1260,34 @@ public:
 		});
 	}
 
+	void welcome()
+	{
+		_welcome = new Welcome(w() / 2, h() / 4 * 3);
+		_welcome->position(x() + (w() - _welcome->w()) / 2, y() + (h() - _welcome->h()) / 2);
+		_welcome->stats(make_stats());
+		bell(WELCOME);
+		_welcome->show();
+		_welcome->wait_for_expose();
+		_welcome->run();
+		redraw();
+	}
+
+	void flicker()
+	{
+		for (int i = 0; i < 2; i++)
+		{
+			_grayout = !_grayout;
+			redraw();
+			wait(0.1);
+		}
+		_grayout = false;
+		redraw();
+	}
+
+	//
+	// UI independent stuff (mostly)
+	//
+
 	void dump_cards(const Cards &cards_, const std::string &title_) const
 	{
 		LOG(title_ << " (" << cards_.size() << " cards):" << "\n");
@@ -1404,7 +1371,138 @@ public:
 		debug();
 	}
 
-	void show_win_msg()
+	void collect()
+	{
+		LOG("collect\n");
+		for (auto &c : _player.cards)
+			_game.cards.push_front(c);
+		for (auto &c : _player.deck)
+			_game.cards.push_front(c);
+		for (auto &c :_ai.cards)
+			_game.cards.push_front(c);
+		for (auto &c :_ai.deck)
+			_game.cards.push_front(c);
+		_player.cards.clear();
+		_ai.cards.clear();
+		_player.deck.clear();
+		_ai.deck.clear();
+		if (_player.move_state != NONE)
+			_game.cards.push_front(_player.card);
+		if (_ai.move_state != NONE)
+			_game.cards.push_front(_ai.card);
+		if (_game.cards.size() != 20)
+			DBG("#cards: " << _game.cards.size())
+		assert(_game.cards.size() == 20);
+		_game.cards.check();
+	}
+
+	void deal()
+	{
+		LOG("dealer is " << (_game.move == PLAYER ? "AI" : "PLAYER") << "\n");
+		// 3 cards to player
+		for (int i = 0; i < 3; i++)
+		{
+			Card c = _game.cards.front();
+			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
+			_game.cards.pop_front();
+		}
+		animate_deal(_game.move == PLAYER ? PLAYER : AI);
+		// 3 cards to ai
+		for (int i = 0; i < 3; i++)
+		{
+			Card c = _game.cards.front();
+			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
+			_game.cards.pop_front();
+		}
+		animate_deal(_game.move == PLAYER ? AI : PLAYER);
+		// trump card
+		Card trump = _game.cards.front();
+		_game.cards.pop_front();
+		_game.cards.push_back(trump); // will be the last card (_game.cards.back())
+		_game.trump = trump.suite();
+		LOG("trump: " << suite_symbol(_game.trump) << "\n");
+		redraw();
+
+		// 2 cards to player
+		for (int i = 0; i < 2; i++)
+		{
+			Card c = _game.cards.front();
+			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
+			_game.cards.pop_front();
+		}
+		animate_deal(_game.move == PLAYER ? PLAYER : AI);
+		// 2 cards to ai
+		for (int i = 0; i < 2; i++)
+		{
+			Card c = _game.cards.front();
+			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
+			_game.cards.pop_front();
+		}
+		animate_deal(_game.move == PLAYER ? AI : PLAYER);
+
+		// TEST TEST
+		Suites res;
+		res = _engine.have_40(_player.cards);
+		if (res.size())
+			DBG("player cards contain 40!\n")
+		res = _engine.have_20(_player.cards);
+		if (res.size())
+			DBG("player cards contain " << res.size() << "x20!\n")
+		res = _engine.have_40(_ai.cards);
+		if (res.size())
+			DBG("AI cards contain 40!\n")
+		res = _engine.have_20(_ai.cards);
+		if (res.size())
+			DBG("AI cards contain " << res.size() << "x20!\n")
+		size_t i = _engine.find(Card(JACK, _game.cards.back().suite()), _player.cards);
+		if (i != NO_MOVE)
+			DBG("player cards can change Jack!\n")
+		i = _engine.find(Card(JACK, _game.cards.back().suite()), _ai.cards);
+		if (i != NO_MOVE)
+			DBG("AI cards can change Jack!\n")
+	}
+
+	void fillup_cards()
+	{
+		if (_game.closed == NOT)
+		{
+			// give cards from pack
+			if (_game.cards.size())
+			{
+				Card c = _game.cards.front();
+				_game.cards.pop_front();
+				_game.move == AI ? _ai.last_drawn = c : _player.last_drawn = c;
+				if (_game.move == AI)
+					_ai.cards.push_front(c);
+				else
+					_player.cards.push_front(c);
+			}
+
+			if (_game.cards.size())
+			{
+				Card c = _game.cards.front();
+				_game.move == PLAYER ? _ai.last_drawn = c : _player.last_drawn = c;
+				_game.cards.pop_front();
+				if (_game.move == AI)
+					_player.cards.push_front(c);
+				else
+					_ai.cards.push_front(c);
+			}
+			assert(_player.cards.size() == _ai.cards.size());
+			_player.cards.sort();
+			_ai.cards.sort();
+			debug();
+
+			if (_game.cards.empty())
+			{
+				_game.closed = AUTO; // same rules as closing now
+				LOG("*** pack cleared - end game ***\n");
+			}
+		}
+		redraw();
+	}
+
+	void show_win_msg() override
 	{
 		std::string m(Util::message(YOU_WIN));
 		fl_message_icon()->box(FL_NO_BOX);
@@ -1455,7 +1553,7 @@ public:
 		fl_message_icon()->image(nullptr);
 	}
 
-	void show_lost_msg()
+	void show_lost_msg() override
 	{
 		std::string m(Util::message(YOU_LOST));
 		fl_message_icon()->box(FL_NO_BOX);
@@ -1475,6 +1573,21 @@ public:
 		fl_message_position(x() + w() / 2, y() + h() / 2, 1);
 		fl_alert("%s", m.c_str());
 		fl_message_icon()->image(nullptr);
+	}
+
+	void save_config() const
+	{
+		Util::config("cards", std::string()); // don't save cards string!
+		Util::config("width", std::to_string(w()));
+		Util::config("height", std::to_string(h()));
+		Util::config("xpos", std::to_string(x()));
+		Util::config("ypos", std::to_string(y()));
+		Util::save_config();
+	}
+
+	void save_stats() const
+	{
+		Util::save_stats();
 	}
 
 	void save_gamebook()
@@ -1589,28 +1702,34 @@ public:
 		}
 	}
 
+	virtual void prepare_game() override
+	{
+		cursor(FL_CURSOR_DEFAULT);
+		if (_redeal)
+			_redeal_button->show();
+		update();
+	}
+
 	int run()
 	{
 		Player playout(::first_to_move);
-		while (Fl::first_window())
+		while (playing())
 		{
-			cursor(FL_CURSOR_DEFAULT);
 			_redeal = true;
-			_redeal_button->show();
-			redraw();
+			prepare_game();
 			game(playout);
 			if (_redeal) continue;
 			playout = playout == PLAYER ? AI : PLAYER;
 			update_gamebook();
 
-			if (!Fl::first_window()) break;
+			if (!playing()) break;
 
 			auto &[pscore, ascore] = _game.book.back();
 			if (pscore)
 				LOG("PL scores " << pscore << "\n");
 			if (ascore)
 				LOG("AI scores " << ascore << "\n");
-			redraw();
+			update();
 			check_end_match();
 		}
 		save_config();
@@ -1618,19 +1737,39 @@ public:
 		return 0;
 	}
 
-	void save_config() const
+	void message(Message m_, bool bell_ = false) override
 	{
-		Util::config("cards", std::string()); // don't save cards string!
-		Util::config("width", std::to_string(w()));
-		Util::config("height", std::to_string(h()));
-		Util::config("xpos", std::to_string(x()));
-		Util::config("ypos", std::to_string(y()));
-		Util::save_config();
+		if (m_ == CLOSED)  m_ = _game.move == AI ? AI_CLOSED : YOU_CLOSED;
+		// NOTE: conflict with Fl_Widget::CHANGED!
+		if (m_ == Message::CHANGED) m_ = _game.move == AI ? AI_CHANGED : YOU_CHANGED;
+		_game.move == AI ? ai_message(m_, bell_) : player_message(m_, bell_);
 	}
 
-	void save_stats() const
+	void ai_message(Message m_, bool bell_ = false)
 	{
-		Util::save_stats();
+		if (bell_) bell(m_);
+		_ai.message = m_;
+		std::string m(Util::message(m_));
+		DBG("ai_message(" << m << ")\n")
+		update();
+	}
+
+	void player_message(Message m_, bool bell_ = false)
+	{
+		if (bell_) bell(m_);
+		_player.message = m_;
+		std::string m(Util::message(m_));
+		DBG("player_message(" << m << ")\n")
+		update();
+	}
+
+	void error_message(Message m_, bool bell_ = false)
+	{
+		if (bell_) bell(m_);
+		_error_message = m_;
+		std::string m(Util::message(m_));
+		DBG("error_message(" << m << ")\n")
+		update();
 	}
 
 	bool ai_wins(const std::string &log_, Message player_message_ = NO_MESSAGE)
@@ -1655,72 +1794,6 @@ public:
 		_ai.display_score = true;
 		wait(2.0);
 		return true;
-	}
-
-	void deal()
-	{
-		LOG("dealer is " << (_game.move == PLAYER ? "AI" : "PLAYER") << "\n");
-		// 3 cards to player
-		for (int i = 0; i < 3; i++)
-		{
-			Card c = _game.cards.front();
-			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
-			_game.cards.pop_front();
-		}
-		animate_deal(_game.move == PLAYER ? PLAYER : AI);
-		// 3 cards to ai
-		for (int i = 0; i < 3; i++)
-		{
-			Card c = _game.cards.front();
-			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
-			_game.cards.pop_front();
-		}
-		animate_deal(_game.move == PLAYER ? AI : PLAYER);
-		// trump card
-		Card trump = _game.cards.front();
-		_game.cards.pop_front();
-		_game.cards.push_back(trump); // will be the last card (_game.cards.back())
-		_game.trump = trump.suite();
-		LOG("trump: " << suite_symbol(_game.trump) << "\n");
-		redraw();
-
-		// 2 cards to player
-		for (int i = 0; i < 2; i++)
-		{
-			Card c = _game.cards.front();
-			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
-			_game.cards.pop_front();
-		}
-		animate_deal(_game.move == PLAYER ? PLAYER : AI);
-		// 2 cards to ai
-		for (int i = 0; i < 2; i++)
-		{
-			Card c = _game.cards.front();
-			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
-			_game.cards.pop_front();
-		}
-		animate_deal(_game.move == PLAYER ? AI : PLAYER);
-
-		// TEST TEST
-		Suites res;
-		res = _engine.have_40(_player.cards);
-		if (res.size())
-			DBG("player cards contain 40!\n")
-		res = _engine.have_20(_player.cards);
-		if (res.size())
-			DBG("player cards contain " << res.size() << "x20!\n")
-		res = _engine.have_40(_ai.cards);
-		if (res.size())
-			DBG("AI cards contain 40!\n")
-		res = _engine.have_20(_ai.cards);
-		if (res.size())
-			DBG("AI cards contain " << res.size() << "x20!\n")
-		size_t i = _engine.find(Card(JACK, _game.cards.back().suite()), _player.cards);
-		if (i != NO_MOVE)
-			DBG("player cards can change Jack!\n")
-		i = _engine.find(Card(JACK, _game.cards.back().suite()), _ai.cards);
-		if (i != NO_MOVE)
-			DBG("AI cards can change Jack!\n")
 	}
 
 	void bell([[maybe_unused]]Message m_ = NO_MESSAGE) override
@@ -1849,50 +1922,21 @@ public:
 		}
 	}
 
-	void fillup_cards()
-	{
-		if (_game.closed == NOT)
-		{
-			// give cards from pack
-			if (_game.cards.size())
-			{
-				Card c = _game.cards.front();
-				_game.cards.pop_front();
-				_game.move == AI ? _ai.last_drawn = c : _player.last_drawn = c;
-				if (_game.move == AI)
-					_ai.cards.push_front(c);
-				else
-					_player.cards.push_front(c);
-			}
-
-			if (_game.cards.size())
-			{
-				Card c = _game.cards.front();
-				_game.move == PLAYER ? _ai.last_drawn = c : _player.last_drawn = c;
-				_game.cards.pop_front();
-				if (_game.move == AI)
-					_player.cards.push_front(c);
-				else
-					_ai.cards.push_front(c);
-			}
-			assert(_player.cards.size() == _ai.cards.size());
-			_player.cards.sort();
-			_ai.cards.sort();
-			debug();
-
-			if (_game.cards.empty())
-			{
-				_game.closed = AUTO; // same rules as closing now
-				LOG("*** pack cleared - end game ***\n");
-			}
-		}
-		redraw();
-	}
-
 	static void cb_sleep(void *d_)
 	{
 		if (Fl::first_window() == static_cast<Deck *>(d_))
 			(static_cast<Deck *>(d_))->ai_message(AI_SLEEP);
+	}
+
+	void player_move() override
+	{
+		cursor(FL_CURSOR_DEFAULT);
+		while (playing() && _player.move_state != ON_TABLE && _redeal == false)
+		{
+			wait(0.);
+		}
+		Fl::remove_timeout(cb_sleep, this);
+		_redeal_button->hide();
 	}
 
 	void redeal()
@@ -1901,33 +1945,40 @@ public:
 		_redeal = true;
 	}
 
+	bool playing() override
+	{
+		return Fl::first_window();
+	}
+
+	void ai_move() override
+	{
+		cursor(FL_CURSOR_WAIT);
+		wait(2.0);
+		if (!playing()) return;
+		_engine.ai_move();
+	}
+
 	void game(Player playout_)
 	{
 		DBG("new game: " << (playout_ == PLAYER ? "PLAYER" : "AI") << " to lead\n");
 		_game.move = playout_;
 		init();
 
-		while (Fl::first_window() && (_player.cards.size() || _ai.cards.size()))
+		while (playing() && (_player.cards.size() || _ai.cards.size()))
 		{
 			if (_game.move == PLAYER)
 			{
-				cursor(FL_CURSOR_DEFAULT);
 				ai_message(NO_MESSAGE);
 				_player.move_state = NONE;
 				if (check_end()) break;
 				player_message(_ai.move_state == NONE ? YOU_LEAD : YOUR_TURN);
-				while (Fl::first_window() && _player.move_state != ON_TABLE && _redeal == false)
-				{
-					Fl::wait();
-				}
-				Fl::remove_timeout(cb_sleep, this);
+				player_move();
 				ai_message(NO_MESSAGE);
 				if (_redeal) break;
 
-				_redeal_button->hide();
 				if (check_end()) break; // if enough from 20/40!!
 
-				if (!Fl::first_window()) break;
+				if (!playing()) break;
 				if (_ai.move_state == ON_TABLE)
 				{
 					wait(1.5);
@@ -1951,10 +2002,7 @@ public:
 				if (check_end()) break;
 				_ai.move_state = MOVING;
 				ai_message(_player.move_state == NONE ? AI_LEADS : AI_TURN);
-				cursor(FL_CURSOR_WAIT);
-				wait(2.0);
-				if (!Fl::first_window()) break;
-				_engine.ai_move();
+				ai_move();
 
 				if (check_end()) break; // if enough from 20/40!!
 
@@ -1975,17 +2023,26 @@ public:
 				}
 			}
 		}
-		if (!Fl::first_window()) return;
+		if (!playing()) return;
 
-		Fl::remove_timeout(cb_sleep, this);
 		_game.marriage = NO_MARRIAGE;
 		if (_redeal == true) return;
 
 		wait(2.0);
 	}
 
+	bool idle() const
+	{
+		return _player.move_state == NONE && _ai.move_state == NONE;
+	}
+
 	void wait(double s_) override
 	{
+		if (!s_)
+		{
+			Fl::wait();
+			return;
+		}
 		if (Util::config("fast") == "1" && s_ >= 1.0)
 		{
 			s_ /= 2;
@@ -1998,7 +2055,7 @@ public:
 		double min_wait = s_ > 1. / 50 ? 1. / 50 : s_;
 		std::chrono::time_point<std::chrono::system_clock> start =
 			std::chrono::system_clock::now();
-		while (Fl::first_window() && _disabled)
+		while (playing() && _disabled)
 		{
 			Fl::wait(min_wait);
 			std::chrono::time_point<std::chrono::system_clock> end =
@@ -2015,30 +2072,6 @@ public:
 		os << Util::message(GAMES_WON) << _player.games_won << " / " << _ai.games_won;
 		os << "    " << Util::message(MATCHES_WON) <<  _player.matches_won << " / " << _ai.matches_won;
 		return os.str();
-	}
-
-	void welcome()
-	{
-		_welcome = new Welcome(w() / 2, h() / 4 * 3);
-		_welcome->position(x() + (w() - _welcome->w()) / 2, y() + (h() - _welcome->h()) / 2);
-		_welcome->stats(make_stats());
-		bell(WELCOME);
-		_welcome->show();
-		_welcome->wait_for_expose();
-		_welcome->run();
-		redraw();
-	}
-
-	void flicker()
-	{
-		for (int i = 0; i < 2; i++)
-		{
-			_grayout = !_grayout;
-			redraw();
-			wait(0.1);
-		}
-		_grayout = false;
-		redraw();
 	}
 
 private:

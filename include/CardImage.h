@@ -1,6 +1,6 @@
 #pragma once
 
-#include <FL/Fl_RGB_Image.H>
+class Fl_RGB_Image;
 #include <string>
 #include <unordered_map>
 

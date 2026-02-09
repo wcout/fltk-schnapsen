@@ -1,5 +1,6 @@
 #include "CardImage.h"
 
+#include <FL/Fl_RGB_Image.H>
 #include <FL/Fl_SVG_Image.H>
 #include <FL/Fl_PNG_Image.H>
 
