@@ -1238,6 +1238,10 @@ public:
 			{
 				show_win_msg();
 			}
+			else if (m == YOU_LOST)
+			{
+				show_lost_msg();
+			}
 			else
 			{
 				DBG("fl_alert(" << Util::message(m) << ")\n");
@@ -1451,6 +1455,28 @@ public:
 		fl_message_icon()->image(nullptr);
 	}
 
+	void show_lost_msg()
+	{
+		std::string m(Util::message(YOU_LOST));
+		fl_message_icon()->box(FL_NO_BOX);
+#ifndef WIN32
+		fl_message_icon_label("⚫");
+#else
+		static Fl_SVG_Image icon((Util::homeDir() + "rsc/" + "26ab.svg").c_str());
+		if (icon.w() > 0 && icon.h() > 0)
+		{
+			icon.normalize();
+			icon.scale(fl_message_icon()->w(), fl_message_icon()->h(), 1, 1);
+			fl_message_icon()->image(&icon);
+			fl_message_icon()->align(FL_ALIGN_IMAGE_BACKDROP);
+			fl_message_icon_label("");
+		}
+#endif
+		fl_message_position(x() + w() / 2, y() + h() / 2, 1);
+		fl_alert("%s", m.c_str());
+		fl_message_icon()->image(nullptr);
+	}
+
 	void save_gamebook()
 	{
 		assert(_game.book.size());
@@ -1506,25 +1532,8 @@ public:
 			LOG("AI wins match " << ascore << ":" << pscore << "\n");
 			_ai.matches_won++;
 			Util::stats("ai_matches_won", std::to_string(_ai.matches_won));
-			std::string m(Util::message(YOU_LOST));
 			bell(YOU_LOST);
-			fl_message_icon()->box(FL_NO_BOX);
-#ifndef WIN32
-			fl_message_icon_label("⚫");
-#else
-			static Fl_SVG_Image icon((Util::homeDir() + "rsc/" + "26ab.svg").c_str());
-			if (icon.w() > 0 && icon.h() > 0)
-			{
-				icon.normalize();
-				icon.scale(fl_message_icon()->w(), fl_message_icon()->h(), 1, 1);
-				fl_message_icon()->image(&icon);
-				fl_message_icon()->align(FL_ALIGN_IMAGE_BACKDROP);
-				fl_message_icon_label("");
-			}
-#endif
-			fl_message_position(x() + w() / 2, y() + h() / 2, 1);
-			fl_alert("%s", m.c_str());
-			fl_message_icon()->image(nullptr);
+			show_lost_msg();
 			save_gamebook();
 			_game.book.clear();
 			redraw();
