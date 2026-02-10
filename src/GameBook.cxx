@@ -75,6 +75,7 @@ GameBook& GameBook::history(const std::string &history_)
 //	LOG("history: '" << h << "'" << "\n");
 	if (h.size())
 		_history.push_front(to_value(h));
+	LOG("GameBook history size: " << _history.size() << "\n");
 	return *this;
 }
 
@@ -99,6 +100,12 @@ void GameBook::draw(int x_, int y_, int w_, int h_)
 	fl_rectf(X, Y, W, H);
 	fl_color(_current == 0 ? GRAY : FL_BLACK);
 	fl_rect(X, Y, W, H);
+	if (_current < _history.size())
+	{
+		int D = W / 12;
+		fl_rect(X + W - D, Y + H - D, D, D);
+		fl_line(X + W - D, Y + H - 1, X + W - 1, Y + H - D);
+	}
 	fl_color(FL_BLACK);
 	fl_font(FL_COURIER, H / 14);
 	X += W / 20;
