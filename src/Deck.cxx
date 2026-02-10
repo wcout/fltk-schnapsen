@@ -331,7 +331,7 @@ public:
 		}
 	}
 
-	void handle_key()
+	bool handle_key()
 	{
 		if (Fl::event_key('q') && !_disabled) // just for testing -> redeal
 		{
@@ -368,6 +368,11 @@ public:
 		{
 			toggle_fullscreen();
 		}
+		else
+		{
+			return false;
+		}
+		return true;
 	}
 
 	void handle_click(int x_, int y_)
@@ -496,7 +501,10 @@ public:
 		}
 		else if (e_ == FL_KEYDOWN)
 		{
-			handle_key();
+			if (handle_key())
+			{
+				return 1; // important to stop ESC from Welcome to also close main window
+			}
 		}
 		else if (e_ == FL_PUSH)
 		{
