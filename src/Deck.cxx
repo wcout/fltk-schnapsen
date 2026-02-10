@@ -1062,7 +1062,10 @@ public:
 
 	void draw_animated_trick()
 	{
-		_back.image()->draw(_animate_xy.first - _CW / 2, _animate_xy.second - _CH / 2);
+		int X = _animate_xy.first - _CW / 2;
+		int Y = _animate_xy.second - _CH / 2;
+		_shadow.image()->draw(X + _CW / 12, Y + _CW / 12);
+		_back.image()->draw(X, Y);
 	}
 
 	void draw_animated_move()
