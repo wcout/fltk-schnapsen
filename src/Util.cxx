@@ -2,10 +2,12 @@
 #include <FL/filename.H>
 #include <FL/fl_draw.H>
 #include <FL/Fl_SVG_Image.H>
+#include <FL/Fl.H>
 
 #include <fstream>
 #include <filesystem>
 #include <stdexcept>
+#include <cstdlib> // atoi
 
 
 const std::string &cardDir = "svg_cards";
@@ -182,8 +184,29 @@ const std::string& Util::message(const Message m_)
 
 /*static*/
 void Util::draw_color_text(const std::string &text_, int x_, int y_,
+                           bool shadow_/* = false*/,
                            const std::map<char, Fl_Color> &colors_/* = text_colors*/)
 {
+	auto draw_text = [&](const char *text_, int x_, int y_) -> void
+	{
+#if defined(WIN32) || defined(USE_IMAGE_TEXT)
+		if (shadow_)
+		{
+			// not suitable when emojis are in the text string!
+			static const bool text_shadow = atoi(::config["text-shadow"].c_str());
+			if (text_shadow)
+			{
+				// draws a text "shadow" by drawing text with offset first in GRAY
+				int delta = fl_height() / 30 + 1;
+				Fl_Color save = fl_color();
+				fl_color(fl_rgb_color(64, 64, 64));
+				fl_draw(text_, x_ + delta, y_ + delta);
+				fl_color(save);
+			}
+		}
+#endif
+		fl_draw(text_, x_, y_);
+	};
 	std::string text(text_);
 	Fl_Color def_color = fl_color();
 	while (text.size())
@@ -194,7 +217,7 @@ void Util::draw_color_text(const std::string &text_, int x_, int y_,
 			std::string t = text.substr(0, pos);
 			if (t.size())
 			{
-				fl_draw(t.c_str(), x_, y_);
+				draw_text(t.c_str(), x_, y_);
 				x_ += fl_width(t.c_str());
 			}
 			if (pos + 1 >= text.size()) break;
@@ -208,14 +231,14 @@ void Util::draw_color_text(const std::string &text_, int x_, int y_,
 		}
 		else
 		{
-			fl_draw(text.c_str(), x_, y_);
+			draw_text(text.c_str(), x_, y_);
 			break;
 		}
 	}
 }
 
 /*static*/
-void Util::draw_string(const std::string &text_, int x_, int y_)
+void Util::draw_string(const std::string &text_, int x_, int y_, bool shadow_/*= false*/)
 {
 	// NOTE: fl_draw(str, x, y) does not handle control characters under WIN32
 	//       so we need to split lines at '\n' ourselves...
@@ -227,7 +250,7 @@ void Util::draw_string(const std::string &text_, int x_, int y_)
 		while ((image_pos = line.find("^|")) != std::string::npos)
 		{
 			std::string sub = line.substr(0, image_pos);
-			draw_color_text(sub, x_ + dx, y_);
+			draw_color_text(sub, x_ + dx, y_, shadow_);
 			size_t pos;
 			while ((pos = sub.find('^')) != std::string::npos)
 				sub.erase(pos, 2);
@@ -251,7 +274,7 @@ void Util::draw_string(const std::string &text_, int x_, int y_)
 		}
 		if (line.size())
 		{
-			draw_color_text(line, x_ + dx, y_);
+			draw_color_text(line, x_ + dx, y_, shadow_);
 		}
 	};
 

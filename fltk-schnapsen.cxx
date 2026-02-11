@@ -93,6 +93,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 	static const string_map short_args =
 	{
 		{ "h", "this help" },
+		{ "S", "draw text with shadow" },
 		{ "s", "faster response" },
 		{ "r", "start with AI move" },
 		{ "w", "show welcome screen" },
@@ -127,6 +128,9 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 			case 'h':
 				OUT(make_help(long_args, short_args));
 				return false;
+			case 'S':
+				Util::config("text-shadow", "1");
+				break;
 			case 'C':
 				Util::config().clear();
 		}

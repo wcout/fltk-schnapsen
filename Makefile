@@ -10,6 +10,8 @@ ifeq ($(wildcard include/miniaudio.h),)
 else
 cxxflags += -DUSE_MINIAUDIO
 endif
+# to enable shadow text
+#cxxflags += -DUSE_IMAGE_TEXT
 
 $(APPLICATION): $(APPLICATION).cxx include/system.h \
                                    include/debug.h \

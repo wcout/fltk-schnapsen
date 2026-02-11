@@ -19,6 +19,7 @@ static const std::map<char, Fl_Color> text_colors = {
 	{ 'w', FL_WHITE },
 	{ 'B', FL_BLACK },
 	{ 'y', FL_YELLOW },
+	{ 'c', FL_CYAN },
 	{ 'G', GRAY }
 };
 
@@ -46,8 +47,9 @@ public:
 	static const std::string& message(const Message m_);
 
 	static void draw_color_text(const std::string &text_, int x_, int y_,
+	                            bool shadow_ = false,
 	                            const std::map<char, Fl_Color> &colors_ = text_colors);
-	static void draw_string(const std::string &text, int x_, int y_);
+	static void draw_string(const std::string &text, int x_, int y_, bool shadow_ = false);
 	static int string_size(const std::string &text_, int &w_, int &h_);
 	static int string_size(const std::string &text_);
 };

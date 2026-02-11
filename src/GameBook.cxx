@@ -110,7 +110,7 @@ void GameBook::draw(int x_, int y_, int w_, int h_)
 	fl_font(FL_COURIER, H / 14);
 	X += W / 20;
 	Y += fl_descent() + fl_height();
-	Util::draw_color_text(Util::message(GAMEBOOK), X, Y, text_colors);
+	Util::draw_color_text(Util::message(GAMEBOOK), X, Y);
 	fl_line_style(FL_SOLID, 2);
 	fl_line(X, Y + fl_descent(), X + W - W / 10, Y + fl_descent());
 	Y += H / 10;

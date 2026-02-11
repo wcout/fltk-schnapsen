@@ -632,7 +632,7 @@ public:
 		fl_pie(r.x - D / 2, r.y - D / 2, D, D, 0., 360.);
 		fl_color(FL_WHITE);
 		fl_font(FL_HELVETICA|FL_BOLD, D / 2);
-		Util::draw_string(text_, r.x - Util::string_size(text_) / 2, r.y + fl_height() / 2 - fl_descent());
+		Util::draw_string(text_, r.x - Util::string_size(text_) / 2, r.y + fl_height() / 2 - fl_descent(), true);
 	}
 
 	void draw_suite_symbol(CardSuite suite_, int x_, int y_)
@@ -698,7 +698,7 @@ public:
 			std::string player_message = Util::message(_player.message);
 			fl_font(FL_HELVETICA, w() / (player_message.back() == '!' ? 24 : 34));
 			fl_color(FL_RED);
-			Util::draw_string(player_message, w() / 4 - Util::string_size(player_message) / 2, h() - h() / 8);
+			Util::draw_string(player_message, w() / 4 - Util::string_size(player_message) / 2, h() - h() / 8, true);
 		}
 		if (_ai.message != NO_MESSAGE)
 		{
@@ -708,7 +708,7 @@ public:
 			if (pos != std::string::npos)
 				ai_message.erase(pos, 2);
 			fl_color(FL_RED);
-			Util::draw_string(ai_message, w() / 4 - Util::string_size(ai_message) / 2, h() / 8);
+			Util::draw_string(ai_message, w() / 4 - Util::string_size(ai_message) / 2, h() / 8, true);
 		}
 		if (_error_message != NO_MESSAGE)
 		{
@@ -724,7 +724,7 @@ public:
 			fl_font(FL_HELVETICA, _CH / 7);
 			fl_color(GRAY);
 			static const std::string closed_sym =
-#ifndef WIN32
+#if !defined(WIN32) && !defined(USE_IMAGE_TEXT)
 				"⛔";
 #else
 				"^|26d4|";
@@ -1054,7 +1054,7 @@ public:
 		fl_color(FL_YELLOW);
 		char buf[30];
 		snprintf(buf, sizeof(buf), " v%s", VERSION);
-		Util::draw_string(buf, 0, fl_height() - fl_descent());
+		Util::draw_string(buf, 0, fl_height() - fl_descent(), true);
 	}
 
 	void draw_grayout()
@@ -1517,7 +1517,7 @@ public:
 	{
 		std::string m(Util::message(YOU_WIN));
 		fl_message_icon()->box(FL_NO_BOX);
-#ifndef WIN32
+#if !defined(WIN32) && !defined(USE_IMAGE_TEXT)
 		fl_message_icon_label("🏆");
 #else
 		static Fl_SVG_Image icon((Util::homeDir() + "rsc/" + "1f3c6.svg").c_str());
@@ -1568,7 +1568,7 @@ public:
 	{
 		std::string m(Util::message(YOU_LOST));
 		fl_message_icon()->box(FL_NO_BOX);
-#ifndef WIN32
+#if !defined(WIN32) && !defined(USE_IMAGE_TEXT)
 		fl_message_icon_label("⚫");
 #else
 		static Fl_SVG_Image icon((Util::homeDir() + "rsc/" + "26ab.svg").c_str());

@@ -67,19 +67,23 @@ void Welcome::draw()
 	fl_font(FL_HELVETICA_BOLD, w() / 10);
 	fl_color(FL_BLACK);
 	static constexpr char title[] = "^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B";
-	Util::draw_color_text(title, (w() - fl_width("FLTK SCHNAPSEN")) / 2, h() / 7);
+	Util::draw_color_text(title, (w() - Util::string_size(title)) / 2, h() / 7, true);
 	fl_color(FL_BLUE);
 	fl_font(FL_HELVETICA_BOLD, w() / 26);
-	static constexpr char cr[] = "(c) 2025 Christian Grabner <wcout@gmx.net>";
-	Util::draw_string(cr, (w() - fl_width(cr)) / 2, h() / 7 + h() / 14);
+	static constexpr char cr[] = "^r(c) 2025^B Christian Grabner^. <wcout@gmx.net>";
+	Util::draw_string(cr, (w() - Util::string_size(cr)) / 2, h() / 7 + h() / 14);
 	fl_color(FL_BLACK);
 	fl_font(FL_HELVETICA_BOLD, h() / 16);
-	Util::draw_string(Util::message(WELCOME), w() / 2 + w() / 60, h() / 2);
+	std::string welcome = Util::message(WELCOME);
+	int SW, SH;
+	Util::string_size(welcome, SW, SH);
+	int X = w() / 40 + W;
+	Util::draw_string(welcome, X + (w() - X - SW) / 2, (h() - stat_h - SH) / 2 + fl_height());
 	// draw stats
 	fl_font(FL_COURIER_BOLD, h() / 42);
 	fl_draw_box(FL_FLAT_BOX, 0, h() - stat_h, w(), stat_h, fl_lighter(fl_lighter(FL_YELLOW)));
 	fl_color(FL_BLACK);
-	Util::draw_string(_stats, (w() - fl_width(_stats.c_str())) / 2, h() - stat_h + fl_height() - 2);
+	Util::draw_string(_stats, (w() - Util::string_size(_stats.c_str())) / 2, h() - stat_h + fl_height() - 2);
 	fl_pop_clip();
 }
 
