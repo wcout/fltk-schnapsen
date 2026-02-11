@@ -116,7 +116,7 @@ void GameBook::draw(int x_, int y_, int w_, int h_)
 	Y += H / 10;
 	Util::draw_color_text(Util::message(GB_HEADLINE), X, Y);
 	int h = H - H / 5;
-	fl_line_style(FL_SOLID, 1);
+	fl_line_style(0);
 	int w = W - W / 10;
 	fl_line(X, Y + fl_descent(), X + w, Y + fl_descent());
 	fl_line(X + w / 2, Y - fl_height(), X + w / 2, Y + h - fl_descent());
