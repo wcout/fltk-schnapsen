@@ -81,24 +81,24 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 {
 	static const string_map long_args =
 	{
-		{ "lang", "\t{id}\t\tset language [de,en]" },
-		{ "loglevel", "{level}\t\tset loglevel [0-2]" },
-		{ "background", "{name/number}\tset background image or color [imagepath/[0-255]]" },
-		{ "cardset", "{directory}\tuse cardset [name]" },
-		{ "cardback", "{file}\t\tuse cardback image [svg]" },
-		{ "cards", "\t{cards-string}\tuse this cards to play (for debugging only)" },
+		{ "strict", "{strictness}\tconfirm strict(er) to the rules [0-2] 0=off, 2=all" },
 		{ "animate", "{level}\t\tanimate card moves [0-2] 0=off, 2=all" },
-		{ "strict", "{strictness}\tconfirm strict(er) to the rules [0-2] 0=off, 2=all" }
+		{ "cards", "\t{cards-string}\tuse this cards to play (for debugging only)" },
+		{ "cardback", "{file}\t\tuse cardback image [svg]" },
+		{ "cardset", "{directory}\tuse cardset [name]" },
+		{ "background", "{name/number}\tset background image or color [imagepath/[0-255]]" },
+		{ "loglevel", "{level}\t\tset loglevel [0-2]" },
+		{ "lang", "\t{id}\t\tset language [de,en]" }
 	};
 	static const string_map short_args =
 	{
-		{ "C", "default config values" },
-		{ "d", "enable debug" },
-		{ "f", "run fullscreen" },
-		{ "w", "show welcome screen" },
-		{ "r", "start with AI move" },
+		{ "h", "this help" },
 		{ "s", "faster response" },
-		{ "h", "this help" }
+		{ "r", "start with AI move" },
+		{ "w", "show welcome screen" },
+		{ "f", "run fullscreen" },
+		{ "d", "enable debug" },
+		{ "C", "default config values" }
 	};
 
 	if (value_.size() && long_args.find(arg_.substr(2)) != long_args.end())
