@@ -184,7 +184,7 @@ const std::string& Util::message(const Message m_)
 
 /*static*/
 void Util::draw_color_text(const std::string &text_, int x_, int y_,
-                           bool shadow_/* = false*/,
+                           [[maybe_unused]]bool shadow_/* = false*/,
                            const std::map<char, Fl_Color> &colors_/* = text_colors*/)
 {
 	auto draw_text = [&](const char *text_, int x_, int y_) -> void
