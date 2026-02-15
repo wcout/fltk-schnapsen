@@ -10,8 +10,8 @@ public:
 	void stats(std::string stats_) { _stats = stats_; }
 	~Welcome();
 	static void redraw_timer(void *d_);
-	int handle(int e_);
-	void draw();
+	int handle(int e_) override;
+	void draw() override;
 private:
 	std::string _stats;
 };

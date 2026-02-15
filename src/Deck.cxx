@@ -377,11 +377,14 @@ public:
 
 	void handle_click(int x_, int y_)
 	{
+/*
+		// ????
 		if (_disabled)
 		{
 			_disabled = false;
 			return;
 		}
+*/
 		_game.marriage = NO_MARRIAGE;
 		if (gamebook_rect().includes(x_, y_) && idle())
 		{
@@ -1515,6 +1518,7 @@ public:
 
 	void show_win_msg() override
 	{
+		cursor(FL_CURSOR_DEFAULT);
 		std::string m(Util::message(YOU_WIN));
 		fl_message_icon()->box(FL_NO_BOX);
 #if !defined(WIN32) && !defined(USE_IMAGE_TEXT)
@@ -1566,6 +1570,7 @@ public:
 
 	void show_lost_msg() override
 	{
+		cursor(FL_CURSOR_DEFAULT);
 		std::string m(Util::message(YOU_LOST));
 		fl_message_icon()->box(FL_NO_BOX);
 #if !defined(WIN32) && !defined(USE_IMAGE_TEXT)

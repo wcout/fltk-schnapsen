@@ -252,7 +252,8 @@ bool Engine::test_change(GameState &player_, bool change_/*=false*/)
 	player_.cards.push_back(c);
 	player_.cards.sort();
 	player_.changed = c;
-	_ui.wait(1.5);
+	if (_game.move == AI)
+		_ui.wait(1.5);
 	return true;
 }
 
