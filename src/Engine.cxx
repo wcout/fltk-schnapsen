@@ -554,11 +554,13 @@ Cards Engine::closed_lead_no_trick(Cards leader_, Cards follower_)
 
 size_t Engine::ai_play_for_last_trick_lead()
 {
+#pragma message("IMPLEMENT")
 	return NO_MOVE;
 }
 
 size_t Engine::ai_play_for_last_trick_follow()
 {
+#pragma message("IMPLEMENT")
 	return NO_MOVE;
 }
 
@@ -608,6 +610,7 @@ size_t Engine::ai_play_for_closed_lead()
 	{
 		// leading last trick before pack clear
 		LOG("ai_play_for_closed_lead: leading\n");
+#pragma message("IMPLEMENT")
 	}
 	return NO_MOVE;
 }
@@ -620,8 +623,9 @@ void Engine::ai_move_closed_lead()
 	if (_ai.cards.size() == 2)
 	{
 		// special case, before last trick
-		// TODO: implement
 		size_t m = ai_play_for_last_trick_lead();
+		if (m != NO_MOVE)
+			_move = m;
 	}
 
 	size_t m = ai_play_20_40();
@@ -669,8 +673,9 @@ void Engine::ai_move_closed_follow()
 	if (_ai.cards.size() == 2)
 	{
 		// special case, before last trick
-		// TODO: implement
 		size_t m = ai_play_for_last_trick_follow();
+		if (m != NO_MOVE)
+			_move = m;
 	}
 
 	_move = must_give_color_or_trick(_player.card, _ai.cards);
@@ -687,6 +692,8 @@ void Engine::ai_move_lead()
 		// special case, before pack clearing
 		// TODO: implement
 		size_t m = ai_play_for_closed_lead();
+		if (m != NO_MOVE)
+			_move = m;
 	}
 
 	size_t m = ai_play_20_40();
