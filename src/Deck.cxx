@@ -377,14 +377,13 @@ public:
 
 	void handle_click(int x_, int y_)
 	{
-/*
-		// ????
 		if (_disabled)
 		{
+			// terminate wait()
 			_disabled = false;
 			return;
 		}
-*/
+
 		_game.marriage = NO_MARRIAGE;
 		if (gamebook_rect().includes(x_, y_) && idle())
 		{
@@ -1976,6 +1975,7 @@ public:
 
 	void game(Player playout_)
 	{
+		DBG(std::string(80, '~') << "\n");
 		DBG("new game: " << (playout_ == PLAYER ? "PLAYER" : "AI") << " to lead\n");
 		_game.move = playout_;
 		init();

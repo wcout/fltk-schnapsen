@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <map>
+#include <fstream>
 
 typedef std::unordered_map<std::string, std::string> string_map;
 
@@ -52,4 +53,6 @@ public:
 	static void draw_string(const std::string &text, int x_, int y_, bool shadow_ = false);
 	static int string_size(const std::string &text_, int &w_, int &h_);
 	static int string_size(const std::string &text_);
+
+	static std::ostream& logstream();
 };

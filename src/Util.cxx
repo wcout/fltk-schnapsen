@@ -7,7 +7,7 @@
 #include <fstream>
 #include <filesystem>
 #include <stdexcept>
-#include <cstdlib> // atoi
+#include <cstdlib> // atoi(), getenv()
 
 
 const std::string &cardDir = "svg_cards";
@@ -352,4 +352,21 @@ int Util::string_size(const std::string &text_)
 {
 	int W, H;
 	return string_size(text_, W, H);
+}
+
+/*static*/
+std::ostream& Util::logstream()
+{
+	auto temp_dir = [&]() -> std::string
+	{
+#ifdef WIN32
+		char *temp_dir = std::getenv("TEMP");
+		return temp_dir ? temp_dir : ".";
+#else
+		return "/tmp";
+#endif
+	};
+
+	static std::ofstream ofs((temp_dir() + "/fltk-schnapsen.log").c_str(), std::ios::binary);
+	return ofs;
 }
