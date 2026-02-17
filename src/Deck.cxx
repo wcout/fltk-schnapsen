@@ -857,12 +857,20 @@ public:
 		int dest_Y = cards_rect(player_).center().y;
 
 		size_t cards_to_deal = (_ai.cards.size() < 5 && _player.cards.size() < 5) ? 3 : 2;
+		if (_ai.cards.size() >= 4 && _player.cards.size() >= 4)
+			cards_to_deal = 1; // called from fillup cards
+
 //		DBG("animate_deal(" << (player_ == PLAYER ? "PLAYER" : "AI") << "): " << cards_to_deal << " cards\n");
 
 		for (size_t i = 0; i < cards_to_deal; i++)
 		{
 			do_animate(&Deck::draw_animated_trick, src_X, src_Y, dest_X, dest_Y);
 		}
+	}
+
+	void animate_fillup(Player player_)
+	{
+		animate_deal(player_);
 	}
 
 	void animate_shuffle() override
@@ -1311,7 +1319,19 @@ public:
 	void debug() const
 	{
 		if (_game.cards.size() == 20 || _game.cards.size() == 10)
+		{
+			// log only when change of deck cards
+			static Cards cards;
+			if (cards == _game.cards) return; // no change!
+			cards = _game.cards;
 			dump_cards(_game.cards, "Deck");
+		}
+		// log only when change of playing cards
+		static Cards player_cards;
+		static Cards ai_cards;
+		if (_ai.cards == ai_cards && _player.cards == player_cards) return; // no change
+		ai_cards = _ai.cards;
+		player_cards = _player.cards;
 		LOG("AI cards: " << _ai.cards);
 		if (_strictness >= 1 && _game.closed == BY_PLAYER)
 		{
@@ -1485,6 +1505,9 @@ public:
 				Card c = _game.cards.front();
 				_game.cards.pop_front();
 				_game.move == AI ? _ai.last_drawn = c : _player.last_drawn = c;
+
+				animate_fillup(_game.move == AI ? AI : PLAYER);
+
 				if (_game.move == AI)
 					_ai.cards.push_front(c);
 				else
@@ -1496,6 +1519,9 @@ public:
 				Card c = _game.cards.front();
 				_game.move == PLAYER ? _ai.last_drawn = c : _player.last_drawn = c;
 				_game.cards.pop_front();
+
+				animate_fillup(_game.move == AI ? PLAYER : AI);
+
 				if (_game.move == AI)
 					_player.cards.push_front(c);
 				else
@@ -1758,6 +1784,7 @@ public:
 		// NOTE: conflict with Fl_Widget::CHANGED!
 		if (m_ == Message::CHANGED) m_ = _game.move == AI ? AI_CHANGED : YOU_CHANGED;
 		_game.move == AI ? ai_message(m_, bell_) : player_message(m_, bell_);
+		debug();
 	}
 
 	void ai_message(Message m_, bool bell_ = false)
