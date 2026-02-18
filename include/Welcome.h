@@ -1,6 +1,7 @@
 #pragma once
 
 #include <FL/Fl_Double_Window.H>
+#include <string>
 
 class Welcome : public Fl_Double_Window
 {

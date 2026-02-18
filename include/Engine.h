@@ -59,6 +59,8 @@ public:
 
 	Suites have_20(const Cards &cards_);
 	Suites have_40(const Cards &cards_);
+	Suites have_20() { return have_20(_ai.cards); } // shortcut
+	Suites have_40() { return have_40(_ai.cards); } // shortcut
 	size_t find(const Card &c_, const Cards &cards_) const;
 	size_t lowest_card(Cards &cards_, bool no_trump_ = true) const;
 	size_t lowest_card_that_tricks(const Card &c_, const Cards &cards_) const;
@@ -74,6 +76,7 @@ public:
 	bool ai_test_close();
 	Cards highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suite_);
 	Cards highest_cards_in_hand(const Cards &cards_);
+	Cards highest_cards_in_hand() { return highest_cards_in_hand(_ai.cards); }
 	Cards suites_in_hand(CardSuite suite_, const Cards &cards_) const;
 	Cards trumps_in_hand(const Cards &cards_) const;
 	size_t must_give_color_or_trick(const Card &c_, Cards &cards_) const;
