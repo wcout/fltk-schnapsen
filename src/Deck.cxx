@@ -43,6 +43,14 @@ using enum Message;
 using enum Closed;
 using enum Marriage;
 
+struct GameHistory
+{
+	GameHistory(GameState &player_, GameState &ai_, GameData game_) :
+		player(player_), ai(ai_), game(game_) {}
+	GameState player;
+	GameState ai;
+	GameData game;
+};
 
 //
 // UI dependent (drawing/event handling) stuff
@@ -96,7 +104,7 @@ public:
 		// Initialize the engine
 		if (ma_engine_init(NULL, &_engine) != MA_SUCCESS)
 		{
-			OUT("Failed to initialize audio engine.\n");
+			WNG("Failed to initialize audio engine.");
 		}
 	}
 	void play(const std::string &filename_)
@@ -1175,9 +1183,13 @@ public:
 	{
 		DBG("Your command: '" << _cmd << "'\n")
 		if (_cmd.find("debug") == 0)
-			debug();
+		{
+			debug(true);
+		}
 		else if (_cmd.find("error=") == 0)
+		{
 			error_message((Message)atoi(_cmd.substr(6).c_str()));
+		}
 		else if (_cmd.find("player_message=") == 0)
 		{
 			Message m = (Message)atoi(_cmd.substr(15).c_str());
@@ -1231,7 +1243,17 @@ public:
 		}
 		else if (_cmd == "help")
 		{
-			OUT("debug/error/message/gb/cip\n");
+			OUT("debug/error/message/ai_message/player_message/gb/cip\n");
+		}
+		else if (_cmd == "back")
+		{
+			WNG("history size: " << _history.size());
+			if (back_history()) bell();
+			return;
+		}
+		else if (_cmd == "quit")
+		{
+			toggle_cmd_input();
 		}
 		else
 		{
@@ -1316,20 +1338,22 @@ public:
 		LOG("\n");
 	}
 
-	void debug() const
+	void debug(bool unconditional_ = false) const
 	{
-		if (_game.cards.size() == 20 || _game.cards.size() == 10)
+		if (unconditional_ == true || _game.cards.size() == 20 || _game.cards.size() == 10)
 		{
 			// log only when change of deck cards
 			static Cards cards;
-			if (cards == _game.cards) return; // no change!
+			if (unconditional_ == false &&
+				cards == _game.cards) return; // no change!
 			cards = _game.cards;
 			dump_cards(_game.cards, "Deck");
 		}
 		// log only when change of playing cards
 		static Cards player_cards;
 		static Cards ai_cards;
-		if (_ai.cards == ai_cards && _player.cards == player_cards) return; // no change
+		if (unconditional_ == false &&
+			_ai.cards == ai_cards && _player.cards == player_cards) return; // no change
 		ai_cards = _ai.cards;
 		player_cards = _player.cards;
 		LOG("AI cards: " << _ai.cards);
@@ -1497,7 +1521,7 @@ public:
 
 	void fillup_cards()
 	{
-		if (_game.closed == NOT)
+		if (_game.closed == NOT && _player.cards.size() < 5 && _ai.cards.size() < 5)
 		{
 			// give cards from pack
 			if (_game.cards.size())
@@ -1745,6 +1769,7 @@ public:
 
 	virtual void prepare_game() override
 	{
+		_history.clear();
 		cursor(FL_CURSOR_DEFAULT);
 		if (_redeal)
 			_redeal_button->show();
@@ -1757,6 +1782,7 @@ public:
 		while (playing())
 		{
 			_redeal = true;
+			_history.clear();
 			prepare_game();
 			game(playout);
 			if (_redeal) continue;
@@ -1973,6 +1999,11 @@ public:
 	void player_move() override
 	{
 		cursor(FL_CURSOR_DEFAULT);
+		update_history();
+		if (_game.closed == AUTO  && _engine.highest_cards_in_hand(_player.cards).size() == _player.cards.size())
+		{
+			WNG("You have all highest cards in your hand!\n");
+		}
 		while (playing() && _player.move_state != ON_TABLE && _redeal == false)
 		{
 			wait(0.);
@@ -2117,6 +2148,24 @@ public:
 		return os.str();
 	}
 
+	void update_history()
+	{
+		GameHistory h(_player, _ai, _game);
+		_history.push_back(h);
+	}
+
+	bool back_history()
+	{
+		if (_history.empty()) return false;
+		GameHistory h = _history.back();
+		if (_history.size() != 1)
+			_history.pop_back();
+		_player = h.player;
+		_ai = h.ai;
+		_game = h.game;
+		return true;
+	}
+
 private:
 	// Engine
 	GameState _player;
@@ -2147,4 +2196,5 @@ private:
 	int _strictness;
 	int _animation_level;
 	bool _show_ai_cards;
+	std::vector<GameHistory> _history;
 };
