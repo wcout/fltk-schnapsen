@@ -31,13 +31,16 @@ size_t Engine::best_trick_card(const Card &c_, Cards &tricks_) const
 	}
 	if (move == NO_MOVE)
 	{
-		// try to find a trick that pushes score beyond 32
-		for (auto c : tricks_)
+		if (_ai.score < 33)
 		{
-			if (c.value() + c_.value() + _ai.score + _ai.pending >= 33)
+			// try to find a trick that pushes score beyond 32
+			for (auto c : tricks_)
 			{
-				move = find(c, tricks_);
-				break;
+				if (c.value() + c_.value() + _ai.score + _ai.pending >= 33)
+				{
+					move = find(c, tricks_);
+					break;
+				}
 			}
 		}
 	}
@@ -252,6 +255,10 @@ bool Engine::test_change(GameState &player_, bool change_/*=false*/)
 	player_.cards.push_back(c);
 	player_.cards.sort();
 	player_.changed = c;
+
+	_ui.message(CHANGED);
+	_ui.update();
+
 	if (_game.move == AI)
 		_ui.wait(1.5);
 	return true;
@@ -358,9 +365,20 @@ bool Engine::ai_test_close()
 	if (_game.closed == NOT && _player.move_state == NONE && _ai.move_state == MOVING &&
 	    _game.cards.size() >= 4)
 	{
-		int maybe_score = highest_cards_in_hand(_ai.cards).value() + _ai.score + _ai.pending;
+		int maybe_score = _ai.score + _ai.pending;
+//		if (have_40().size()) maybe_score += 40;
+//		else if (have_20().size()) maybe_score += 20;
+		bool do_close = maybe_score >= 66; // that's a sure thing!
+		if (!do_close)
+		{
+			// test if cards are good enough
+			Cards highest = highest_cards_in_hand();
+			maybe_score += highest.value();
+			do_close = maybe_score >= 60 &&
+				(trumps_in_hand(_ai.cards).size() || max_trumps_player() <= 1);
+		}
 		DBG("maybe_score: " << maybe_score << "\n")
-		if (maybe_score >= 60)
+		if (do_close)
 		{
 			LOG("closed by AI!\n");
 			_game.closed = BY_AI;
@@ -626,7 +644,7 @@ void Engine::ai_move_closed_lead()
 		// special case, before last trick
 		size_t m = ai_play_for_last_trick_lead();
 		if (m != NO_MOVE)
-			_move = m;
+			move = m;
 	}
 
 	size_t m = ai_play_20_40();
@@ -705,7 +723,24 @@ void Engine::ai_move_lead()
 	{
 		if (_game.marriage == NO_MARRIAGE)
 		{
-			_move = find(highest_cards_in_hand(_ai.cards)[0], _ai.cards);
+			Cards highest = highest_cards_in_hand();
+			if (highest.size())
+				_move = find(highest[0], _ai.cards);
+		}
+		else
+		{
+			// optimization: if having 40 and player still may have trumps
+			// try first to pull a trump with A or 10
+			if (have_40().size() && max_trumps_player())
+			{
+				Cards highest = highest_cards_in_hand();
+				Cards highest_trumps = trumps_in_hand(highest);
+				if (highest_trumps.size() && highest_trumps[0].value() >= 10)
+				{
+					DBG("***pull trump before playing 40!\n");
+					_move = find(highest_trumps[0], _ai.cards);
+				}
+			}
 		}
 	}
 }
@@ -720,13 +755,7 @@ void Engine::ai_move_follow()
 		size_t m = ai_play_for_closed_lead();
 		if (m != NO_MOVE)
 		{
-			DBG("ai_play_for_closed_lead suggested " << _ai.cards[m] << "\n");
-			if (::debug)
-			{
-				std::ostringstream os;
-				os << "ai_play_for_closed_lead\nsuggested " << _ai.cards[m];
-				fl_alert("%s", os.str().c_str()); // TESTONLY!!
-			}
+			WNG("ai_play_for_closed_lead suggested " << _ai.cards[m]);
 			_move = m;
 		}
 	}
@@ -754,28 +783,7 @@ void Engine::ai_move_follow()
 		Cards tricks = all_cards_that_trick(_player.card, _ai.cards);
 		if (tricks.size())
 		{
-			size_t m = find(tricks[best_trick_card(_player.card, tricks)], _ai.cards);
-			const Card &c = _ai.cards[m];
-			// trick or not trick?
-			bool trick(false);
-			int score = _ai.cards[m].value() + _player.card.value() + _ai.pending;
-			if (_ai.score < 33 && _ai.score + score >= 33)
-				trick = true;
-			else if (_ai.score >= 33 && _ai.score + score >= 66)
-				trick = true;
-			else if (_game.cards.size() <= 2 && _ai.score <= 50 && _ai.score + score >= 60)
-				trick = true;
-			else if (_player.card.suite() != _game.trump && c.suite() != _game.trump)
-				trick = true;
-#if 0
-			else if (_game.cards.size() > 2 && _player.score + _player.pending + _player.card.value() + _ai.cards[lowest_card(_ai.cards)].value() >= 52)
-			{
-				DBG("trick because player is about to win..\n");
-				trick = true;
-			}
-#endif
-			if (trick)
-				_move = m;
+			_move = find(tricks[best_trick_card(_player.card, tricks)], _ai.cards);
 		}
 	}
 }
