@@ -70,7 +70,7 @@ void Welcome::draw()
 	Util::draw_color_text(title, (w() - Util::string_size(title)) / 2, h() / 7, true);
 	fl_color(FL_BLUE);
 	fl_font(FL_HELVETICA_BOLD, w() / 26);
-	static constexpr char cr[] = "^r(c) 2025^B Christian Grabner^. <wcout@gmx.net>";
+	static constexpr char cr[] = "^r(c) 2025-2026^B Christian Grabner^. <wcout@gmx.net>";
 	Util::draw_string(cr, (w() - Util::string_size(cr)) / 2, h() / 7 + h() / 14);
 	fl_color(FL_BLACK);
 	fl_font(FL_HELVETICA_BOLD, h() / 16);

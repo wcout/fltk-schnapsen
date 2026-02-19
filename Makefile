@@ -22,7 +22,7 @@ $(APPLICATION): $(APPLICATION).cxx include/system.h \
                                    include/Card.h src/Card.cxx \
                                    include/Cards.h src/Cards.cxx \
                                    include/Util.h src/Util.cxx \
-                                   include/Deck.h src/Deck.cxx \
+                                   include/Deck.h src/Deck.cxx src/Deck_Cmd.cxx \
                                    include/GameBook.h src/GameBook.cxx \
                                    include/Engine.h src/Engine.cxx \
                                    include/Welcome.h src/Welcome.cxx \

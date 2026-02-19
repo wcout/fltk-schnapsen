@@ -31,6 +31,7 @@ Player first_to_move = Player::PLAYER;
 #include "Engine.cxx"
 #include "Welcome.cxx"
 #include "Deck.cxx"
+#include "Deck_Cmd.cxx"
 
 void list_decks(std::ostringstream &os_)
 {
