@@ -349,21 +349,6 @@ public:
 		{
 			debug();
 		}
-		else if (Fl::event_key(' ') && ::debug > 1)
-		{
-			static bool paused = false;
-			paused = !paused;
-			if (paused)
-			{
-				Fl::add_timeout(0.0, [](void *d_)
-				{
-					Deck *deck = static_cast<Deck *>(d_);
-					deck->_grayout = true;
-					while (paused)	{ deck->wait(0.1); deck->redraw(); }
-					deck->_grayout = false;
-				}, this);
-			}
-		}
 		else if (Fl::event_key(FL_F + 1) && idle())
 		{
 			welcome();
@@ -1182,9 +1167,26 @@ public:
 	void onCmd()
 	{
 		DBG("Your command: '" << _cmd << "'\n")
-		if (_cmd.find("debug") == 0)
+		if (_cmd.find("animate=") == 0)
 		{
-			debug(true);
+			int value = atoi(_cmd.substr(8).c_str());
+			if (value >= 0 && value <= 2)
+				_animation_level = value;
+			OUT("animate: " << _animation_level << "\n");
+		}
+		else if (_cmd.find("debug=") == 0)
+		{
+			int value = atoi(_cmd.substr(6).c_str());
+			if (value >= 1 && value <= 4) // don't allow 0 here
+				::debug = value;
+			OUT("debug: " << ::debug << "\n");
+		}
+		else if (_cmd.find("loglevel=") == 0)
+		{
+			int value = atoi(_cmd.substr(9).c_str());
+			if (value >= 0 && value <= 2)
+				Util::config("loglevel", std::to_string(value));
+			OUT("loglevel: " << atoi(Util::config("loglevel").c_str()) << "\n");
 		}
 		else if (_cmd.find("error=") == 0)
 		{
@@ -1240,10 +1242,13 @@ public:
 			OUT(suite_symbol(DIAMOND) << ": " << _engine.cards_in_play(DIAMOND) << " (" << _engine.max_cards_player(DIAMOND) << ")\n");
 			OUT(suite_symbol(CLUB) << ": " << _engine.cards_in_play(CLUB) << " (" << _engine.max_cards_player(CLUB) << ")\n");
 			OUT("max_trumps_player: " << _engine.max_trumps_player() << "\n");
+			OUT("PL-deck: " << _player.deck << "\n");
+			OUT("AI-deck: " << _ai.deck << "\n");
+			OUT("Cards  : " << _game.cards << "\n");
 		}
 		else if (_cmd == "help")
 		{
-			OUT("debug/error/message/ai_message/player_message/gb/cip\n");
+			OUT("animate|back|debug|error|loglevel|message|ai_message|player_message|gb|cip|quit\n");
 		}
 		else if (_cmd == "back")
 		{
@@ -1347,7 +1352,7 @@ public:
 			if (unconditional_ == false &&
 				cards == _game.cards) return; // no change!
 			cards = _game.cards;
-			dump_cards(_game.cards, "Deck");
+			dump_cards(_game.cards, "Cards");
 		}
 		// log only when change of playing cards
 		static Cards player_cards;
@@ -2000,10 +2005,13 @@ public:
 	{
 		cursor(FL_CURSOR_DEFAULT);
 		update_history();
-		if (_game.closed == AUTO  && _engine.highest_cards_in_hand(_player.cards).size() == _player.cards.size())
+#if 0
+		// TODO: maybe use later, to offer a 'claim remaining tricks' feature
+		if (_engine.highest_cards_in_hand(_player.cards).size() == _player.cards.size())
 		{
 			WNG("You have all highest cards in your hand!\n");
 		}
+#endif
 		while (playing() && _player.move_state != ON_TABLE && _redeal == false)
 		{
 			wait(0.);
