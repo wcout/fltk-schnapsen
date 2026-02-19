@@ -71,6 +71,7 @@ public:
 	bool can_trick_with_suite(const Card &c_, const Cards &cards_) const;
 	bool card_tricks(const Card &c1_, const Card &c2_) const;
 	size_t best_trick_card(const Card &c_, Cards &tricks_) const;
+	size_t best_trick_card_or_no_move(const Card &c_, Cards &tricks_) const;
 	bool test_change(GameState &player_, bool change_ = false);
 	size_t ai_play_20_40();
 	bool ai_test_close();
@@ -88,6 +89,7 @@ public:
 	int max_trumps_player() const;
 	Cards pull_trump_cards(Cards cards_, Cards from_) const;
 	Cards closed_lead_no_trick(Cards leader_, Cards follower_);
+	Cards hinder_20_40();
 	bool unit_tests();
 private:
 	GameData &_game;

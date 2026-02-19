@@ -53,6 +53,30 @@ size_t Engine::best_trick_card(const Card &c_, Cards &tricks_) const
 	return move;
 }
 
+size_t Engine::best_trick_card_or_no_move(const Card &c_, Cards &tricks_) const
+{
+	size_t move = best_trick_card(c_, tricks_);
+	assert(move != NO_MOVE);
+
+	if (move == lowest_card_that_tricks(c_, tricks_))
+	{
+		// that was the default move
+		Card c = tricks_[move];
+		// Do not trick with trump a low non-trump
+		if (c.suite() == _game.trump && c_.value() <= 4)
+		{
+			// with some exceptions:
+			if (_player.score + c.value() + c_.value() < 66)
+			{
+				WNG("Don't waste trump " << c << " on low non-trump " << _player.card);
+				return NO_MOVE;
+			}
+		}
+	}
+
+	return move;
+}
+
 bool Engine::has_suite(const Cards &cards_, CardSuite suite_) const
 {
 	for (auto &c : cards_)
@@ -270,11 +294,34 @@ size_t Engine::ai_play_20_40()
 	Suites suites = have_40(_ai.cards);
 	if (suites.size())
 	{
-		// ai has 40, play out queen
+		// ai has 40
+
+		// optimization: if having 40 and player still may have trumps
+		// try first to pull a trump with A or 10
+		if (max_trumps_player() && _ai.score + 44 < 66)
+		{
+			Cards highest = highest_cards_in_hand();
+			Cards highest_trumps = trumps_in_hand(highest);
+			if (highest_trumps.size() && highest_trumps[0].value() >= 10)
+			{
+				WNG("***try pull trump before playing 40!\n");
+				move = find(highest_trumps[0], _ai.cards);
+				return move;
+			}
+		}
+
+		// play the 40, check if using king wins game
 		_game.marriage = MARRIAGE_40;
 		_ui.bell(AI_MARRIAGE_40);
-		size_t trump_queen = find(Card(QUEEN, _game.trump), _ai.cards);
-		move = trump_queen;
+		if (_ai.score + 43 == 65)
+		{
+			move = find(Card(KING, _game.trump), _ai.cards);
+		}
+		else
+		{
+			// otherwise use queen
+			move = find(Card(QUEEN, _game.trump), _ai.cards);
+		}
 		LOG("AI declares 40 with " << _ai.cards[move] << "\n");
 		_ai.s20_40.push_front(_ai.cards[move].suite());
 		if (_ai.deck.empty())
@@ -366,6 +413,7 @@ bool Engine::ai_test_close()
 	    _game.cards.size() >= 4)
 	{
 		int maybe_score = _ai.score + _ai.pending;
+//		NOTE: this is already done currently before ai_test_close gets called:
 //		if (have_40().size()) maybe_score += 40;
 //		else if (have_20().size()) maybe_score += 20;
 		bool do_close = maybe_score >= 66; // that's a sure thing!
@@ -497,6 +545,48 @@ int Engine::max_cards_player(CardSuite suite_) const
 int Engine::max_trumps_player() const
 {
 	return cards_in_play(_game.trump) - suites_in_hand(_game.trump, _ai.cards).size();
+}
+
+Cards Engine::hinder_20_40()
+{
+//#pragma message("Use this method in normal end game")
+	// Use only in normal Endgame:
+	// check if player holds 20 or 40
+	// check if it is possible to hinder that
+	Suites s20 = have_20(_player.cards);
+	Suites s40 = have_40(_player.cards);
+	if (s20.empty() && s40.empty())
+	{
+		return {};
+	}
+	if (s20.size() > 1)
+	{
+		// don't deal with more than one 20 suites
+		return {};
+	}
+
+	if (s40.size())
+	{
+		// Player holds 40
+		Cards suites = suites_in_hand(s40[0], _player.cards);
+		if (suites.size() > 2)
+		{
+			return {};
+		}
+		return all_cards_that_trick(Card(QUEEN, s40[0]), _ai.cards);
+	}
+
+	if (s20.size())
+	{
+		// Player holds single 20
+		Cards suites = suites_in_hand(s20[0], _ai.cards);
+		if (suites.size() > 2)
+		{
+			return {};
+		}
+		return all_cards_that_trick(Card(QUEEN, s20[0]), _ai.cards);
+	}
+	return {};
 }
 
 Cards Engine::pull_trump_cards(Cards cards_, Cards from_) const
@@ -654,17 +744,27 @@ void Engine::ai_move_closed_lead()
 	}
 	else
 	{
-		Cards trump_claim = cards_to_claim(_game.trump);
-		if (trump_claim.size() && (int)trump_claim.size() >= max_trumps_player())
+		Cards hinder = hinder_20_40();
+		if (hinder.size())
 		{
-			move = find(trump_claim[0], _ai.cards);
+			move = find(hinder[0], _ai.cards);
+			assert(move != NO_MOVE);
+			WNG("hinder 20/40 with " << _ai.cards[move] << " from " << hinder);
 		}
 		else
 		{
-			Cards claim = cards_to_claim();
-			if (claim.size())
+			Cards trump_claim = cards_to_claim(_game.trump);
+			if (trump_claim.size() && (int)trump_claim.size() >= max_trumps_player())
 			{
-				move = find(claim[0], _ai.cards);
+				move = find(trump_claim[0], _ai.cards);
+			}
+			else
+			{
+				Cards claim = cards_to_claim();
+				if (claim.size())
+				{
+					move = find(claim[0], _ai.cards);
+				}
 			}
 		}
 	}
@@ -723,24 +823,7 @@ void Engine::ai_move_lead()
 	{
 		if (_game.marriage == NO_MARRIAGE)
 		{
-			Cards highest = highest_cards_in_hand();
-			if (highest.size())
-				_move = find(highest[0], _ai.cards);
-		}
-		else
-		{
-			// optimization: if having 40 and player still may have trumps
-			// try first to pull a trump with A or 10
-			if (have_40().size() && max_trumps_player())
-			{
-				Cards highest = highest_cards_in_hand();
-				Cards highest_trumps = trumps_in_hand(highest);
-				if (highest_trumps.size() && highest_trumps[0].value() >= 10)
-				{
-					DBG("***pull trump before playing 40!\n");
-					_move = find(highest_trumps[0], _ai.cards);
-				}
-			}
+			ai_move_closed_lead(); // use closed routine!
 		}
 	}
 }
@@ -783,7 +866,19 @@ void Engine::ai_move_follow()
 		Cards tricks = all_cards_that_trick(_player.card, _ai.cards);
 		if (tricks.size())
 		{
-			_move = find(tricks[best_trick_card(_player.card, tricks)], _ai.cards);
+			size_t move = best_trick_card_or_no_move(_player.card, tricks);
+			if (move != NO_MOVE)
+				_move = find(tricks[move], _ai.cards);
+			else
+			{
+				// another exception: do rather trick, than give away a high card
+				assert(_move);
+				if (_ai.cards[_move].value() >= 10)
+				{
+					WNG("Nevertheless trick, rather than giving away " << _ai.cards[_move]);
+					_move = find(tricks[best_trick_card(_player.card, tricks)], _ai.cards);
+				}
+			}
 		}
 	}
 }

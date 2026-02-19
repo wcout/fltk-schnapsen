@@ -57,6 +57,14 @@ bool Unittest::run()
 	assert(res.size() == 0);
 	_player.deck.clear();
 
+	Cards c4("|A♦|T♦|K♦|Q♦|J♦|");
+	_player.deck = "|T♣|J♣|";
+	_ai.deck = "|T♣|K♣|K♥|Q♥|";
+	res = _engine.highest_cards_in_hand(c4);
+	assert(res.size() == 5);
+	_ai.deck.clear();
+	_player.deck.clear();
+
 	_game.trump = SPADE;
 	temp = _game.cards;
 	_game.cards.clear();
