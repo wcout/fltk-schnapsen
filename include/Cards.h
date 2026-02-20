@@ -13,7 +13,7 @@ class Cards : public Cards_
 public:
 	Cards();
 	Cards(const Cards_ &cards_);
-	Cards(const Card &card_);
+	explicit Cards(const Card &card_);
 	explicit Cards(const std::string &s_);
 	Cards operator = (const std::string &s_);
 	Cards operator += (const Cards &c_);

@@ -45,7 +45,7 @@ using enum Marriage;
 
 struct GameHistory
 {
-	GameHistory(GameState &player_, GameState &ai_, GameData game_) :
+	GameHistory(GameState &player_, GameState &ai_, GameData &game_) :
 		player(player_), ai(ai_), game(game_) {}
 	GameState player;
 	GameState ai;
@@ -1165,7 +1165,7 @@ public:
 		draw_grayout();
 	}
 
-	void onCmd(std::string cmd_);
+	void onCmd(const std::string &cmd_);
 
 	void onCmd()
 	{

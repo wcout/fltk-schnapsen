@@ -83,7 +83,7 @@ void Welcome::draw()
 	fl_font(FL_COURIER_BOLD, h() / 42);
 	fl_draw_box(FL_FLAT_BOX, 0, h() - stat_h, w(), stat_h, fl_lighter(fl_lighter(FL_YELLOW)));
 	fl_color(FL_BLACK);
-	Util::draw_string(_stats, (w() - Util::string_size(_stats.c_str())) / 2, h() - stat_h + fl_height() - 2);
+	Util::draw_string(_stats, (w() - Util::string_size(_stats)) / 2, h() - stat_h + fl_height() - 2);
 	fl_pop_clip();
 }
 

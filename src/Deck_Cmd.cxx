@@ -12,7 +12,7 @@
 #include <string>
 #include <cstdlib>
 
-void Deck::onCmd(std::string cmd_)
+void Deck::onCmd(const std::string &cmd_)
 {
 	DBG("Your command: '" << cmd_ << "'\n")
 	if (cmd_.find("animate=") == 0)
