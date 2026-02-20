@@ -15,6 +15,14 @@ bool Engine::unit_tests()
 	return ut.run();
 }
 
+
+Engine& Engine::sort_cards(Cards &cards_)
+{
+	(_game.trump_first ? cards_.sort(_game.trump) : cards_.sort());
+	return *this;
+}
+
+
 size_t Engine::best_trick_card(const Card &c_, Cards &tricks_) const
 {
 	size_t move = NO_MOVE;
@@ -136,7 +144,7 @@ Cards Engine::all_cards_that_trick(const Card &c_, const Cards &cards_) const
 	return res;
 }
 
-size_t Engine::lowest_card(Cards &cards_, bool no_trump_/* = true*/) const
+size_t Engine::lowest_card(const Cards &cards_, bool no_trump_/* = true*/) const
 {
 	// return the lowest card, but no trump if possible
 	int lowest_value = 20;
@@ -277,7 +285,7 @@ bool Engine::test_change(GameState &player_, bool change_/*=false*/)
 	_ui.animate_change();		// trump from deck to hand
 
 	player_.cards.push_back(c);
-	player_.cards.sort();
+	sort_cards(player_.cards);
 	player_.changed = c;
 
 	_ui.message(CHANGED);
@@ -804,7 +812,16 @@ void Engine::ai_move_closed_follow()
 void Engine::ai_move_lead()
 {
 	// normal game, ai plays out
-	test_change(_ai) && test_change(_ai, true);
+	if (test_change(_ai))
+	{
+		test_change(_ai, true); // make change
+		if (_move != NO_MOVE)	// if we had a default move, it needs to be redone
+		{
+			_move = default_move();
+			assert(_move != NO_MOVE);
+			DBG("new default move: " << _ai.cards[_move] << "\n");
+		}
+	}
 
 	if (_game.cards.size() == 2)
 	{
@@ -883,13 +900,19 @@ void Engine::ai_move_follow()
 	}
 }
 
+size_t Engine::default_move(const Cards &cards_) const
+{
+	return lowest_card(cards_); // default move is the lowest card
+}
+
 size_t Engine::ai_move()
 {
 	_game.marriage = NO_MARRIAGE;
 	assert(_ai.cards.size());
 
-	_move = lowest_card(_ai.cards); // default move lowest card
+	_move = default_move();
 	assert(_move != NO_MOVE);
+	DBG("default move: " << _ai.cards[_move] << "\n");
 
 	if (_game.closed != NOT && _player.move_state == ON_TABLE)
 	{

@@ -144,6 +144,7 @@ public:
 		_animation_level(Util::config("animate").empty() ? 1 : atoi(Util::config("animate").c_str())),
 		_show_ai_cards(false)
 	{
+		_game.trump_first = atoi(Util::config("trump-sort").c_str());
 		_player.games_won = atoi(Util::stats("player_games_won").c_str());
 		_ai.games_won = atoi(Util::stats("ai_games_won").c_str());
 		_player.matches_won = atoi(Util::stats("player_matches_won").c_str());
@@ -210,7 +211,7 @@ public:
 			// make change
 			_player.move_state = NONE;
 			_player.cards.push_back(_player.card);
-			_player.cards.sort();
+			_engine.sort_cards(_player.cards);
 			_engine.test_change(_player, true);
 			return true;
 		}
@@ -403,7 +404,7 @@ public:
 				LOG("withdraw or invalid " <<  _player.card << "\n");
 				_player.cards.push_back(_player.card);
 				_player.move_state = NONE;
-				_player.cards.sort();
+				_engine.sort_cards(_player.cards);
 				return;
 			}
 			if (_ai.move_state == NONE)
@@ -1331,8 +1332,8 @@ public:
 		deal();
 		assert(_player.cards.size() == 5);
 		assert(_ai.cards.size() == 5);
-		_player.cards.sort();
-		_ai.cards.sort();
+		_engine.sort_cards(_player.cards)
+		       .sort_cards(_ai.cards);
 		assert(_player.cards.size() == 5);
 		assert(_ai.cards.size() == 5);
 		redraw();
@@ -1463,8 +1464,8 @@ public:
 					_ai.cards.push_front(c);
 			}
 			assert(_player.cards.size() == _ai.cards.size());
-			_player.cards.sort();
-			_ai.cards.sort();
+			_engine.sort_cards(_player.cards)
+			       .sort_cards(_ai.cards);
 			debug();
 
 			if (_game.cards.empty())

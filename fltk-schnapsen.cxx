@@ -97,6 +97,7 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 		{ "S", "draw text with shadow" },
 		{ "s", "faster response" },
 		{ "r", "start with AI move" },
+		{ "t", "sort trumps to begin" },
 		{ "w", "show welcome screen" },
 		{ "f", "run fullscreen" },
 		{ "d", "enable debug" },
@@ -122,6 +123,9 @@ bool process_arg(const std::string &arg_, const std::string &value_)
 				break;
 			case 's':
 				Util::config("fast", "1");
+				break;
+			case 't':
+				Util::config("trump-sort", "1");
 				break;
 			case 'w':
 				Util::config("welcome", "1");

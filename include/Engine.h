@@ -31,13 +31,14 @@ struct GameState
 struct GameData
 {
 	GameData() : trump(CardSuite::NO_SUITE), marriage(Marriage::NO_MARRIAGE),
-	             closed(Closed::NOT), move(Player::PLAYER) {}
+	             closed(Closed::NOT), move(Player::PLAYER), trump_first(false) {}
 	Cards     cards;    // remaining cards
 	CardSuite trump;    // trump suite (initially NO_SUITE)
 	Marriage  marriage;
 	Closed    closed;
 	Player    move;
 	GameBook  book;
+	bool      trump_first;
 };
 
 class Engine
@@ -62,7 +63,7 @@ public:
 	Suites have_20() { return have_20(_ai.cards); } // shortcut
 	Suites have_40() { return have_40(_ai.cards); } // shortcut
 	size_t find(const Card &c_, const Cards &cards_) const;
-	size_t lowest_card(Cards &cards_, bool no_trump_ = true) const;
+	size_t lowest_card(const Cards &cards_, bool no_trump_ = true) const;
 	size_t lowest_card_that_tricks(const Card &c_, const Cards &cards_) const;
 	size_t highest_card_that_tricks(const Card &c_, const Cards &cards_) const;
 	Cards all_cards_that_trick(const Card &c_, const Cards &cards_) const;
@@ -90,6 +91,9 @@ public:
 	Cards pull_trump_cards(Cards cards_, Cards from_) const;
 	Cards closed_lead_no_trick(Cards leader_, Cards follower_);
 	Cards hinder_20_40();
+	size_t default_move(const Cards &cards_) const;
+	size_t default_move() const { return default_move(_ai.cards); }
+	Engine& sort_cards(Cards &cards_);
 	bool unit_tests();
 private:
 	GameData &_game;
