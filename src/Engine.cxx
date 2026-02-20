@@ -18,7 +18,7 @@ bool Engine::unit_tests()
 
 Engine& Engine::sort_cards(Cards &cards_)
 {
-	(_game.trump_first ? cards_.sort(_game.trump) : cards_.sort());
+	(_game.trump_sort ? cards_.sort(_game.trump) : cards_.sort());
 	return *this;
 }
 
@@ -675,12 +675,6 @@ size_t Engine::ai_play_for_last_trick_lead()
 	return NO_MOVE;
 }
 
-size_t Engine::ai_play_for_last_trick_follow()
-{
-#pragma message("IMPLEMENT")
-	return NO_MOVE;
-}
-
 size_t Engine::ai_play_for_closed_lead()
 {
 	// Test if it is of advantage to have the lead after
@@ -797,14 +791,6 @@ void Engine::ai_move_closed_lead()
 void Engine::ai_move_closed_follow()
 {
 	// end game, player has moved, ai to follow
-	if (_ai.cards.size() == 2)
-	{
-		// special case, before last trick
-		size_t m = ai_play_for_last_trick_follow();
-		if (m != NO_MOVE)
-			_move = m;
-	}
-
 	_move = must_give_color_or_trick(_player.card, _ai.cards);
 	assert(_move != NO_MOVE);
 }

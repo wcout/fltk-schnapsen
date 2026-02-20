@@ -144,7 +144,7 @@ public:
 		_animation_level(Util::config("animate").empty() ? 1 : atoi(Util::config("animate").c_str())),
 		_show_ai_cards(false)
 	{
-		_game.trump_first = atoi(Util::config("trump-sort").c_str());
+		_game.trump_sort = atoi(Util::config("trump-sort").c_str());
 		_player.games_won = atoi(Util::stats("player_games_won").c_str());
 		_ai.games_won = atoi(Util::stats("ai_games_won").c_str());
 		_player.matches_won = atoi(Util::stats("player_matches_won").c_str());

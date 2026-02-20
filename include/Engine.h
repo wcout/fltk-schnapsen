@@ -31,14 +31,14 @@ struct GameState
 struct GameData
 {
 	GameData() : trump(CardSuite::NO_SUITE), marriage(Marriage::NO_MARRIAGE),
-	             closed(Closed::NOT), move(Player::PLAYER), trump_first(false) {}
+	             closed(Closed::NOT), move(Player::PLAYER), trump_sort(false) {}
 	Cards     cards;    // remaining cards
 	CardSuite trump;    // trump suite (initially NO_SUITE)
 	Marriage  marriage;
 	Closed    closed;
 	Player    move;
 	GameBook  book;
-	bool      trump_first;
+	bool      trump_sort;
 };
 
 class Engine
@@ -55,7 +55,6 @@ public:
 	void ai_move_closed_lead();
 
 	size_t ai_play_for_last_trick_lead();
-	size_t ai_play_for_last_trick_follow();
 	size_t ai_play_for_closed_lead();
 
 	Suites have_20(const Cards &cards_);
