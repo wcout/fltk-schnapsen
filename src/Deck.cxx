@@ -1293,6 +1293,7 @@ public:
 		for ([[maybe_unused]]auto s : _player.s20_40)
 			LOG(suite_symbol(s));
 		LOG("\n");
+		Util::logstream().flush();
 	}
 
 	void init()

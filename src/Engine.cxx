@@ -872,7 +872,7 @@ void Engine::ai_move_follow()
 			else
 			{
 				// another exception: do rather trick, than give away a high card
-				assert(_move);
+				assert(_move != NO_MOVE);
 				if (_ai.cards[_move].value() >= 10)
 				{
 					WNG("Nevertheless trick, rather than giving away " << _ai.cards[_move]);
