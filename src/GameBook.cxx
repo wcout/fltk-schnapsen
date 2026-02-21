@@ -96,6 +96,23 @@ void GameBook::draw(int x_, int y_, int w_, int h_)
 	int W(w_);
 	int H(h_);
 
+	// Draw a "thickness" depending on history size
+	for (size_t i = _current; i <= _history.size(); i++)
+	{
+		int d = i - _current;
+		double h = (double)W / 200;
+		if (h > 1.) h = (int)h;
+		double x = (double)X + d * h + .5;
+		double y = (double)Y + d * h + .5;
+		fl_color(FL_BLACK);
+		fl_line_style(FL_DASH); // FL_DASH seems best to get a non solid look
+		fl_line(floor(x) + W, floor(y), floor(x) + W, floor(y) + H);
+		fl_line(floor(x) + W, floor(y) + H , floor(x), floor(y) + H);
+		fl_color(FL_BLACK);
+		fl_line_style(FL_SOLID);
+		fl_point(floor(x) + W, floor(y) + H ); // draw manually the edge
+	}
+	fl_line_style(0);
 	fl_color(_current == 0 ? fl_lighter(fl_lighter(FL_YELLOW)) : GRAY);
 	fl_rectf(X, Y, W, H);
 	fl_color(_current == 0 ? GRAY : FL_BLACK);
