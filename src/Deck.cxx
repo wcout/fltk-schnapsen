@@ -946,6 +946,13 @@ public:
 		// _game.cards.back() is the trump card
 		if (_game.cards.size())
 		{
+			if (_game.closed != NOT && _game.cards.size() && !_closing)
+			{
+				int X = w() / 3 - _CW + _CW / 4;
+				int Y = (h() - _CW) / 2;
+				_shadow.rot90_image()->draw(X - w() / 16 + _CW / 12, Y + _CW / 12);
+			}
+
 			int X = w() / 3 - _CW + _CW / 4;
 			int Y = (h() - _CW) / 2;
 			if (_game.closed == NOT && _game.cards.size() != 20 && _player.cards.size() > 3 && !_closing)
@@ -967,9 +974,10 @@ public:
 					//       better, when single cards are visible.
 					//       So a compromise...
 					double h = (double)_CW /
-						((_game.cards.size() == 20 || _player.cards.empty()) ? 200 : 100);
+						((_game.cards.size() == 20 ||
+					    (_player.cards.empty() && _game.closed == NOT)) ? 200 : 100);
 					if (h > 1.) h = (int)h;
-					double x = (double)X - i * h +.5;
+					double x = (double)X - i * h + .5;
 					double y = (double)Y - i * h + .5;
 					_back.image()->draw(floor(x), floor(y));
 				}
@@ -1097,6 +1105,7 @@ public:
 			Fl_RGB_Image *image = _closing <= 2 ? _game.cards.back().rot90_image() : _back.rot90_image();;
 			int W = (_closing == 1 || _closing == 4) ? (image->w() / 3) * 2 : image->w() / 2;
 			Fl_Image *temp = image->copy(W, image->h());
+			// NOTE: shadow should be from rotated image, but it is not noticable..
 			Fl_Image *stemp = _shadow.image()->copy(W, image->h());
 			X -= temp->w() / 2;
 			Y -= temp->h() / 2;
