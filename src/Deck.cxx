@@ -142,7 +142,8 @@ public:
 		_animate_func(nullptr),
 		_strictness(atoi(Util::config("strict").c_str())),
 		_animation_level(Util::config("animate").empty() ? 1 : atoi(Util::config("animate").c_str())),
-		_show_ai_cards(false)
+		_show_ai_cards(false),
+		_closing(0)
 	{
 		_game.trump_sort = atoi(Util::config("trump-sort").c_str());
 		_player.games_won = atoi(Util::stats("player_games_won").c_str());
@@ -230,10 +231,8 @@ public:
 			}
 			else
 			{
-				LOG("closed by player!\n");
-				_game.closed = BY_PLAYER;
-				_ai.score_closed = _ai.score; // memorize score at close time
-				player_message(YOU_CLOSED, true);
+				// do close
+				_engine.do_close(_player);
 				return true;
 			}
 		}
@@ -926,6 +925,22 @@ public:
 		do_animate(&Deck::draw_animated_change, src_X, src_Y, dest_X, dest_Y, 10);
 	}
 
+	void animate_close()
+	{
+		if (_animation_level == 0) return;
+
+		_animate_func = &Deck::draw_closing;
+
+		for (_closing = 1; _closing <= 4; _closing++)
+		{
+			redraw();
+			wait(1. / 30);
+		}
+
+		_animate_func = nullptr;
+		_closing = 0;
+	}
+
 	void draw_pack()
 	{
 		// _game.cards.back() is the trump card
@@ -933,7 +948,7 @@ public:
 		{
 			int X = w() / 3 - _CW + _CW / 4;
 			int Y = (h() - _CW) / 2;
-			if (_game.closed == NOT && _game.cards.size() != 20 && _player.cards.size() > 3)
+			if (_game.closed == NOT && _game.cards.size() != 20 && _player.cards.size() > 3 && !_closing)
 			{
 				_game.cards.back().rot90_image()->draw(X, Y);
 				_game.cards.back().rect(Rect(X, Y, _game.cards.back().image()->h(), _game.cards.back().image()->w()));
@@ -972,7 +987,7 @@ public:
 			_outline.image()->draw(X, Y);
 		}
 
-		if (_game.closed != NOT && _game.cards.size())
+		if (_game.closed != NOT && _game.cards.size() && !_closing)
 		{
 			int X = w() / 3 - _CW + _CW / 4;
 			int Y = (h() - _CW) / 2;
@@ -1070,6 +1085,25 @@ public:
 			for (int x = 0; x < w(); x += _CW / 2)
 				for (int y = 0; y < h(); y += _CH / 2)
 					_shadow.image()->draw(x, y, _CW / 2, _CH / 2, _CW / 4, _CH / 4);
+		}
+	}
+
+	void draw_closing()
+	{
+		int X = pack_rect().x + pack_rect().w;
+		int Y = change_rect().center().y;
+		if (_closing >= 1 && _closing <= 4)
+		{
+			Fl_RGB_Image *image = _closing <= 2 ? _game.cards.back().rot90_image() : _back.rot90_image();;
+			int W = (_closing == 1 || _closing == 4) ? (image->w() / 3) * 2 : image->w() / 2;
+			Fl_Image *temp = image->copy(W, image->h());
+			Fl_Image *stemp = _shadow.image()->copy(W, image->h());
+			X -= temp->w() / 2;
+			Y -= temp->h() / 2;
+			stemp->draw(X + _CW / 12, Y + _CW / 12);
+			temp->draw(X, Y);
+			delete stemp;
+			delete temp;
 		}
 	}
 
@@ -2111,5 +2145,6 @@ private:
 	int _strictness;
 	int _animation_level;
 	bool _show_ai_cards;
+	int _closing;
 	std::vector<GameHistory> _history;
 };

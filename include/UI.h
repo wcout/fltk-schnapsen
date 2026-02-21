@@ -12,6 +12,7 @@ public:
 	virtual void animate_move() {}
 	virtual void animate_shuffle() {}
 	virtual void animate_trick() {}
+	virtual void animate_close() {}
 	virtual void animate_deal([[maybe_unused]] Player player_) {}
 	virtual void animate_change([[maybe_unused]]bool from_hand_ = false) {}
 	virtual void wait([[maybe_unused]]double s_) {}

@@ -414,6 +414,17 @@ Cards Engine::highest_cards_in_hand(const Cards &cards_)
 	return res;
 }
 
+void Engine::do_close(GameState &player_)
+{
+	// close game
+	LOG("closed by " << (_game.move == PLAYER ? "player" : "AI") << "!\n");
+	_ui.animate_close();
+	_game.closed = _game.move == PLAYER ? BY_PLAYER : BY_AI;
+	player_.score_closed = player_.score; // memorize score at close time
+	_ui.message(CLOSED, true);
+	_ui.update();
+}
+
 bool Engine::ai_test_close()
 {
 	// test if ai should close
@@ -436,11 +447,7 @@ bool Engine::ai_test_close()
 		DBG("maybe_score: " << maybe_score << "\n")
 		if (do_close)
 		{
-			LOG("closed by AI!\n");
-			_game.closed = BY_AI;
-			_player.score_closed = _player.score; // memorize score at close time
-			_ui.message(CLOSED, true);
-			_ui.update();
+			this->do_close(_ai);
 			_ui.wait(1.5);
 			return true;
 		}

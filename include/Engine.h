@@ -93,6 +93,7 @@ public:
 	size_t default_move(const Cards &cards_) const;
 	size_t default_move() const { return default_move(_ai.cards); }
 	Engine& sort_cards(Cards &cards_);
+	void do_close(GameState &player_);
 	bool unit_tests();
 private:
 	GameData &_game;
