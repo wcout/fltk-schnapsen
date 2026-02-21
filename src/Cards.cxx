@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <utility>
+#include <random>
 
 Cards::Cards() {}
 
@@ -244,6 +245,10 @@ void Cards::shuffle()
 	}
 	else
 	{
+		static std::random_device rd;
+		static std::mt19937 gen(rd());
+		std::shuffle(begin(), end(), gen);
+#if 0
 		for (int i = 0; i < rand() % 100 + 100; i++)
 		{
 			size_t idx1 = random() % size();
@@ -252,6 +257,7 @@ void Cards::shuffle()
 			erase(begin() + idx1);
 			insert(begin() + idx2, c);
 		}
+#endif
 	}
 	check();
 }
@@ -301,11 +307,13 @@ int Cards::value() const
 Cards Cards::fullcards()
 {
 	Cards cards;
-	for (int s = 0; s < (int)NrOfSuites; s++)
+	CardSuite suites[] = { HEART, SPADE, DIAMOND, CLUB };
+	CardFace faces[] = { JACK, QUEEN, KING, TEN, ACE };
+	for (auto s : suites)
 	{
-		for (int f = 0; f < (int)NrOfFaces; f++)
+		for (auto f : faces)
 		{
-			cards.push_back(Card((CardFace)f, CardSuite(s)));
+			cards.push_back(Card(f, s));
 			cards.back().load();
 		}
 	}

@@ -12,7 +12,6 @@ enum class CardFace
 	QUEEN,
 	KING,
 	ACE,
-	NrOfFaces,
 	NO_FACE
 };
 
@@ -22,7 +21,6 @@ enum class CardSuite
 	DIAMOND,
 	HEART,
 	SPADE,
-	NrOfSuites,
 	ANY_SUITE,
 	NO_SUITE
 };
