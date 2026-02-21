@@ -441,6 +441,7 @@ bool Engine::ai_test_close()
 			// test if cards are good enough
 			Cards highest = highest_cards_in_hand();
 			maybe_score += highest.value();
+			maybe_score += highest.size() * 3; // at average expect win of a queen per trick
 			do_close = maybe_score >= 60 &&
 				(trumps_in_hand(_ai.cards).size() || max_trumps_player() <= 1);
 		}
