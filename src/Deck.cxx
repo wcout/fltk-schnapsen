@@ -943,16 +943,25 @@ public:
 
 	void draw_pack()
 	{
+		auto card_stack_pos = [&](size_t i) -> double
+		{
+			// Calculate the space between cards on pack for card `i`.
+			//
+			// NOTE: Card width / 200 is a 'realistic' value for the
+			//       height of the full card pack with 20 cards.
+			//       But the pack with 10 cards after dealing just looks
+			//       better, when single cards are visible.
+			//       So making a compromise...
+			double h = (double)_CW /
+				((_game.cards.size() == 20 ||
+			    (_player.cards.empty() && _game.closed == NOT)) ? 200 : 100);
+			if (h > 1.) h = (int)h;
+			return (double)i * h + .5;
+		};
+
 		// _game.cards.back() is the trump card
 		if (_game.cards.size())
 		{
-			if (_game.closed != NOT && _game.cards.size() && !_closing)
-			{
-				int X = w() / 3 - _CW + _CW / 4;
-				int Y = (h() - _CW) / 2;
-				_shadow.rot90_image()->draw(X - w() / 16 + _CW / 12, Y + _CW / 12);
-			}
-
 			int X = w() / 3 - _CW + _CW / 4;
 			int Y = (h() - _CW) / 2;
 			if (_game.closed == NOT && _game.cards.size() != 20 && _player.cards.size() > 3 && !_closing)
@@ -968,17 +977,9 @@ public:
 			{
 				for (size_t i = 0; i < _game.cards.size() - 1; i++)
 				{
-					// NOTE: 200 is a 'realistic' value for card the 'height'
-					//       of the full card pack with 20 cards.
-					//       But the pack with 10 cards after dealing just look
-					//       better, when single cards are visible.
-					//       So a compromise...
-					double h = (double)_CW /
-						((_game.cards.size() == 20 ||
-					    (_player.cards.empty() && _game.closed == NOT)) ? 200 : 100);
-					if (h > 1.) h = (int)h;
-					double x = (double)X - i * h + .5;
-					double y = (double)Y - i * h + .5;
+					double d = card_stack_pos(i);
+					double x = (double)X - d;
+					double y = (double)Y - d;
 					_back.image()->draw(floor(x), floor(y));
 				}
 				if (_game.closed == NOT)
@@ -999,6 +1000,13 @@ public:
 		{
 			int X = w() / 3 - _CW + _CW / 4;
 			int Y = (h() - _CW) / 2;
+
+			// Use clipping for the card shadow to go over side of pack
+			Rect r(pack_rect());
+			fl_push_clip(r.x + r.w - card_stack_pos(_game.cards.size() - 1), r.y, r.w * 2, r.h);
+			_shadow.rot90_image()->draw(X - w() / 16 + _CW / 12, Y + _CW / 12);
+			fl_pop_clip();
+
 			_back.rot90_image()->draw(X - w() / 16, Y);
 		}
 	}
@@ -2154,6 +2162,6 @@ private:
 	int _strictness;
 	int _animation_level;
 	bool _show_ai_cards;
-	int _closing;
+	int _closing;			// used for closing animation
 	std::vector<GameHistory> _history;
 };
