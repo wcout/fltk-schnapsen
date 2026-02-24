@@ -142,12 +142,12 @@ void GameBook::draw(int x_, int y_, int w_, int h_)
 	int player_score = 0;
 	int ai_score = 0;
 
-//#define USE_SVG_DIGITS
 	auto draw_score = [&](std::pair<int, int> s) -> void
 	{
 		char pbuf[20];
 		char abuf[20];
 		if (MATCH_SCORE - player_score <= 0 || MATCH_SCORE - ai_score <= 0) return;
+		fl_color(FL_DARK_BLUE);
 		if (!s.first && !s.second)
 		{
 			snprintf(pbuf, sizeof(pbuf), "%d", MATCH_SCORE - player_score);
@@ -206,6 +206,7 @@ void GameBook::draw(int x_, int y_, int w_, int h_)
 #else
 			(ai_score >= MATCH_SCORE ? "●" : " "), (player_score >= MATCH_SCORE ? "●" : " "));
 #endif
+		fl_color(FL_BLACK);
 		Util::draw_string(buf, X, Y);
 	}
 }

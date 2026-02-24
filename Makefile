@@ -1,5 +1,5 @@
 #Specify own fltk-config directory here if required
-#FLTK := ../../fltk/build/
+#FLTK := ../fltk/build/
 
 FLTK_CONFIG := fltk-config
 APPLICATION := fltk-schnapsen
@@ -12,6 +12,9 @@ cxxflags += -DUSE_MINIAUDIO
 endif
 # to enable shadow text
 #cxxflags += -DUSE_IMAGE_TEXT
+# to enable fancy gamebook score digits
+#cxxflags += -DUSE_SVG_DIGITS
+
 
 $(APPLICATION): $(APPLICATION).cxx include/system.h \
                                    include/debug.h \
