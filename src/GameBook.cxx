@@ -142,9 +142,9 @@ void GameBook::draw(int x_, int y_, int w_, int h_)
 	int player_score = 0;
 	int ai_score = 0;
 
+//#define USE_SVG_DIGITS
 	auto draw_score = [&](std::pair<int, int> s) -> void
 	{
-		char buf[50];
 		char pbuf[20];
 		char abuf[20];
 		if (MATCH_SCORE - player_score <= 0 || MATCH_SCORE - ai_score <= 0) return;
@@ -156,13 +156,26 @@ void GameBook::draw(int x_, int y_, int w_, int h_)
 		else
 		{
 			snprintf(pbuf, sizeof(pbuf), "%d", MATCH_SCORE - player_score);
+#ifdef USE_SVG_DIGITS
+			if (!s.first || pbuf[0] == '0') pbuf[0] = '0';
+#else
 			if (!s.first || pbuf[0] == '0') pbuf[0] = '-';
+#endif
 			snprintf(abuf, sizeof(abuf), "%d", MATCH_SCORE - ai_score);
+#ifdef USE_SVG_DIGITS
+			if (!s.second || abuf[0] == '0') abuf[0] = '0';
+#else
 			if (!s.second || abuf[0] == '0') abuf[0] = '-';
+#endif
 		}
-		snprintf(buf, sizeof(buf),"  %2s      %2s", pbuf, abuf);
+		std::ostringstream os;
+#ifdef USE_SVG_DIGITS
+		os << "   ^|" << pbuf << "|       ^|" << abuf << "|";
+#else
+		os << "  " << std::setw(2) << pbuf << "      " << std::setw(2) <<  abuf;
+#endif
 		Y += H / 12;
-		Util::draw_color_text(buf, X, Y);
+		Util::draw_string(os.str(), X, Y);
 	};
 
 	std::vector<std::pair<int, int>> *value = this;
@@ -188,7 +201,11 @@ void GameBook::draw(int x_, int y_, int w_, int h_)
 		char buf[40];
 		Y += H / 12;
 		snprintf(buf, sizeof(buf),"   %s       %s",
+#ifdef USE_SVG_DIGITS
+			(ai_score >= MATCH_SCORE ? "^|bum|" : " "), (player_score >= MATCH_SCORE ? "^|bum|" : " "));
+#else
 			(ai_score >= MATCH_SCORE ? "●" : " "), (player_score >= MATCH_SCORE ? "●" : " "));
-		Util::draw_color_text(buf, X, Y);
+#endif
+		Util::draw_string(buf, X, Y);
 	}
 }
