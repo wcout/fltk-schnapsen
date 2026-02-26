@@ -38,7 +38,6 @@ Card& Card::load()
 
 bool Card::operator == (const Card c_)
 {
-
 	return face() == c_.face() && suite() == c_.suite();
 }
 

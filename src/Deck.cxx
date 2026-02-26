@@ -210,10 +210,12 @@ public:
 				return false;
 			}
 			// make change
+			Card c = _game.cards.back();
 			_player.move_state = NONE;
 			_player.cards.push_back(_player.card);
 			_engine.sort_cards(_player.cards);
 			_engine.test_change(_player, true);
+			_player.last_drawn = c;
 			return true;
 		}
 		return false;
