@@ -88,6 +88,12 @@ public:
 		labelsize(h() / 2);
 		visible_focus(0);
 	}
+	int handle(int e_) override
+	{
+		if (e_ == FL_ENTER) { value(1); redraw(); }
+		if (e_ == FL_LEAVE) { value(0); redraw(); }
+		return Fl_Button::handle(e_);
+	}
 	void resize(int x_, int y_, int w_, int h_)
 	{
 		Fl_Button::resize(x_, y_, w_, h_);
