@@ -15,13 +15,11 @@ bool Engine::unit_tests()
 	return ut.run();
 }
 
-
 Engine& Engine::sort_cards(Cards &cards_)
 {
 	(_game.trump_sort ? cards_.sort(_game.trump) : cards_.sort());
 	return *this;
 }
-
 
 size_t Engine::best_trick_card(const Card &c_, Cards &tricks_) const
 {
