@@ -188,7 +188,7 @@ int main(int argc_, char *argv_[])
 		Deck deck;
 		deck.show();
 		deck.wait_for_expose();
-		if (atoi(Util::config("welcome").c_str()))
+		if (Util::config_as_int("welcome"))
 		{
 			deck.welcome();
 		}

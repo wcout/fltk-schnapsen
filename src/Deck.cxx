@@ -146,16 +146,16 @@ public:
 		_grayout(false),
 		_animate_xy(std::make_pair(-1, -1)),
 		_animate_func(nullptr),
-		_strictness(atoi(Util::config("strict").c_str())),
-		_animation_level(Util::config("animate").empty() ? 1 : atoi(Util::config("animate").c_str())),
+		_strictness(Util::config_as_int("strict")),
+		_animation_level(Util::config("animate").empty() ? 1 : Util::config_as_int("animate")),
 		_show_ai_cards(false),
 		_closing(0)
 	{
-		_game.trump_sort = atoi(Util::config("trump-sort").c_str());
-		_player.games_won = atoi(Util::stats("player_games_won").c_str());
-		_ai.games_won = atoi(Util::stats("ai_games_won").c_str());
-		_player.matches_won = atoi(Util::stats("player_matches_won").c_str());
-		_ai.matches_won = atoi(Util::stats("ai_matches_won").c_str());
+		_game.trump_sort = Util::config_as_int("trump-sort");
+		_player.games_won = Util::stats_as_int("player_games_won");
+		_ai.games_won = Util::stats_as_int("ai_games_won");
+		_player.matches_won = Util::stats_as_int("player_matches_won");
+		_ai.matches_won = Util::stats_as_int("ai_matches_won");
 		copy_label(Util::message(TITLE).c_str());
 		fl_register_images();
 		std::string root = Util::homeDir() + cardDir;
@@ -180,12 +180,12 @@ public:
 		_redeal_button->hide();
 		resizable(this);
 		size_range(400, 300, 0, 0, 0, 0, 1);
-		int width = atoi(Util::config("width").c_str());
-		int height = atoi(Util::config("height").c_str());
+		int width = Util::config_as_int("width");
+		int height = Util::config_as_int("height");
 		if (width > 400 && height > 300)
 			size(width, height);
-		int xpos = atoi(Util::config("xpos").c_str());
-		int ypos = atoi(Util::config("ypos").c_str());
+		int xpos = Util::config_as_int("xpos");
+		int ypos = Util::config_as_int("ypos");
 		position(xpos, ypos);
 		end();
 		_redeal_button->callback([](Fl_Widget *wgt_, void *)

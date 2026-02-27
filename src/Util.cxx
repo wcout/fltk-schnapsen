@@ -82,6 +82,11 @@ const std::string& Util::config(const std::string &id_)
 	return config()[id_];
 }
 
+int Util::config_as_int(const std::string &id_)
+{
+	return atoi(config()[id_].c_str());
+}
+
 void Util::config(const std::string &id_, const std::string &value_)
 {
 	if (value_.empty())
@@ -93,6 +98,11 @@ void Util::config(const std::string &id_, const std::string &value_)
 const std::string& Util::stats(const std::string &id_)
 {
 	return stats()[id_];
+}
+
+int Util::stats_as_int(const std::string &id_)
+{
+	return atoi(stats()[id_].c_str());
 }
 
 void Util::stats(const std::string &id_, const std::string &value_)

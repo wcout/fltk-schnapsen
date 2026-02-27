@@ -33,8 +33,10 @@ public:
 	static string_map& stats();
 
 	static const std::string& config(const std::string &id_);
+	static int config_as_int(const std::string &id_);
 	static void config(const std::string &id_, const std::string &value_);
 	static const std::string& stats(const std::string &id_);
+	static int stats_as_int(const std::string &id_);
 	static void stats(const std::string &id_, const std::string &value_);
 
 	static void load_values_from_file(std::ifstream &if_, string_map &values_, const std::string& id_);

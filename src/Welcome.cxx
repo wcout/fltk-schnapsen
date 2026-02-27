@@ -67,7 +67,7 @@ void Welcome::draw()
 	fl_font(FL_HELVETICA_BOLD, w() / 10);
 	fl_color(FL_BLACK);
 	static constexpr char title[] = "^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B";
-	Util::draw_color_text(title, (w() - Util::string_size(title)) / 2, h() / 7, true);
+	Util::draw_string(title, (w() - Util::string_size(title)) / 2, h() / 7, true);
 	fl_color(FL_BLUE);
 	fl_font(FL_HELVETICA_BOLD, w() / 26);
 	static constexpr char cr[] = "^r(c) 2025-2026^B Christian Grabner^. <wcout@gmx.net>";

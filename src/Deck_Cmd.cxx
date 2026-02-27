@@ -34,7 +34,7 @@ void Deck::onCmd(const std::string &cmd_)
 		int value = atoi(cmd_.substr(9).c_str());
 		if (value >= 0 && value <= 2)
 			Util::config("loglevel", std::to_string(value));
-		OUT("loglevel: " << atoi(Util::config("loglevel").c_str()) << "\n");
+		OUT("loglevel: " << Util::config_as_int("loglevel") << "\n");
 	}
 	else if (cmd_.find("error=") == 0)
 	{
