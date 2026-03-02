@@ -72,13 +72,13 @@ std::string Card::suite_symbol() const
 }
 
 /*static*/
-std::string suite_symbol(CardSuite suite_)
+std::string Card::suite_symbol(CardSuite suite_)
 {
 	return suite_symbols[suite_];
 }
 
 /*static*/
-std::string suite_symbol_image(CardSuite suite_)
+std::string Card::suite_symbol_image(CardSuite suite_)
 {
 	return suite_symbols_image[suite_];
 }

@@ -149,7 +149,8 @@ public:
 		_strictness(Util::config_as_int("strict")),
 		_animation_level(Util::config("animate").empty() ? 1 : Util::config_as_int("animate")),
 		_show_ai_cards(false),
-		_closing(0)
+		_closing(0),
+		_restart(false)
 	{
 		_game.trump_sort = Util::config_as_int("trump-sort");
 		_player.games_won = Util::stats_as_int("player_games_won");
@@ -166,7 +167,7 @@ public:
 		_shadow.image("card_shadow", Util::homeDir() + cardDir + "/Card_shadow.svg");
 		_outline.image("card_outline", Util::homeDir() + cardDir + "/Card_outline.svg");
 		_game.cards = Cards::fullcards();
-		_game.cards.check();
+		assert(_game.cards.check());
 		_card_template = _game.cards[0];
 		_engine.unit_tests();
 		default_cursor(FL_CURSOR_HAND);
@@ -650,7 +651,7 @@ public:
 		else
 			os << "^B";
 
-		std::string symbol_image = Util::cardset_dir() + suite_symbol_image(c.suite());
+		std::string symbol_image = Util::cardset_dir() + Card::suite_symbol_image(c.suite());
 		if (std::filesystem::exists(symbol_image + ".svg"))
 		{
 			os << "^|" << symbol_image << "|";
@@ -1337,7 +1338,7 @@ public:
 		}
 		LOG("\t20/40: ");
 		for ([[maybe_unused]]auto s : _ai.s20_40)
-			LOG(suite_symbol(s));
+			LOG(Card::suite_symbol(s));
 		LOG("\n");
 
 		LOG("PL cards: " << _player.cards);
@@ -1351,7 +1352,7 @@ public:
 		}
 		LOG("\t20/40: ");
 		for ([[maybe_unused]]auto s : _player.s20_40)
-			LOG(suite_symbol(s));
+			LOG(Card::suite_symbol(s));
 		LOG("\n");
 		Util::logstream().flush();
 	}
@@ -1421,7 +1422,7 @@ public:
 		if (_game.cards.size() != 20)
 			DBG("#cards: " << _game.cards.size())
 		assert(_game.cards.size() == 20);
-		_game.cards.check();
+		assert(_game.cards.check());
 	}
 
 	void deal()
@@ -1448,7 +1449,7 @@ public:
 		_game.cards.pop_front();
 		_game.cards.push_back(trump); // will be the last card (_game.cards.back())
 		_game.trump = trump.suite();
-		LOG("trump: " << suite_symbol(_game.trump) << "\n");
+		LOG("trump: " << Card::suite_symbol(_game.trump) << "\n");
 		redraw();
 
 		// 2 cards to player
@@ -1984,6 +1985,7 @@ public:
 		}
 		Fl::remove_timeout(cb_sleep, this);
 		_redeal_button->hide();
+		_restart = false;
 	}
 
 	void redeal()
@@ -1994,7 +1996,7 @@ public:
 
 	bool playing() override
 	{
-		return Fl::first_window();
+		return Fl::first_window() && _restart == false;
 	}
 
 	void ai_move() override
@@ -2171,5 +2173,6 @@ private:
 	int _animation_level;
 	bool _show_ai_cards;
 	int _closing;			// used for closing animation
+	bool _restart;
 	std::vector<GameHistory> _history;
 };

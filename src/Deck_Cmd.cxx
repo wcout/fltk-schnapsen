@@ -85,10 +85,10 @@ void Deck::onCmd(const std::string &cmd_)
 	}
 	else if (cmd_.find("cip") == 0)
 	{
-		OUT(suite_symbol(HEART) << ": " << _engine.cards_in_play(HEART) << " (" << _engine.max_cards_player(HEART) << ")\n");
-		OUT(suite_symbol(SPADE) << ": " << _engine.cards_in_play(SPADE) << " (" << _engine.max_cards_player(SPADE) << ")\n");
-		OUT(suite_symbol(DIAMOND) << ": " << _engine.cards_in_play(DIAMOND) << " (" << _engine.max_cards_player(DIAMOND) << ")\n");
-		OUT(suite_symbol(CLUB) << ": " << _engine.cards_in_play(CLUB) << " (" << _engine.max_cards_player(CLUB) << ")\n");
+		OUT(Card::suite_symbol(HEART) << ": " << _engine.cards_in_play(HEART) << " (" << _engine.max_cards_player(HEART) << ")\n");
+		OUT(Card::suite_symbol(SPADE) << ": " << _engine.cards_in_play(SPADE) << " (" << _engine.max_cards_player(SPADE) << ")\n");
+		OUT(Card::suite_symbol(DIAMOND) << ": " << _engine.cards_in_play(DIAMOND) << " (" << _engine.max_cards_player(DIAMOND) << ")\n");
+		OUT(Card::suite_symbol(CLUB) << ": " << _engine.cards_in_play(CLUB) << " (" << _engine.max_cards_player(CLUB) << ")\n");
 		OUT("max_trumps_player: " << _engine.max_trumps_player() << "\n");
 		OUT("PL-deck: " << _player.deck << "\n");
 		OUT("AI-deck: " << _ai.deck << "\n");
@@ -96,13 +96,113 @@ void Deck::onCmd(const std::string &cmd_)
 	}
 	else if (cmd_ == "help")
 	{
-		OUT("animate|back|debug|error|loglevel|message|ai_message|player_message|gb|cip|quit\n");
+		OUT("animate|back|debug|error|load|save|loglevel|message|ai_message|player_message|gb|cip|quit\n");
 	}
 	else if (cmd_ == "back")
 	{
 		WNG("history size: " << _history.size());
 		if (back_history()) bell();
 		return;
+	}
+	else if (cmd_.find("save") == 0)
+	{
+		std::string arg = cmd_.substr(4);
+		if (arg.size() && (arg[0] == ' ' || arg[0] == '='))
+			arg.erase(0, 1);
+		std::string name(arg.size() ? arg.c_str() : "game.scg");
+		std::ofstream ofs(name.c_str(), std::ios::binary);
+		ofs << "player_cards:" << _player.cards << "\n";
+		if (_player.move_state == ON_TABLE)
+			ofs << "player_card:" << _player.card << "\n";
+		if (_ai.move_state == ON_TABLE)
+			ofs << "ai_card:" << _ai.card << "\n";
+		ofs << "player_deck:" << _player.deck << "\n";
+		ofs << "player_score:" << _player.score << "\n";
+		ofs << "player_pending:" << _player.pending << "\n";
+		ofs << "ai_cards:" << _ai.cards << "\n";
+		if (_ai.move_state == ON_TABLE)
+			ofs << "ai_card:" << _ai.card << "\n";
+		if (_ai.move_state == ON_TABLE)
+			ofs << "ai_card:" << _ai.card << "\n";
+		ofs << "ai_deck:" << _ai.deck << "\n";
+		ofs << "ai_score:" << _ai.score << "\n";
+		ofs << "ai_pending:" << _ai.pending << "\n";
+		ofs << "cards:" << _game.cards << "\n";
+		ofs << "closed:" << (int)_game.closed << "\n";
+		ofs << "ai_score_closed:" << _ai.score_closed << "\n";
+		ofs << "player_score_closed:" << _player.score_closed << "\n";
+		ofs << "trump:" << Card::suite_symbol(_game.trump) << "\n";
+		LOG("Saved to game file: '" << name << "\n");
+	}
+	else if (cmd_.find("load") == 0)
+	{
+		std::string arg = cmd_.substr(4);
+		if (arg.size() && (arg[0] == ' ' || arg[0] == '='))
+			arg.erase(0, 1);
+		std::string name(arg.size() ? arg.c_str() : "game.scg");
+		std::ifstream ifs(name.c_str(), std::ios::binary);
+		if (!ifs.is_open() || ifs.bad())
+		{
+			WNG("Bad game file '" << name << "'!");
+			return;
+		}
+		std::string line;
+		_player.move_state = NONE;
+		_ai.move_state = NONE;
+		while (getline(ifs, line))
+		{
+			if (line.size() && (line[0] == '#' || line[0] == '/')) continue; // comment
+			if (line.find("player_cards:") == 0) _player.cards = line.substr(13);
+			if (line.find("player_card:") == 0)
+			{
+				_player.card = Cards("|" + line.substr(12) + "|")[0];
+				_player.move_state = ON_TABLE;
+			}
+			if (line.find("player_deck:") == 0 ) _player.deck = line.substr(12);
+			if (line.find("player_score:") == 0 ) _player.score = atoi(line.substr(13).c_str());
+			if (line.find("player_pending:") == 0) _player.pending = atoi(line.substr(15).c_str());
+			if (line.find("ai_cards:") == 0) _ai.cards = line.substr(9);
+			if (line.find("ai_card:") == 0)
+			{
+				_ai.card = Cards("|" + line.substr(12) + "|")[0];
+				_ai.move_state = ON_TABLE;
+			}
+			if (line.find("ai_deck:") == 0) _ai.deck = line.substr(8);
+			if (line.find("ai_score:") == 0) _ai.score = atoi(line.substr(9).c_str());
+			if (line.find("ai_pending:") == 0) _ai.pending = atoi(line.substr(11).c_str());
+			if (line.find("cards:") == 0) _game.cards = line.substr(6);
+			if (line.find("closed:") == 0) _game.closed = static_cast<Closed>(atoi(line.substr(7).c_str()));
+			if (line.find("ai_score_closed:") == 0) _ai.score_closed = atoi(line.substr(16).c_str());
+			if (line.find("player_score_closed:") == 0) _player.score_closed = atoi(line.substr(20).c_str());
+			if (line.find("trump:") == 0) _game.trump = Cards("|A" + line.substr(6) + "|")[0].suite();
+			if (line.find("move:") == 0) _game.move = static_cast<Player>(atoi(line.substr(5).c_str()));
+		}
+		// Check cards for completeness
+		Cards c = _player.cards + _player.deck + _ai.cards + _ai.deck + _game.cards;
+		if (_player.move_state == ON_TABLE)
+			c += _player.card;
+		if (_ai.move_state == ON_TABLE)
+			c += _ai.card;
+		if (c.size() != 20 || c.check() == false ||
+		    (_player.move_state == ON_TABLE && _game.move == PLAYER) ||
+		    (_ai.move_state == ON_TABLE && _game.move == AI))
+		{
+			WNG("Corrupt game file '" << name << "'!");
+			_game.cards = Cards::fullcards();
+			_player.cards.clear();
+			_player.deck.clear();
+			_ai.cards.clear();
+			_ai.deck.clear();
+			init();
+			_restart = true;
+		}
+		else
+		{
+			if (_game.move == AI)
+				_restart = true;
+			_history.clear();
+			LOG("Loaded game file '" << name << "' - next to move: " << (_game.move == PLAYER ? "Player": "AI") << "\n");
+		}
 	}
 	else if (cmd_ == "quit")
 	{

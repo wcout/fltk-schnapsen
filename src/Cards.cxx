@@ -6,6 +6,9 @@
 #include <utility>
 #include <random>
 
+static CardSuite suites[] = { HEART, SPADE, DIAMOND, CLUB };
+static CardFace faces[] = { JACK, QUEEN, KING, TEN, ACE };
+
 Cards::Cards() {}
 
 Cards::Cards(const Cards_ &cards_)
@@ -178,31 +181,21 @@ Cards& Cards::from_string(const std::string &s_)
 	return *this;
 }
 
-void Cards::check()
+bool Cards::check()
 {
-	assert(find(Card(ACE,HEART)));
-	assert(find(Card(TEN,HEART)));
-	assert(find(Card(KING,HEART)));
-	assert(find(Card(QUEEN,HEART)));
-	assert(find(Card(JACK,HEART)));
-
-	assert(find(Card(ACE,SPADE)));
-	assert(find(Card(TEN,SPADE)));
-	assert(find(Card(KING,SPADE)));
-	assert(find(Card(QUEEN,SPADE)));
-	assert(find(Card(JACK,SPADE)));
-
-	assert(find(Card(ACE,CLUB)));
-	assert(find(Card(TEN,CLUB)));
-	assert(find(Card(KING,CLUB)));
-	assert(find(Card(QUEEN,CLUB)));
-	assert(find(Card(JACK,CLUB)));
-
-	assert(find(Card(ACE,DIAMOND)));
-	assert(find(Card(TEN,DIAMOND)));
-	assert(find(Card(KING,DIAMOND)));
-	assert(find(Card(QUEEN,DIAMOND)));
-	assert(find(Card(JACK,DIAMOND)));
+	for (auto s : suites)
+	{
+		for (auto f : faces)
+		{
+			Card c(f, s);
+			if (!find(c))
+			{
+				LOG("Card " << c << " not found!\n");
+				return false;
+			}
+		}
+	}
+	return true;
 }
 
 std::optional<size_t> Cards::find_face(CardFace f_) const
@@ -292,6 +285,7 @@ void Cards::sort_by_value(bool high_to_low/* = true*/)
 	{
 		return high_to_low ? (c1_.value() > c2_.value()) : (c2_.value() > c1_.value());
 	};
+	sort(); // first bring suites in defined order
 	std::sort(begin(), end(), sortRuleCards);
 }
 
@@ -307,8 +301,6 @@ int Cards::value() const
 Cards Cards::fullcards()
 {
 	Cards cards;
-	CardSuite suites[] = { HEART, SPADE, DIAMOND, CLUB };
-	CardFace faces[] = { JACK, QUEEN, KING, TEN, ACE };
 	for (auto s : suites)
 	{
 		for (auto f : faces)

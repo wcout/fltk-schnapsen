@@ -28,7 +28,7 @@ public:
 	Cards operator - (const Card &c_) const;
 	bool operator == (const std::string& s_);
 	Cards& from_string(const std::string &s_);
-	void check();
+	bool check();
 	std::optional<size_t> find_face(CardFace f_) const;
 	std::optional<size_t> find_pos(const Card &c_) const;
 	std::optional<Card> find(const Card &c_) const;
