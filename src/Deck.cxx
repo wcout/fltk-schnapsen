@@ -636,7 +636,7 @@ public:
 		fl_color(c_);
 		fl_pie(r.x - D / 2, r.y - D / 2, D, D, 0., 360.);
 		fl_color(FL_WHITE);
-		fl_font(FL_HELVETICA|FL_BOLD, D / 2);
+		fl_font(FL_HELVETICA_BOLD, D / 2);
 		Util::draw_string(text_, r.x - Util::string_size(text_) / 2, r.y + fl_height() / 2 - fl_descent(), true);
 	}
 
@@ -720,7 +720,7 @@ public:
 			std::string error_message = Util::message(_error_message);
 			fl_color(FL_RED);
 			fl_rectf(0, h() - h() / 40, w(), h() / 40);
-			fl_font(FL_HELVETICA|FL_BOLD, h() / 50);
+			fl_font(FL_HELVETICA_BOLD, h() / 50);
 			fl_color(FL_WHITE);
 			Util::draw_string(error_message, w() / 2 - Util::string_size(error_message) / 2, h() - fl_descent());
 		}

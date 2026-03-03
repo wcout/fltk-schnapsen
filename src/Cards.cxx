@@ -6,9 +6,6 @@
 #include <utility>
 #include <random>
 
-static CardSuite suites[] = { HEART, SPADE, DIAMOND, CLUB };
-static CardFace faces[] = { JACK, QUEEN, KING, TEN, ACE };
-
 Cards::Cards() {}
 
 Cards::Cards(const Cards_ &cards_)
@@ -183,9 +180,9 @@ Cards& Cards::from_string(const std::string &s_)
 
 bool Cards::check()
 {
-	for (auto s : suites)
+	for (auto s : { SPADE, HEART, DIAMOND, CLUB } )
 	{
-		for (auto f : faces)
+		for (auto f : { JACK, QUEEN, KING, TEN, ACE } )
 		{
 			Card c(f, s);
 			if (!find(c))
@@ -241,16 +238,6 @@ void Cards::shuffle()
 		static std::random_device rd;
 		static std::mt19937 gen(rd());
 		std::shuffle(begin(), end(), gen);
-#if 0
-		for (int i = 0; i < rand() % 100 + 100; i++)
-		{
-			size_t idx1 = random() % size();
-			size_t idx2 = random() % size();
-			Card c = at(idx1);
-			erase(begin() + idx1);
-			insert(begin() + idx2, c);
-		}
-#endif
 	}
 	check();
 }
@@ -301,9 +288,9 @@ int Cards::value() const
 Cards Cards::fullcards()
 {
 	Cards cards;
-	for (auto s : suites)
+	for (auto s : { SPADE, HEART, DIAMOND, CLUB } )
 	{
-		for (auto f : faces)
+		for (auto f : { JACK, QUEEN, KING, TEN, ACE } )
 		{
 			cards.push_back(Card(f, s));
 			cards.back().load();
