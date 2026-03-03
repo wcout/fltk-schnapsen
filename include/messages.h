@@ -77,7 +77,7 @@ std::map<Message, std::string> messages_de = {
 	{AI_NOT_ENOUGH, "AI hat nicht genug"},
 	{TRUMP, "Trumpf"},
 	{TITLE, "Schnapsen zu zweit"},
-	{GAMEBOOK, "**Spielebuch**"},
+	{GAMEBOOK, "^B♠^r♥^.Spielebuch^r♦^B♣^."},
 	{GB_HEADLINE, "  DU      AI"},
 	{YOU_WIN, "♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦\n"
 	          "♥                                  ♠\n"
@@ -132,7 +132,7 @@ std::map<Message, std::string> messages_en = {
 #endif
 	{TRUMP, "Trump"},
 	{TITLE, "Schnapsen for two"},
-	{GAMEBOOK, "**Game book**"},
+	{GAMEBOOK, " ^B♠^r♥^.Game book^r♦^B♣^."},
 	{GB_HEADLINE, "  YOU     AI"},
 	{YOU_WIN, "♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦\n"
 	          "♥                                  ♠\n"
