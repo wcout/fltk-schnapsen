@@ -1,14 +1,29 @@
 cmake_minimum_required(VERSION 3.11)
 project(fltk-schnapsen LANGUAGES CXX)
 
+# prefer dynamic libraries over static
+set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_SHARED_LIBRARY_SUFFIX} ${CMAKE_STATIC_LIBRARY_SUFFIX})
+
 find_package(FLTK CONFIG REQUIRED components images)
 
 add_executable(${PROJECT_NAME} fltk-schnapsen.cxx src)
 target_include_directories(fltk-schnapsen PRIVATE include/ src/)
 
+# to enable sound via miniaudio
 if(EXISTS "${CMAKE_SOURCE_DIR}/include/miniaudio.h")
 set(cxxflags "-DUSE_MINIAUDIO")
 else()
+endif()
+
+# to enable shadow text
+#set(cxxflags ${cxxflags} -DUSE_IMAGE_TEXT)
+# to enable fancy gamebook score digits
+set(cxxflags ${cxxflags} -DUSE_SVG_DIGITS)
+
+# to enable custom font
+option(USE_CUSTOM_FONT "Use Custom Font" ON)
+if(USE_CUSTOM_FONT)
+	set(cxxflags ${cxxflags} -DCUSTOM_FONT=\"MysteryQuest-Regular.ttf\")
 endif()
 
 # --- Add Compiler Switches Here ---
@@ -39,7 +54,11 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 )
 
 # --- Link the libraries as before ---
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    fltk
-    fltk_images
+target_link_libraries(${PROJECT_NAME} PRIVATE ${FLTK_LIBRARIES}
 )
+
+if(USE_CUSTOM_FONT)
+if(UNIX)
+target_link_libraries(${PROJECT_NAME} PRIVATE fontconfig)
+endif()
+endif()

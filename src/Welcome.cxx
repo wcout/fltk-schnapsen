@@ -64,7 +64,11 @@ void Welcome::draw()
 	if (Y + H > h() - stat_h - 4)
 		H = h() - Y - stat_h - 4;
 	c.image(W, H)->draw(w() / 40, Y);
+#ifdef CUSTOM_FONT
+	fl_font(FL_HELVETICA, w() / 10);
+#else
 	fl_font(FL_HELVETICA_BOLD, w() / 10);
+#endif
 	fl_color(FL_BLACK);
 	static constexpr char title[] = "^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B";
 	Util::draw_string(title, (w() - Util::string_size(title)) / 2, h() / 7, true);

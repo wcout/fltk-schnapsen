@@ -1,5 +1,5 @@
 #Specify own fltk-config directory here if required
-#FLTK := ../fltk/build/
+#FLTK := ../../fltk/build/
 
 FLTK_CONFIG := fltk-config
 APPLICATION := fltk-schnapsen
@@ -10,10 +10,15 @@ ifeq ($(wildcard include/miniaudio.h),)
 else
 cxxflags += -DUSE_MINIAUDIO
 endif
+
 # to enable shadow text
 #cxxflags += -DUSE_IMAGE_TEXT
+
 # to enable fancy gamebook score digits
-#cxxflags += -DUSE_SVG_DIGITS
+cxxflags += -DUSE_SVG_DIGITS
+
+# to enable custom font (must be placed in 'rsc' dir)
+#cxxflags += -DCUSTOM_FONT=\"MysteryQuest-Regular.ttf\"
 
 
 $(APPLICATION): $(APPLICATION).cxx include/system.h \
@@ -29,6 +34,7 @@ $(APPLICATION): $(APPLICATION).cxx include/system.h \
                                    include/GameBook.h src/GameBook.cxx \
                                    include/Engine.h src/Engine.cxx \
                                    include/Welcome.h src/Welcome.cxx \
+                                   include/FontLoader.h src/FontLoader.cxx \
                                    include/Unittest.h src/Unittest.cxx
 
 	$(FLTK)$(FLTK_CONFIG) --use-images --compile $(APPLICATION).cxx $(cxxflags)

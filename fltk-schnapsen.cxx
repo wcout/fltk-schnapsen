@@ -170,6 +170,23 @@ void parse_arg(int argc_, char *argv_[])
 	}
 }
 
+#ifdef CUSTOM_FONT
+#include "src/FontLoader.cxx"
+static std::string convertToFontName(const std::string &name_)
+{
+	// make font name from font file e.g. "name-Regular.ttf" => "name Regular"
+	std::string name(name_);
+	size_t pos;
+	while ((pos = name.find('-')) != std::string::npos)
+	{
+		name[pos] = ' ';
+	}
+	if ((pos = name.rfind('.')) != std::string::npos)
+		name.erase(pos);
+	return name;
+}
+#endif
+
 int main(int argc_, char *argv_[])
 {
 	Fl::keyboard_screen_scaling(0); // disable keyboard scaling - we do that ourselves
@@ -180,6 +197,13 @@ int main(int argc_, char *argv_[])
 	Util::load_config();
 	Util::load_stats();
 	LOG("homeDir: " << Util::homeDir() << "\n");
+
+#ifdef CUSTOM_FONT
+	static std::string fontName{convertToFontName(CUSTOM_FONT)}; // NOTE: this must be a static string!
+	std::string font_path = Util::homeDir() + "rsc/" + CUSTOM_FONT;
+	Fl::set_font(FL_HELVETICA, FontLoader::load(font_path.c_str(), fontName.c_str()));
+#endif
+
 	parse_arg(argc_, argv_);
 	fl_message_title_default(Util::message(TITLE).c_str()); // redo ... maybe language changed
 	srand(time(nullptr));
