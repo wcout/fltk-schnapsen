@@ -145,31 +145,19 @@ Cards Engine::all_cards_that_trick(const Card &c_, const Cards &cards_) const
 size_t Engine::lowest_card(const Cards &cards_, bool no_trump_/* = true*/) const
 {
 	// return the lowest card, but no trump if possible
-	int lowest_value = 20;
-	int lowest_value_trump = 20;
-	size_t lowest = NO_MOVE;
-	size_t lowest_trump = NO_MOVE;
-	for (size_t i = 0; i < cards_.size(); i++)
+	Cards cards(cards_);
+	cards.sort_by_value(); // hi->low
+	Card lowest = cards.back(); // default, can also be trump
+	if (no_trump_ == true)
 	{
-		if (cards_[i].suite() == _game.trump)
+		while (cards.size() && cards.back().suite() == _game.trump)
 		{
-			if (cards_[i].value() < lowest_value_trump)
-			{
-				lowest_value_trump = cards_[i].value();
-				lowest_trump = i;
-			}
+			cards.pop_back();
 		}
-		else if (cards_[i].value() < lowest_value)
-		{
-			lowest_value = cards_[i].value();
-			lowest = i;
-		}
+		if (cards.size())
+			lowest = cards.back();
 	}
-	if (lowest == NO_MOVE)
-		lowest = lowest_trump;
-	if (no_trump_ == true && lowest != NO_MOVE)
-		return lowest;
-	return lowest_trump;
+	return find(lowest, cards_);
 }
 
 size_t Engine::lowest_card_that_tricks(const Card &c_, const Cards &cards_) const
@@ -441,7 +429,7 @@ bool Engine::ai_test_close()
 			maybe_score += highest.value();
 			maybe_score += highest.size() * 3; // at average expect win of a queen per trick
 			do_close = maybe_score >= 60 &&
-				(trumps_in_hand(_ai.cards).size() || max_trumps_player() <= 1);
+				(size_t)max_trumps_player() <= trumps_in_hand(_ai.cards).size();
 		}
 		DBG("maybe_score: " << maybe_score << "\n")
 		if (do_close)
@@ -454,15 +442,21 @@ bool Engine::ai_test_close()
 	return false;
 }
 
-Cards Engine::cards_to_claim(CardSuite suite_/* = ANY_SUITE*/) const
+Cards Engine::assumed_player_cards() const
 {
-	Cards res;
 	// in use at end game playout ("allowed" to use _player.cards)
 	Cards player_cards = Cards::fullcards() - _player.deck - _ai.deck - _ai.cards;
 	if (_game.cards.size())
 		player_cards -= _game.cards.back(); // open trump is certainly not in player cards
 	player_cards.sort();
 	DBG("assumed player cards: " << player_cards << "\n")
+	return player_cards;
+}
+
+Cards Engine::cards_to_claim(CardSuite suite_/* = ANY_SUITE*/) const
+{
+	Cards res;
+	Cards player_cards = assumed_player_cards();
 	for (const auto &c : _ai.cards)
 	{
 		if (suite_ != ANY_SUITE && c.suite() != suite_) continue;
@@ -732,10 +726,56 @@ size_t Engine::ai_play_for_closed_lead()
 	return NO_MOVE;
 }
 
+size_t Engine::winning_move()
+{
+	 // assumed_player_cards() is only valid when auto closed
+	if (_game.closed != AUTO)
+		return NO_MOVE;
+	// This should be the cards player has in hand
+	Cards player_cards(assumed_player_cards());
+	// test all ai cards, if a trick would push the score to win
+	for (size_t m = 0; m < _ai.cards.size(); m++)
+	{
+		Card &c = _ai.cards[m];
+		if (can_trick(c, player_cards)) continue;
+		// This is a card player can't trick
+		Card player_card;
+		Cards same_suite = suites_in_hand(c.suite(), player_cards);
+		if (same_suite.size())
+		{
+			// if player has that suite he will give the lowest of it
+			player_card = same_suite[0];
+		}
+		else
+		{
+			// otherwise he gives his lowest card in hand
+			player_card = player_cards[lowest_card(player_cards, false)];
+		}
+		assert(player_card.suite() != NO_SUITE);
+		// now with that card lets calculate the new ai score:
+		bool is_winning = player_card.value() + _ai.score + _ai.pending + c.value() >= 66;
+		if (is_winning)
+		{
+			// this card will win game
+			LOG("winning_move: " << player_card << "\n");
+			return m;
+		}
+	}
+	return NO_MOVE;
+}
+
 void Engine::ai_move_closed_lead()
 {
 	// end game, ai plays out
 	size_t move = NO_MOVE;
+
+	size_t m = winning_move();
+	if (m != NO_MOVE)
+	{
+		// this move wins the game..
+		_move = m;
+		return;
+	}
 
 	if (_ai.cards.size() == 2)
 	{
@@ -745,7 +785,7 @@ void Engine::ai_move_closed_lead()
 			move = m;
 	}
 
-	size_t m = ai_play_20_40();
+	m = ai_play_20_40();
 	if (m != NO_MOVE)
 	{
 		move = m;
@@ -772,6 +812,12 @@ void Engine::ai_move_closed_lead()
 				if (claim.size())
 				{
 					move = find(claim[0], _ai.cards);
+				}
+				else
+				{
+					Cards highest = highest_cards_in_hand();
+					if (highest.size())
+						move = find(highest[0], _ai.cards);
 				}
 			}
 		}

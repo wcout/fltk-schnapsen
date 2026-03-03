@@ -76,6 +76,15 @@ bool Unittest::run()
 	_game.cards = temp;
 
 	_game.trump = SPADE;
+	Cards p2("|A♠|Q♥|Q♦|Q♣|J♣|");
+	assert(_engine.lowest_card(p2, true) == 4);
+	p2 = "|J♠|Q♥|Q♦|Q♣|J♣|";
+	assert(_engine.lowest_card(p2, true) == 4);
+	p2 = "|J♠|Q♥|Q♦|Q♣|K♣|";
+	assert(_engine.lowest_card(p2, false) == 0);
+	_game.cards = temp;
+
+	_game.trump = SPADE;
 	Cards acards("|T♦|K♦|J♦|T♣|K♣|");
 	Cards pcards("|A♦|Q♦|T♥|A♣|J♣|");
 	Cards move = _engine.closed_lead_no_trick(acards, pcards);

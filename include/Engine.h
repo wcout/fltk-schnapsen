@@ -65,6 +65,7 @@ public:
 	size_t lowest_card(const Cards &cards_, bool no_trump_ = true) const;
 	size_t lowest_card_that_tricks(const Card &c_, const Cards &cards_) const;
 	size_t highest_card_that_tricks(const Card &c_, const Cards &cards_) const;
+	Cards assumed_player_cards() const;
 	Cards all_cards_that_trick(const Card &c_, const Cards &cards_) const;
 	bool has_suite(const Cards &cards_, CardSuite suite_) const;
 	bool can_trick(const Card &c_, const Cards &cards_) const;
@@ -89,6 +90,7 @@ public:
 	int max_trumps_player() const;
 	Cards pull_trump_cards(Cards cards_, Cards from_) const;
 	Cards closed_lead_no_trick(Cards leader_, Cards follower_);
+	size_t winning_move();
 	Cards hinder_20_40();
 	size_t default_move(const Cards &cards_) const;
 	size_t default_move() const { return default_move(_ai.cards); }
