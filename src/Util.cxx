@@ -358,7 +358,7 @@ int Util::string_size(const std::string &text_, int &w_, int &h_)
 }
 
 /*static*/
-int Util::string_size(const std::string &text_)
+int Util::string_width(const std::string &text_)
 {
 	int W, H;
 	return string_size(text_, W, H);
