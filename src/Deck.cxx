@@ -1303,24 +1303,15 @@ public:
 	// UI independent stuff (mostly)
 	//
 
-	void dump_cards(const Cards &cards_, const std::string &title_) const
-	{
-		LOG(title_ << " (" << cards_.size() << " cards):" << "\n");
-		LOG(cards_);
-		LOG("\n");
-	}
-
 	void debug(bool unconditional_ = false) const
 	{
-		if (unconditional_ == true || _game.cards.size() == 20 || _game.cards.size() == 10)
-		{
-			// log only when change of deck cards
-			static Cards cards;
-			if (unconditional_ == false &&
-				cards == _game.cards) return; // no change!
-			cards = _game.cards;
-			dump_cards(_game.cards, "Cards");
-		}
+		// log only when change of deck cards
+		static Cards cards;
+		if (unconditional_ == false &&
+			cards == _game.cards) return; // no change!
+		cards = _game.cards;
+		LOG("cards: " << cards << " (" << cards.size() << ")\n");
+
 		// log only when change of playing cards
 		static Cards player_cards;
 		static Cards ai_cards;
@@ -1328,7 +1319,11 @@ public:
 			_ai.cards == ai_cards && _player.cards == player_cards) return; // no change
 		ai_cards = _ai.cards;
 		player_cards = _player.cards;
-		LOG("AI cards: " << _ai.cards);
+
+		LOG("PL deck: " << _player.deck << " (" << _player.deck.size() << ")\n");
+		LOG("AI deck: " << _ai.deck << " (" << _ai.deck.size() << ")\n");
+
+		LOG("AI cards: " << _ai.cards << " (" << _ai.cards.size() << ")");
 		if (_strictness >= 1 && _game.closed == BY_PLAYER)
 		{
 			LOG("\tscore closed: " << _ai.score_closed);
@@ -1342,7 +1337,7 @@ public:
 			LOG(Card::suite_symbol(s));
 		LOG("\n");
 
-		LOG("PL cards: " << _player.cards);
+		LOG("PL cards: " << _player.cards << " (" << _player.cards.size() << ")");
 		if (_strictness >= 1 && _game.closed == BY_AI)
 		{
 			LOG("\tscore closed: " << _player.score_closed);
