@@ -62,6 +62,7 @@ public:
 	Cmd_Input(int x_, int y_, int w_, int h_) : Fl_Input(x_, y_, w_, h_)
 	{
 		box(FL_BORDER_BOX);
+		textfont(FL_COURIER);
 		textsize(h() / 3 * 2);
 	}
 	void draw()
@@ -1256,7 +1257,7 @@ public:
 			return;
 		}
 		begin();
-		_cmd_input = new Cmd_Input(_CW / 20, h() - _CW / 5 - _CW / 20, _CW, _CW / 5);
+		_cmd_input = new Cmd_Input(_CW / 20, h() - _CW / 5 - _CW / 20, _CW * 2, _CW / 5);
 		end();
 		_cmd_input->take_focus();
 		redraw();
