@@ -757,7 +757,7 @@ size_t Engine::winning_move()
 		if (is_winning)
 		{
 			// this card will win game
-			LOG("winning_move: " << player_card << "\n");
+			LOG("winning_move: " << c << "\n");
 			return m;
 		}
 	}
