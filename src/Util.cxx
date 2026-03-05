@@ -33,7 +33,7 @@ const std::string& Util::homeDir()
 		}
 		else
 		{
-#ifdef WIN32
+#ifdef _WIN32
 			fl_filename_expand(home_path, "$APPDATA/");
 #else
 			fl_filename_expand(home_path, "$HOME/.");
@@ -172,7 +172,7 @@ void Util::save_stats()
 const std::string& Util::message(const Message m_)
 {
 	std::string lang = ::config["lang"];
-#ifndef WIN32
+#ifndef _WIN32
 	// TODO: Fix for WIN32
 	if (lang.empty())
 	{
@@ -199,7 +199,7 @@ void Util::draw_color_text(const std::string &text_, int x_, int y_,
 {
 	auto draw_text = [&](const char *text_, int x_, int y_) -> void
 	{
-#if defined(WIN32) || defined(USE_IMAGE_TEXT)
+#if defined(_WIN32) || defined(USE_IMAGE_TEXT)
 		if (shadow_)
 		{
 			// not suitable when emojis are in the text string!
@@ -369,7 +369,7 @@ std::ostream& Util::logstream()
 {
 	auto temp_dir = [&]() -> std::string
 	{
-#ifdef WIN32
+#ifdef _WIN32
 		char *temp_dir = std::getenv("TEMP");
 		return temp_dir ? temp_dir : ".";
 #else

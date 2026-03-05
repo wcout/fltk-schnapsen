@@ -730,7 +730,7 @@ public:
 			fl_font(FL_HELVETICA, _CH / 7);
 			fl_color(GRAY);
 			static const std::string closed_sym =
-#if !defined(WIN32) && !defined(USE_IMAGE_TEXT)
+#if !defined(_WIN32) && !defined(USE_IMAGE_TEXT)
 				"⛔";
 #else
 				"^|26d4|";
@@ -1538,7 +1538,7 @@ public:
 		cursor(FL_CURSOR_DEFAULT);
 		std::string m(Util::message(YOU_WIN));
 		fl_message_icon()->box(FL_NO_BOX);
-#if !defined(WIN32) && !defined(USE_IMAGE_TEXT)
+#if !defined(_WIN32) && !defined(USE_IMAGE_TEXT)
 		fl_message_icon_label("🏆");
 #else
 		static Fl_SVG_Image icon((Util::homeDir() + "rsc/" + "1f3c6.svg").c_str());
@@ -1590,7 +1590,7 @@ public:
 		cursor(FL_CURSOR_DEFAULT);
 		std::string m(Util::message(YOU_LOST));
 		fl_message_icon()->box(FL_NO_BOX);
-#if !defined(WIN32) && !defined(USE_IMAGE_TEXT)
+#if !defined(_WIN32) && !defined(USE_IMAGE_TEXT)
 		fl_message_icon_label("⚫");
 #else
 		static Fl_SVG_Image icon((Util::homeDir() + "rsc/" + "26ab.svg").c_str());
