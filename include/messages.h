@@ -79,16 +79,24 @@ std::map<Message, std::string> messages_de = {
 	{TITLE, "Schnapsen zu zweit"},
 	{GAMEBOOK, "^B♠^r♥^.Spielebuch^r♦^B♣^."},
 	{GB_HEADLINE, "  DU      AI"},
-	{YOU_WIN, "♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦\n"
-	          "♥                                  ♠\n"
-	          "♣           Glückwunsch!           ♥\n"
-	          "♦                                  ♣\n"
-	          "♠                                  ♦\n"
-	          "♥   Du hast die Partie gewonnen!   ♠\n"
-	          "♣                                  ♥\n"
-	          "♦                                  ♣\n"
-	          "♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦"},
-	{YOU_LOST, "\n\nDie AI hat dir ein\nBummerl angehängt!\n\n"},
+	{YOU_WIN, "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^.\n"
+	          "^r♥^.                                  ^B♠^.\n"
+	          "^B♣^.           Glückwunsch!           ^r♥^.\n"
+	          "^r♦^.                                  ^B♣^.\n"
+	          "^B♠^.                                  ^r♦^.\n"
+	          "^r♥^.   Du hast die Partie gewonnen!   ^B♠^.\n"
+	          "^B♣^.                                  ^r♥^.\n"
+	          "^r♦^.                                  ^B♣^.\n"
+	          "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^."},
+	{YOU_LOST,"^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^.\n"
+	          "^r♥^.                                  ^B♠^.\n"
+	          "^B♣^.                                  ^r♥^.\n"
+	          "^r♦^.   Ich muß dir leider mitteilen:  ^B♣^.\n"
+	          "^B♠^.                                  ^r♦^.\n"
+	          "^r♥^.  Du hast das Bummerl^|26ab| bekommen! ^B♠^.\n"
+	          "^B♣^.                                  ^r♥^.\n"
+	          "^r♦^.                                  ^B♣^.\n"
+	          "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^."},
 	{INVALID_SUITE, "Du must Farbe geben"},
 	{MUST_TRICK_WITH_SUITE, "Du must mit Farbe stechen"},
 	{MUST_TRICK_WITH_TRUMP, "Du must mit Atout stechen"},
@@ -134,16 +142,24 @@ std::map<Message, std::string> messages_en = {
 	{TITLE, "Schnapsen for two"},
 	{GAMEBOOK, " ^B♠^r♥^.Game book^r♦^B♣^."},
 	{GB_HEADLINE, "  YOU     AI"},
-	{YOU_WIN, "♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦\n"
-	          "♥                                  ♠\n"
-	          "♣       Wow, your lucky day!       ♥\n"
-	          "♦                                  ♣\n"
-	          "♠                                  ♦\n"
-	          "♥   You have won the whole lot!    ♠\n"
-	          "♣                                  ♥\n"
-	          "♦                                  ♣\n"
-	          "♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦♠♥♣♦"},
-	{YOU_LOST, "\n\nYou got the bummerl!\n\n"},
+	{YOU_WIN, "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^.\n"
+	          "^r♥^.                                  ^B♠^.\n"
+	          "^B♣^.       Wow, your lucky day!       ^r♥^.\n"
+	          "^r♦^.                                  ^B♣^.\n"
+	          "^B♠^.                                  ^r♦^.\n"
+	          "^r♥^.   You have won the whole lot!    ^B♠^.\n"
+	          "^B♣^.                                  ^r♥^.\n"
+	          "^r♦^.                                  ^B♣^.\n"
+	          "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^."},
+	{YOU_LOST,"^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^.\n"
+	          "^r♥^.                                  ^B♠^.\n"
+	          "^B♣^.                                  ^r♥^.\n"
+	          "^r♦^.     Sorry, I must tell you:      ^B♣^.\n"
+	          "^B♠^.                                  ^r♦^.\n"
+	          "^r♥^.      You got the bummerl!^|26ab|      ^B♠^.\n"
+	          "^B♣^.                                  ^r♥^.\n"
+	          "^r♦^.                                  ^B♣^.\n"
+	          "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^."},
 	{INVALID_SUITE, "You must give suite"},
 	{MUST_TRICK_WITH_SUITE, "You must trick with suite"},
 	{MUST_TRICK_WITH_TRUMP, "You must trick with trump"},

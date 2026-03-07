@@ -11,7 +11,6 @@
 #include <FL/Fl_PNG_Image.H>
 #include <FL/Fl_Shared_Image.H>
 #include <FL/Fl_Tiled_Image.H>
-#include <FL/Fl_Anim_GIF_Image.H>
 #include <FL/Fl_Input.H>
 #include <FL/fl_draw.H>
 #include <FL/fl_utf8.h>
@@ -1534,82 +1533,24 @@ public:
 		redraw();
 	}
 
-	static void cb_animate(void *d_)
-	{
-		Deck *deck = static_cast<Deck *>(d_);
-		if (Fl::first_window() != deck)
-			Fl::first_window()->redraw();
-		Fl::repeat_timeout(1./10, cb_animate, d_);
-	}
-
 	void show_win_msg() override
 	{
 		cursor(FL_CURSOR_DEFAULT);
 		std::string m(Util::message(YOU_WIN));
-		static Fl_Anim_GIF_Image anim((Util::homeDir() + "rsc/" + "1f3c6.gif").c_str());
-		Fl_Box *canvas = (Fl_Box *)fl_message_icon();
-		fl_message_icon_label("");
-		canvas->box(FL_NO_BOX);
-		anim.canvas(canvas, Fl_Anim_GIF_Image::DONT_RESIZE_CANVAS);
-		anim.scale(canvas->w(), canvas->h(), 0, 1);
-		canvas->align(FL_ALIGN_IMAGE_BACKDROP);
-		Fl::add_timeout(0.0, [](void *d_)
-		{
-			Fl_Window *win = Fl::first_window();
-			if (win == nullptr) return;
-			auto &m = *(static_cast<const std::string *>(d_));
-			Fl_Box *b = static_cast<Fl_Box *>(win->child(0));
-			if (b->label() == nullptr || std::string(b->label()) != m) return;
-			std::string s;
-			const char *p = m.c_str();
-			while (*p)
-			{
-				int len = fl_utf8len1(*p);
-				std::string c = m.substr(p - m.c_str(), len);
-				p += len;
-				if (c == "♥" || c == "♦" || c == "\n")
-					s.append(c);
-				else
-					s.push_back(' ');
-			}
-			Fl_Box *box = new Fl_Box(b->x(), b->y(), b->w(), b->h());
-			box->color(b->color());
-			box->labelcolor(FL_RED);
-			box->labelfont(b->labelfont());
-			box->labelsize(b->labelsize());
-			box->align(b->align());
-			box->copy_label(s.c_str());
-			win->insert(*box, 99);
-			win->redraw();
-		}, &m);
-		fl_message_position(x() + w() / 2, y() + h() / 2, 1);
-		Fl::add_timeout(1./10, cb_animate, this);
-		fl_alert("%s", m.c_str());
-		Fl::remove_timeout(cb_animate, this);
-		fl_message_icon()->image(nullptr);
+		Alert &alert = *new Alert(m.c_str(), Util::message(TITLE).c_str());
+		alert.set_bg_image((Util::homeDir() + "rsc/" + "1f3c6.gif").c_str())
+		     .center_on(Rect(*this))
+		     .run();
 	}
 
 	void show_lost_msg() override
 	{
 		cursor(FL_CURSOR_DEFAULT);
 		std::string m(Util::message(YOU_LOST));
-		fl_message_icon()->box(FL_NO_BOX);
-#if !defined(_WIN32) && !defined(USE_IMAGE_TEXT)
-		fl_message_icon_label("⚫");
-#else
-		static Fl_SVG_Image icon((Util::homeDir() + "rsc/" + "26ab.svg").c_str());
-		if (icon.w() > 0 && icon.h() > 0)
-		{
-			icon.normalize();
-			icon.scale(fl_message_icon()->w(), fl_message_icon()->h(), 1, 1);
-			fl_message_icon()->image(&icon);
-			fl_message_icon()->align(FL_ALIGN_IMAGE_BACKDROP);
-			fl_message_icon_label("");
-		}
-#endif
-		fl_message_position(x() + w() / 2, y() + h() / 2, 1);
-		fl_alert("%s", m.c_str());
-		fl_message_icon()->image(nullptr);
+		Alert &alert = *new Alert(m.c_str(), Util::message(TITLE).c_str());
+		alert.set_bg_image((Util::homeDir() + "rsc/" + "1f61e.gif").c_str())
+		     .center_on(Rect(*this))
+		     .run();
 	}
 
 	void save_config() const
