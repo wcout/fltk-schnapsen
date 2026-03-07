@@ -2,6 +2,7 @@
 #include "Engine.h"
 
 #include "Util.h"
+#include "Alert.h"
 
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Box.H>
@@ -10,6 +11,7 @@
 #include <FL/Fl_PNG_Image.H>
 #include <FL/Fl_Shared_Image.H>
 #include <FL/Fl_Tiled_Image.H>
+#include <FL/Fl_Anim_GIF_Image.H>
 #include <FL/Fl_Input.H>
 #include <FL/fl_draw.H>
 #include <FL/fl_utf8.h>
@@ -62,7 +64,7 @@ public:
 	Cmd_Input(int x_, int y_, int w_, int h_) : Fl_Input(x_, y_, w_, h_)
 	{
 		box(FL_BORDER_BOX);
-		textfont(FL_COURIER);
+		textfont(FL_HELVETICA);
 		textsize(h() / 3 * 2);
 	}
 	void draw()
@@ -189,7 +191,6 @@ public:
 		int xpos = Util::config_as_int("xpos");
 		int ypos = Util::config_as_int("ypos");
 		position(xpos, ypos);
-		end();
 		_redeal_button->callback([](Fl_Widget *wgt_, void *)
 		{
 			static_cast<Deck *>(wgt_->window())->redeal();
@@ -702,14 +703,14 @@ public:
 		if (_player.message != NO_MESSAGE)
 		{
 			std::string player_message = Util::message(_player.message);
-			fl_font(FL_HELVETICA, w() / (player_message.back() == '!' ? 24 : 34));
+			fl_font(CustomFont, w() / (player_message.back() == '!' ? 24 : 34));
 			fl_color(FL_RED);
 			Util::draw_string(player_message, w() / 4 - Util::string_width(player_message) / 2, h() - h() / 8, true);
 		}
 		if (_ai.message != NO_MESSAGE)
 		{
 			std::string ai_message = Util::message(_ai.message);
-			fl_font(FL_HELVETICA, w() / (ai_message.back() == '!' ? 24 : 34));
+			fl_font(CustomFont, w() / (ai_message.back() == '!' ? 24 : 34));
 			size_t pos = ai_message.find("!!");
 			if (pos != std::string::npos)
 				ai_message.erase(pos, 2);
@@ -727,7 +728,7 @@ public:
 		}
 		if (_game.closed != NOT && _ai.display_score == false)
 		{
-			fl_font(FL_HELVETICA, _CH / 7);
+			fl_font(CustomFont, _CH / 7);
 			fl_color(GRAY);
 			static const std::string closed_sym =
 #if !defined(_WIN32) && !defined(USE_IMAGE_TEXT)
@@ -1077,7 +1078,7 @@ public:
 		if (_player.score)
 		{
 			bool show_closed_score = _game.closed == BY_AI && _strictness > 0;
-			fl_font(FL_HELVETICA, w() / 42);
+			fl_font(CustomFont, w() / 42);
 			fl_color(show_closed_score ? FL_RED : FL_BLUE);
 			char buf[20];
 			snprintf(buf, sizeof(buf), "%d", (show_closed_score ? _player.score_closed : _player.score));
@@ -1086,7 +1087,7 @@ public:
 		if (_ai.score && (_ai.display_score | ::debug))
 		{
 			bool show_closed_score = _game.closed == BY_PLAYER && _strictness > 0;
-			fl_font(FL_HELVETICA, w() / 42);
+			fl_font(CustomFont, w() / 42);
 			fl_color(show_closed_score ? FL_RED : FL_BLUE);
 			char buf[20];
 			snprintf(buf, sizeof(buf), "%d", (show_closed_score ? _ai.score_closed : _ai.score));
@@ -1533,24 +1534,25 @@ public:
 		redraw();
 	}
 
+	static void cb_animate(void *d_)
+	{
+		Deck *deck = static_cast<Deck *>(d_);
+		if (Fl::first_window() != deck)
+			Fl::first_window()->redraw();
+		Fl::repeat_timeout(1./10, cb_animate, d_);
+	}
+
 	void show_win_msg() override
 	{
 		cursor(FL_CURSOR_DEFAULT);
 		std::string m(Util::message(YOU_WIN));
-		fl_message_icon()->box(FL_NO_BOX);
-#if !defined(_WIN32) && !defined(USE_IMAGE_TEXT)
-		fl_message_icon_label("🏆");
-#else
-		static Fl_SVG_Image icon((Util::homeDir() + "rsc/" + "1f3c6.svg").c_str());
-		if (icon.w() > 0 && icon.h() > 0)
-		{
-			icon.normalize();
-			icon.scale(fl_message_icon()->w(), fl_message_icon()->h(), 1, 1);
-			fl_message_icon()->image(&icon);
-			fl_message_icon()->align(FL_ALIGN_IMAGE_BACKDROP);
-			fl_message_icon_label("");
-		}
-#endif
+		static Fl_Anim_GIF_Image anim((Util::homeDir() + "rsc/" + "1f3c6.gif").c_str());
+		Fl_Box *canvas = (Fl_Box *)fl_message_icon();
+		fl_message_icon_label("");
+		canvas->box(FL_NO_BOX);
+		anim.canvas(canvas, Fl_Anim_GIF_Image::DONT_RESIZE_CANVAS);
+		anim.scale(canvas->w(), canvas->h(), 0, 1);
+		canvas->align(FL_ALIGN_IMAGE_BACKDROP);
 		Fl::add_timeout(0.0, [](void *d_)
 		{
 			Fl_Window *win = Fl::first_window();
@@ -1581,7 +1583,9 @@ public:
 			win->redraw();
 		}, &m);
 		fl_message_position(x() + w() / 2, y() + h() / 2, 1);
+		Fl::add_timeout(1./10, cb_animate, this);
 		fl_alert("%s", m.c_str());
+		Fl::remove_timeout(cb_animate, this);
 		fl_message_icon()->image(nullptr);
 	}
 
@@ -1659,7 +1663,7 @@ public:
 		int pscore = _game.book.player_score();
 		int ascore = _game.book.ai_score();
 		LOG("match score PL:AI: " << pscore << ":" << ascore << "\n");
-		fl_message_font_ = FL_COURIER;
+		fl_message_font_ = FL_COURIER_BOLD;
 		fl_message_size_ = h() / 40;
 		if (pscore >= MATCH_SCORE)
 		{

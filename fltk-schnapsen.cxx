@@ -16,11 +16,14 @@
 constexpr char APPLICATION[] = "fltk-schnapsen";
 constexpr char VERSION[] = "1.0";
 
-// only for testing
-int debug = 0;
-
 #include "Deck.h"
-Player first_to_move = Player::PLAYER;
+namespace Schnapsen
+{
+	int debug = 0;
+	Fl_Font CustomFont = FL_HELVETICA;
+	Player first_to_move = Player::PLAYER;
+};
+using namespace Schnapsen;
 
 #include "debug.h"
 #include "Util.cxx"
@@ -30,6 +33,7 @@ Player first_to_move = Player::PLAYER;
 #include "GameBook.cxx"
 #include "Engine.cxx"
 #include "Welcome.cxx"
+#include "Alert.cxx"
 #include "Deck.cxx"
 #include "Deck_Cmd.cxx"
 
@@ -190,6 +194,7 @@ static std::string convertToFontName(const std::string &name_)
 int main(int argc_, char *argv_[])
 {
 	Fl::keyboard_screen_scaling(0); // disable keyboard scaling - we do that ourselves
+	Fl::screen_scale(0, 1);
 	fl_message_title_default(Util::message(TITLE).c_str());
 	fl_message_hotspot(0);
 	Fl::get_system_colors();
@@ -201,7 +206,8 @@ int main(int argc_, char *argv_[])
 #ifdef CUSTOM_FONT
 	static std::string fontName{convertToFontName(CUSTOM_FONT)}; // NOTE: this must be a static string!
 	std::string font_path = Util::homeDir() + "rsc/" + CUSTOM_FONT;
-	Fl::set_font(FL_HELVETICA, FontLoader::load(font_path.c_str(), fontName.c_str()));
+//	Fl::set_font(FL_HELVETICA, FontLoader::load(font_path.c_str(), fontName.c_str()));
+	CustomFont = FontLoader::load(font_path.c_str(), fontName.c_str());
 #endif
 
 	parse_arg(argc_, argv_);

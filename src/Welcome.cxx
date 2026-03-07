@@ -65,7 +65,7 @@ void Welcome::draw()
 		H = h() - Y - stat_h - 4;
 	c.image(W, H)->draw(w() / 40, Y);
 #ifdef CUSTOM_FONT
-	fl_font(FL_HELVETICA, w() / 10);
+	fl_font(CustomFont, w() / 10);
 #else
 	fl_font(FL_HELVETICA_BOLD, w() / 10);
 #endif

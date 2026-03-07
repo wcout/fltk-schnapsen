@@ -5,6 +5,7 @@
 //
 #include "debug.h"
 #include "Util.h"
+#include "Alert.h"
 #include "messages.h"
 #include "GameBook.h"
 #include <FL/Fl.H>
@@ -52,12 +53,13 @@ void Deck::onCmd(const std::string &cmd_)
 	}
 	else if (cmd_.find("message=") == 0)
 	{
-		fl_message_font_ = FL_COURIER;
+		fl_message_font_ = FL_COURIER_BOLD;
 		fl_message_size_ = h() / 40;
 		Message m = (Message)atoi(cmd_.substr(8).c_str());
 		Fl::add_timeout(0., [](void *d_) { (static_cast<Deck *>(d_))->redraw();	}, this);
 		if (m == YOU_WIN)
 		{
+			LOG("command win_msg\n");
 			show_win_msg();
 		}
 		else if (m == YOU_LOST)
