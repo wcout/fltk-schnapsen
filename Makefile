@@ -18,7 +18,7 @@ endif
 cxxflags += -DUSE_SVG_DIGITS
 
 # to enable custom font (must be placed in 'rsc' dir)
-cxxflags += -DCUSTOM_FONT=\"MysteryQuest-Regular.ttf\"
+#cxxflags += -DCUSTOM_FONT=\"MysteryQuest-Regular.ttf\"
 
 
 $(APPLICATION): $(APPLICATION).cxx include/system.h \
