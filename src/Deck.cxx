@@ -1185,6 +1185,35 @@ public:
 		fl_rect(X, Y, W, H);
 	}
 
+	bool check_sleep()
+	{
+		if (_ai.message != AI_SLEEP)
+		{
+			Fl::remove_timeout(cb_sleep, this);
+			Fl::add_timeout(20.0, cb_sleep, this);
+		}
+		else
+		{
+			// Gimmick: draw an animated sleepy face if player takes too long
+			// (This overrides the AI_SLEEP message display)
+			static Fl_Anim_GIF_Image sleepyFace((Util::homeDir() + "rsc/1f634.gif").c_str());
+			sleepyFace.scale(_CW / 2, _CW / 2, 1, 1);
+			int X = pack_rect().center().x - sleepyFace.w() / 2;
+			int Y = pack_rect().y - _CW;
+			fl_push_clip(X, Y, sleepyFace.w(), sleepyFace.h());
+			draw_table();
+			sleepyFace.draw(X, Y, sleepyFace.w(), sleepyFace.h());
+			fl_pop_clip();
+			Fl::add_timeout(1./10, [](void *d_)
+			{
+				Deck *deck = static_cast<Deck *>(d_);
+				deck->redraw();
+			}, this);
+			return true;
+		}
+		return false;
+	}
+
 	void draw() override
 	{
 		// measure a "standard card"
@@ -1197,11 +1226,9 @@ public:
 		_CW = W;
 		_CH = H;
 		_card_template.set_pixel_size(_CW, _CH);
-		if (_ai.message != AI_SLEEP)
-		{
-			Fl::remove_timeout(cb_sleep, this);
-			Fl::add_timeout(20.0, cb_sleep, this);
-		}
+
+		if (check_sleep()) return;
+
 		draw_table();
 		draw_gamebook();
 		if (_game.trump != NO_SUITE)
