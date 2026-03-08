@@ -553,6 +553,12 @@ public:
 			h() / 10 - w() / 800 : h() - _CH - h() / 10) , _CW, _CH);
 	}
 
+	Rect message_rect(Player player_) const
+	{
+		fl_font(CustomFont, w() / 24);
+		return Rect(0, (player_ == AI ? h() / 8 - fl_height() + fl_descent() : h() - h() / 8 - fl_height() + fl_descent()), w() / 2, fl_height());
+	}
+
 	Rect move_rect(Player player_) const
 	{
 		int ma = h() / 40 + _CH / 3 + h() / 40 + _CH / 2;
@@ -1158,31 +1164,34 @@ public:
 
 	void draw_debug_rects()
 	{
-		fl_color(FL_GREEN);
-		int X, Y, W, H;
-		cards_rect(PLAYER).get(X, Y, W, H);
-		fl_rect(X, Y, W, H);
-		cards_rect(AI).get(X, Y, W, H);
-		fl_rect(X, Y, W, H);
+		auto draw_rect = [&](Rect r) -> void
+		{
+			fl_color(FL_GREEN);
+			fl_rect(r.x, r.y, r.w, r.h);
+			fl_color(GRAY);
+			fl_line_style(FL_DASH);
+			fl_xyline(r.x + 1, r.center().y, r.x + r.w - 1);
+			fl_yxline(r.center().x, r.y + 1, r.y + r.h - 1);
+			fl_line_style(0);
+		};
 
-		move_rect(PLAYER).get(X, Y, W, H);
-		fl_rect(X, Y, W, H);
-		move_rect(AI).get(X, Y, W, H);
-		fl_rect(X, Y, W, H);
+		draw_rect(cards_rect(PLAYER));
+		draw_rect(cards_rect(AI));
 
-		deck_rect(PLAYER).get(X, Y, W, H);
-		fl_rect(X, Y, W, H);
-		deck_rect(AI).get(X, Y, W, H);
-		fl_rect(X, Y, W, H);
+		draw_rect(move_rect(PLAYER));
+		draw_rect(move_rect(AI));
 
-		pack_rect().get(X, Y, W, H);
-		fl_rect(X, Y, W, H);
+		draw_rect(deck_rect(PLAYER));
+		draw_rect(deck_rect(AI));
 
-		change_rect().get(X, Y, W, H);
-		fl_rect(X, Y, W, H);
+		draw_rect(pack_rect());
 
-		gamebook_rect().get(X, Y, W, H);
-		fl_rect(X, Y, W, H);
+		draw_rect(change_rect());
+
+		draw_rect(gamebook_rect());
+
+		draw_rect(message_rect(PLAYER));
+		draw_rect(message_rect(AI));
 	}
 
 	bool check_sleep()
