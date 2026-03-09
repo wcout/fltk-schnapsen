@@ -182,7 +182,7 @@ public:
 		_redeal_button->visible_focus(0);
 		_redeal_button->hide();
 		resizable(this);
-		size_range(400, 300, 0, 0, 0, 0, 1);
+		size_range(400, 300/*, 0, 0, 0, 0, 1*/);
 		int width = Util::config_as_int("width");
 		int height = Util::config_as_int("height");
 		if (width > 400 && height > 300)
@@ -564,8 +564,10 @@ public:
 		int ma = h() / 40 + _CH / 3 + h() / 40 + _CH / 2;
 		int mp = h() - h() / 40 - _CH - h() / 40 - _CH / 2;
 		int m = (ma + mp) / 2;
+		int mx = cards_rect(player_).center().x;
+		int dx = _CW / 8;
 		return Rect(
-			(player_ == AI ? w() - w() / 3 : _player.move_state == MOVING ? Fl::event_x() - _CW / 2 : w() - w() / 2),
+			(player_ == AI ? mx + dx : _player.move_state == MOVING ? Fl::event_x() - _CW / 2 : mx - dx - _CW),
 			(player_ == AI ? m - _CH / 2 - _CH / 8: _player.move_state == MOVING ? Fl::event_y() - _CH / 2 : m - _CH / 2 + _CH / 8),
 			_CW,
 			_CH
@@ -574,7 +576,7 @@ public:
 
 	Rect pack_rect() const
 	{
-		return Rect(w() / 3 - _CW / 4 - _CW, (h() - _CH) / 2, _CW, _CH);
+		return Rect(w() / 4 - _CW / 2, (h() - _CH) / 2, _CW, _CH);
 	}
 
 	void draw_gamebook()
@@ -587,11 +589,13 @@ public:
 	void draw_deck_info(int x_, int y_, const Cards &deck_, int max_tricks_ = 8)
 	{
 		fl_color(fl_lighter(fl_lighter(FL_YELLOW)));
-		fl_rectf(x_, y_, w() / 10, w() / 7);
+		Rect r(Rect(_CW, _CH).inset(_CW / 10));
+		fl_rectf(x_, y_, r.w, r.h);
 		fl_color(GRAY);
-		fl_rect(x_, y_, w() / 10, w() / 7);
+		fl_rect(x_, y_, r.w, r.h);
 		fl_color(FL_BLACK);
-		fl_font(FL_COURIER, w() / 50);
+		fl_font(FL_COURIER, _CW / 7);
+
 		for (size_t i = 0; i < deck_.size(); i += 2)
 		{
 			max_tricks_--;
@@ -611,7 +615,7 @@ public:
 				os << "^B";
 			os << deck_[i + 1];
 			std::string s = os.str();
-			Util::draw_color_text(s, x_ + w() / 80, y_ + w() / 50 + i * w() / 100);
+			Util::draw_color_text(s, x_ + _CW / 10, y_ + _CW / 5 + (i / 2) * (fl_height() - fl_descent()));
 		}
 	}
 
@@ -978,8 +982,8 @@ public:
 		// _game.cards.back() is the trump card
 		if (_game.cards.size())
 		{
-			int X = w() / 3 - _CW + _CW / 4;
-			int Y = (h() - _CW) / 2;
+			int X = pack_rect().center().x;
+			int Y = change_rect().y;
 			if (_game.closed == NOT && _game.cards.size() != 20 && _player.cards.size() > 3 && !_closing)
 			{
 				_game.cards.back().rot90_image()->draw(X, Y);
@@ -1007,23 +1011,23 @@ public:
 		else
 		{
 			// draw an outline of pack
-			int X = w() / 3 - _CW - _CW / 4;
-			int Y = (h() - _CH) / 2;
+			int X = pack_rect().x;
+			int Y = pack_rect().y;
 			_outline.image()->draw(X, Y);
 		}
 
 		if (_game.closed != NOT && _game.cards.size() && !_closing)
 		{
-			int X = w() / 3 - _CW + _CW / 4;
-			int Y = (h() - _CW) / 2;
+			int X = pack_rect().x;
+			int Y = change_rect().y;
 
 			// Use clipping for the card shadow to go over side of pack
 			Rect r(pack_rect());
 			fl_push_clip(r.x + r.w - card_stack_pos(_game.cards.size() - 1), r.y, r.w * 2, r.h);
-			_shadow.rot90_image()->draw(X - w() / 16 + _CW / 12, Y + _CW / 12);
+			_shadow.rot90_image()->draw(X + _CW / 12, Y + _CW / 12);
 			fl_pop_clip();
 
-			_back.rot90_image()->draw(X - w() / 16, Y);
+			_back.rot90_image()->draw(X, Y);
 		}
 	}
 
@@ -1194,7 +1198,7 @@ public:
 		draw_rect(message_rect(AI));
 	}
 
-	bool check_sleep()
+	bool check_sleep(bool cancel_)
 	{
 		if (_ai.message != AI_SLEEP)
 		{
@@ -1203,6 +1207,11 @@ public:
 		}
 		else
 		{
+			if (cancel_)
+			{
+				ai_message(NO_MESSAGE);
+				return false;
+			}
 			// Gimmick: draw an animated sleepy face if player takes too long
 			// (This overrides the AI_SLEEP message display)
 			static Fl_Anim_GIF_Image sleepyFace((Util::homeDir() + "rsc/1f634.gif").c_str());
@@ -1226,9 +1235,11 @@ public:
 	void draw() override
 	{
 		// measure a "standard card"
-		int W = w() / 8;
+		double ratio = (double)w() / h();
+		int W = (w() / 8 + (ratio >= 800. / 600 ? h() / 5 : h() / 10)) / 2;
 		int H = 1.5 * W;
-		if (_CW != W || _CH != H)
+		bool scale_change = (_CW != W || _CH != H);
+		if (scale_change)
 		{
 			DBG("new card size: " << W << "x" << H << "\n");
 		}
@@ -1236,7 +1247,7 @@ public:
 		_CH = H;
 		_card_template.set_pixel_size(_CW, _CH);
 
-		if (check_sleep()) return;
+		if (check_sleep(scale_change)) return;
 
 		draw_table();
 		draw_gamebook();

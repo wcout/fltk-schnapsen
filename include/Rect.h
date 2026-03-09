@@ -15,7 +15,9 @@ struct Rect
 		w(wgt_.w() - Fl::box_dw(box_)),
 		h(wgt_.h() - Fl::box_dh(box_))
 	{}
+	Rect(int w_, int h_) : x(0), y(0), w(w_), h(h_) {}
 	bool includes(int x_, int y_) const { return x_ >= x && y_ >= y && x_ < x + w && y_ < y + h; }
+	Rect inset(int d_) const { return Rect(x + d_, y + d_, w - 2 * d_, h - 2 * d_); }
 	Rect center() const { return Rect(x + w / 2, y + h / 2, 1, 1); }
 	Rect& get(int &x_, int &y_, int &w_, int &h_) { x_ = x; y_ = y; w_ = w; h_ = h; return *this; }
 };
