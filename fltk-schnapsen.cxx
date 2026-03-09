@@ -194,7 +194,6 @@ static std::string convertToFontName(const std::string &name_)
 int main(int argc_, char *argv_[])
 {
 	Fl::keyboard_screen_scaling(0); // disable keyboard scaling - we do that ourselves
-	Fl::screen_scale(0, 1);
 	fl_message_title_default(Util::message(TITLE).c_str());
 	fl_message_hotspot(0);
 	Fl::get_system_colors();
@@ -218,6 +217,7 @@ int main(int argc_, char *argv_[])
 		Deck deck;
 		deck.show();
 		deck.wait_for_expose();
+		Fl::screen_scale(deck.screen_num(), 1);
 		if (Util::config_as_int("welcome"))
 		{
 			deck.welcome();

@@ -1,5 +1,6 @@
 #include "GameBook.h"
 #include "Util.h"
+#include "Rect.h"
 #include <sstream>
 
 #include <FL/fl_draw.H>
@@ -89,12 +90,10 @@ GameBook& GameBook::next_current()
 	return *this;
 }
 
-void GameBook::draw(int x_, int y_, int w_, int h_)
+void GameBook::draw(Rect r_)
 {
-	int X(x_);
-	int Y(y_);
-	int W(w_);
-	int H(h_);
+	int X, Y, W, H;
+	r_.get(X, Y, W, H);
 
 	// Draw a "thickness" depending on history size
 	for (size_t i = _current; i <= _history.size(); i++)

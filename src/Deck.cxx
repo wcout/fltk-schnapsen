@@ -581,9 +581,7 @@ public:
 
 	void draw_gamebook()
 	{
-		int X, Y, W, H;
-		gamebook_rect().get(X, Y, W, H);
-		_game.book.draw(X, Y, W, H);
+		_game.book.draw(gamebook_rect());
 	}
 
 	void draw_deck_info(int x_, int y_, const Cards &deck_, int max_tricks_ = 8)

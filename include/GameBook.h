@@ -8,6 +8,9 @@
 // score points count down for "bummerl"
 constexpr int MATCH_SCORE = 7; // or 11?
 
+
+class Rect;
+
 class GameBook : public std::vector<std::pair<int, int>>
 {
 public:
@@ -18,7 +21,7 @@ public:
 	std::vector<std::pair<int, int>> to_value(const std::string &str_);
 	GameBook& from_str(const std::string &str_);
 	GameBook& history(const std::string &history_);
-	void draw(int x_, int y_, int w_, int h_);
+	void draw(Rect r_);
 	void reset_current() { _current = 0; }
 	GameBook& next_current();
 private:
