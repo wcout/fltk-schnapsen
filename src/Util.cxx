@@ -6,6 +6,7 @@
 
 #include <fstream>
 #include <filesystem>
+#include <locale>
 #include <stdexcept>
 #include <cstdlib> // atoi(), getenv()
 
@@ -172,22 +173,28 @@ void Util::save_stats()
 const std::string& Util::message(const Message m_)
 {
 	std::string lang = ::config["lang"];
-#ifndef _WIN32
-	// TODO: Fix for WIN32
 	if (lang.empty())
 	{
 		static std::string locale_name;
 		if (locale_name.empty())
 		{
-			std::locale system_locale("");
-			locale_name = system_locale.name();
-			if (locale_name.size() >= 2)
-				locale_name.erase(2);
+			try
+			{
+				std::locale system_locale("");
+				locale_name = system_locale.name();
+				if (locale_name.size() >= 2)
+					locale_name.erase(2);
+			}
+			catch (std::runtime_error [[maybe_unused]]&e_)
+			{
+				locale_name = "de";
+				std::cerr << e_.what() << "\n";
+				WNG("system locale not found - default to 'de'!");
+			}
 			DBG("locale_name: '" << locale_name << "'\n");
 		}
 		lang = locale_name;
 	}
-#endif
 	auto &m = lang.empty() || lang == "de" ? messages_de : messages_en;
 	return m[m_];
 }

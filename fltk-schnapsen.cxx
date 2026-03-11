@@ -217,7 +217,8 @@ int main(int argc_, char *argv_[])
 		Deck deck;
 		deck.show();
 		deck.wait_for_expose();
-		Fl::screen_scale(deck.screen_num(), 1);
+		if (Fl::screen_scale(deck.screen_num()) != 1)
+			Fl::screen_scale(deck.screen_num(), 1);
 		if (Util::config_as_int("welcome"))
 		{
 			deck.welcome();
