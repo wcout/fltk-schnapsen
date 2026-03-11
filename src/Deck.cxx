@@ -139,7 +139,6 @@ public:
 		_error_message(NO_MESSAGE),
 		_disabled(false),
 		_redeal(false),
-		_card_template(QUEEN, SPADE),
 		_CW(w() / 8),
 		_CH(1.5 * w()),
 		_cmd_input(nullptr),
@@ -161,13 +160,11 @@ public:
 		_ai.matches_won = Util::stats_as_int("ai_matches_won");
 		copy_label(Util::message(TITLE).c_str());
 		fl_register_images();
-		std::string root = Util::home_dir() + cardDir;
+		std::string card_root = Util::home_dir() + cardDir + "/";
 		std::string cardback = Util::config("cardback");
-		if (cardback.empty())
-			cardback = "Card_back_red.svg";
-		_back.image("card_back", root + "/back/" + cardback);
-		_shadow.image("card_shadow", Util::home_dir() + cardDir + "/Card_shadow.svg");
-		_outline.image("card_outline", Util::home_dir() + cardDir + "/Card_outline.svg");
+		_back.image("card_back", card_root + "back/" + (cardback.empty() ? "Card_back_red.svg" : cardback));
+		_shadow.image("card_shadow", card_root + "Card_shadow.svg");
+		_outline.image("card_outline", card_root + "Card_outline.svg");
 		_game.cards = Cards::fullcards();
 		assert(_game.cards.check());
 		_card_template = _game.cards[0];
