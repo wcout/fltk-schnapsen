@@ -418,9 +418,13 @@ bool Engine::ai_test_close()
 	    _game.cards.size() >= 4)
 	{
 		int maybe_score = _ai.score + _ai.pending;
-//		NOTE: this is already done currently before ai_test_close gets called:
-//		if (have_40().size()) maybe_score += 40;
-//		else if (have_20().size()) maybe_score += 20;
+		// NOTE: this is normally already done, except when pulling trump before 40.
+		//       So we check, if a marriage is already declared
+		if (_game.marriage == NO_MARRIAGE)
+		{
+			if (have_40().size()) maybe_score += 40;
+			else if (have_20().size()) maybe_score += 20;
+		}
 		bool do_close = maybe_score >= 66; // that's a sure thing!
 		if (!do_close)
 		{
