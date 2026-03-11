@@ -21,7 +21,7 @@ string_map stats = {};
 
 
 /*static*/
-const std::string& Util::homeDir()
+const std::string& Util::home_dir()
 {
 	static std::string home;
 	if (home.empty())
@@ -56,9 +56,15 @@ const std::string& Util::homeDir()
 }
 
 /*static*/
+std::string Util::rsc_dir()
+{
+	return home_dir() + "rsc/";
+}
+
+/*static*/
 std::string Util::cardset_dir()
 {
-	std::string dir = homeDir() + cardDir + "/";
+	std::string dir = home_dir() + cardDir + "/";
 	std::string cardset = ::config["cardset"];
 	if (cardset.empty())
 		cardset = "English_pattern";
@@ -137,13 +143,13 @@ void Util::load_values_from_file(std::ifstream &if_, string_map &values_, const 
 
 void Util::load_config()
 {
-	std::ifstream cfg(homeDir() + APPLICATION + ".cfg");
+	std::ifstream cfg(home_dir() + APPLICATION + ".cfg");
 	load_values_from_file(cfg, ::config, "cfg");
 }
 
 void Util::load_stats()
 {
-	std::ifstream stat(homeDir() + APPLICATION + ".sta");
+	std::ifstream stat(home_dir() + APPLICATION + ".sta");
 	load_values_from_file(stat, ::stats, "stat");
 }
 
@@ -160,13 +166,13 @@ void Util::save_values_to_file(std::ofstream &of_, const string_map &values_, co
 void Util::save_config()
 {
 	Util::config("cards", std::string()); // don't save cards string!
-	std::ofstream cfg(Util::homeDir() + APPLICATION + ".cfg", std::ios::binary);
+	std::ofstream cfg(Util::home_dir() + APPLICATION + ".cfg", std::ios::binary);
 	save_values_to_file(cfg, ::config, "cfg");
 }
 
 void Util::save_stats()
 {
-	std::ofstream stat(homeDir() + APPLICATION + ".sta", std::ios::binary);
+	std::ofstream stat(home_dir() + APPLICATION + ".sta", std::ios::binary);
 	save_values_to_file(stat, ::stats, "stat");
 }
 
@@ -278,7 +284,7 @@ void Util::draw_string(const std::string &text_, int x_, int y_, bool shadow_/*=
 			std::string image_name = line.substr(0, end_image);
 			image_name += ".svg";
 			if (image_name.find('/') == std::string::npos)
-				image_name = homeDir() + "rsc/" + image_name;
+				image_name = rsc_dir() + image_name;
 			Fl_SVG_Image svg(image_name.c_str());
 			if (svg.w() > 0 && svg.h() > 0)
 			{
@@ -328,7 +334,7 @@ int Util::string_size(const std::string &text_, int &w_, int &h_)
 			std::string image_name = line.substr(0, end_image);
 			image_name += ".svg";
 			if (image_name.find('/') == std::string::npos)
-				image_name = homeDir() + "rsc/" + image_name;
+				image_name = rsc_dir() + image_name;
 			Fl_SVG_Image svg(image_name.c_str());
 			if (svg.w() > 0 && svg.h() > 0)
 			{

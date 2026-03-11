@@ -39,7 +39,7 @@ using namespace Schnapsen;
 
 void list_decks(std::ostringstream &os_)
 {
-	std::string svg_cards(Util::homeDir() + cardDir);
+	std::string svg_cards(Util::home_dir() + cardDir);
 	os_ << "\navailaible cardsets:\n";
 	for (auto const &dir_entry : std::filesystem::directory_iterator(svg_cards))
 	{
@@ -53,7 +53,7 @@ void list_decks(std::ostringstream &os_)
 			os_ << "\t" << dir_entry.path().filename() << "\n";
 		}
 	}
-	std::filesystem::path back(Util::homeDir() + cardDir + "/back");
+	std::filesystem::path back(Util::home_dir() + cardDir + "/back");
 	os_ << "\navailaible card backs:\n";
 	for (auto const &dir_entry : std::filesystem::directory_iterator(back))
 	{
@@ -200,11 +200,11 @@ int main(int argc_, char *argv_[])
 	Fl::background(240, 240, 240); // brighter color for message background
 	Util::load_config();
 	Util::load_stats();
-	LOG("homeDir: " << Util::homeDir() << "\n");
+	LOG("home_dir: " << Util::home_dir() << "\n");
 
 #ifdef CUSTOM_FONT
 	static std::string fontName{convertToFontName(CUSTOM_FONT)}; // NOTE: this must be a static string!
-	std::string font_path = Util::homeDir() + "rsc/" + CUSTOM_FONT;
+	std::string font_path = Util::rsc_dir() + CUSTOM_FONT;
 //	Fl::set_font(FL_HELVETICA, FontLoader::load(font_path.c_str(), fontName.c_str()));
 	CustomFont = FontLoader::load(font_path.c_str(), fontName.c_str());
 #endif

@@ -27,7 +27,8 @@ static const std::map<char, Fl_Color> text_colors = {
 class Util
 {
 public:
-	static const std::string& homeDir();
+	static const std::string& home_dir();
+	static std::string rsc_dir();
 	static std::string cardset_dir();
 	static string_map& config();
 	static string_map& stats();

@@ -161,13 +161,13 @@ public:
 		_ai.matches_won = Util::stats_as_int("ai_matches_won");
 		copy_label(Util::message(TITLE).c_str());
 		fl_register_images();
-		std::string root = Util::homeDir() + cardDir;
+		std::string root = Util::home_dir() + cardDir;
 		std::string cardback = Util::config("cardback");
 		if (cardback.empty())
 			cardback = "Card_back_red.svg";
 		_back.image("card_back", root + "/back/" + cardback);
-		_shadow.image("card_shadow", Util::homeDir() + cardDir + "/Card_shadow.svg");
-		_outline.image("card_outline", Util::homeDir() + cardDir + "/Card_outline.svg");
+		_shadow.image("card_shadow", Util::home_dir() + cardDir + "/Card_shadow.svg");
+		_outline.image("card_outline", Util::home_dir() + cardDir + "/Card_outline.svg");
 		_game.cards = Cards::fullcards();
 		assert(_game.cards.check());
 		_card_template = _game.cards[0];
@@ -674,7 +674,7 @@ public:
 
 	std::string background_image()
 	{
-		std::string def_image(Util::homeDir() + "rsc/deck.gif");
+		std::string def_image(Util::rsc_dir() + "deck.gif");
 		std::string image = Util::config("background");
 		if (image == "NONE") return "";
 		if (image == "") return def_image;
@@ -1212,7 +1212,7 @@ public:
 			}
 			// Gimmick: draw an animated sleepy face if player takes too long
 			// (This overrides the AI_SLEEP message display)
-			static Fl_Anim_GIF_Image sleepyFace((Util::homeDir() + "rsc/1f634.gif").c_str());
+			static Fl_Anim_GIF_Image sleepyFace((Util::rsc_dir() + "1f634.gif").c_str());
 			sleepyFace.scale(_CW / 2, _CW / 2, 1, 1);
 			int X = pack_rect().center().x - sleepyFace.w() / 2;
 			int Y = pack_rect().y - _CW;
@@ -1583,7 +1583,7 @@ public:
 		cursor(FL_CURSOR_DEFAULT);
 		std::string m(Util::message(YOU_WIN));
 		Alert &alert = *new Alert(m.c_str(), Util::message(TITLE).c_str());
-		alert.set_bg_image((Util::homeDir() + "rsc/" + "1f3c6.gif").c_str())
+		alert.set_bg_image((Util::rsc_dir() + "1f3c6.gif").c_str())
 		     .center_on(Rect(*this))
 		     .run();
 	}
@@ -1593,7 +1593,7 @@ public:
 		cursor(FL_CURSOR_DEFAULT);
 		std::string m(Util::message(YOU_LOST));
 		Alert &alert = *new Alert(m.c_str(), Util::message(TITLE).c_str());
-		alert.set_bg_image((Util::homeDir() + "rsc/" + "1f61e.gif").c_str())
+		alert.set_bg_image((Util::rsc_dir() + "1f61e.gif").c_str())
 		     .center_on(Rect(*this))
 		     .run();
 	}
@@ -1828,7 +1828,7 @@ public:
 		std::string snd = sound[m_];
 		if (snd.size())
 		{
-			snd = Util::homeDir() + "rsc/" + snd + ".mp3";
+			snd = Util::rsc_dir() + snd + ".mp3";
 			DBG("play '" << snd << "'\n");
 			if (std::filesystem::exists(snd))
 				_audio.play(snd);
