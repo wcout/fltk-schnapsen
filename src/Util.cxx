@@ -191,7 +191,7 @@ const std::string& Util::message(const Message m_)
 				if (locale_name.size() >= 2)
 					locale_name.erase(2);
 			}
-			catch (std::runtime_error [[maybe_unused]]&e_)
+			catch (std::runtime_error &e_)
 			{
 				locale_name = "de";
 				std::cerr << e_.what() << "\n";

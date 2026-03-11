@@ -403,7 +403,7 @@ Cards Engine::highest_cards_in_hand(const Cards &cards_)
 void Engine::do_close(GameState &player_)
 {
 	// close game
-	LOG("closed by " << (_game.move == PLAYER ? "player" : "AI") << "!\n");
+	LOG("*** closed by " << (_game.move == PLAYER ? "player" : "AI") << "!\n");
 	_ui.animate_close();
 	_game.closed = _game.move == PLAYER ? BY_PLAYER : BY_AI;
 	player_.score_closed = player_.score; // memorize score at close time
