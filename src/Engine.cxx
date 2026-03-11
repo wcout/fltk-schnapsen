@@ -725,7 +725,26 @@ size_t Engine::ai_play_for_closed_lead()
 	{
 		// leading last trick before pack clear
 		LOG("ai_play_for_closed_lead: leading\n");
-#pragma message("IMPLEMENT")
+		Cards player_cards = assumed_player_cards();
+		if (have_40(player_cards).size()) // TODO: need a 'bool' method too
+		{
+			// player will 40 if he wins this trick
+			Cards trumps = trumps_in_hand(player_cards);
+			trumps -= Card(QUEEN, _game.trump);
+			trumps -= Card(KING, _game.trump);
+			if (trumps.empty())
+			{
+				// player has no additional trumps
+				Cards highest = highest_cards_in_hand(_ai.cards);
+				if (highest.size())
+				{
+					highest.sort_by_value(false); // low->hi
+					DBG("highest sorted by value: " << highest << "\n");
+					WNG("Use " << highest[0] << " to prevent player getting 40");
+					return find(highest[0], _ai.cards);
+				}
+			}
+		}
 	}
 	return NO_MOVE;
 }
