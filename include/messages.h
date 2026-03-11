@@ -42,7 +42,8 @@ enum class Message
 	AI_MARRIAGE_20,
 	AI_MARRIAGE_40,
 	SHUFFLE,
-	AI_SLEEP
+	AI_SLEEP,
+	CLOSED_MARKER
 };
 
 using enum Message;
@@ -107,9 +108,11 @@ std::map<Message, std::string> messages_de = {
 	{GAMES_WON, "Spiele gewonnen (PL/AI): "},
 	{MATCHES_WON, "Partien: "},
 #if !defined(_WIN32) && !defined(USE_IMAGE_TEXT)
-	{AI_SLEEP, "😴!!"}
+	{AI_SLEEP, "😴!!"},
+	{CLOSED_MARKER, "⛔"}
 #else
-	{AI_SLEEP, "^|1f634|!!"}
+	{AI_SLEEP, "^|1f634|!!"},
+	{CLOSED_MARKER, "^|26d4|"}
 #endif
 };
 
@@ -170,9 +173,11 @@ std::map<Message, std::string> messages_en = {
 	{GAMES_WON, "Games won (PL/AI): "},
 	{MATCHES_WON, "Matches: "},
 #if !defined(_WIN32) && !defined(USE_IMAGE_TEXT)
-	{AI_SLEEP, "😴!!"}
+	{AI_SLEEP, "😴!!"},
+	{CLOSED_MARKER, "⛔"}
 #else
-	{AI_SLEEP, "^|1f634|!!"}
+	{AI_SLEEP, "^|1f634|!!"},
+	{CLOSED_MARKER, "^|26d4|"}
 #endif
 };
 

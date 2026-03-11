@@ -544,6 +544,19 @@ public:
 			);
 	};
 
+	Rect closed_rect(Player player_)
+	{
+		Fl_Font f = fl_font();
+		Fl_Fontsize sz = fl_size();
+		fl_font(CustomFont, _CH / 7);
+		int W = fl_height();
+		int X = pack_rect().center().x - W / 2;
+		int Y = (player_ == AI ? h() / 16 : h() - h() / 16) - W + fl_descent();
+		Rect r = Rect(X, Y, W, W);
+		fl_font(f, sz);
+		return r;
+	}
+
 	Rect deck_rect(Player player_) const
 	{
 		return Rect(w() - _CW - 2, (player_ == AI ?
@@ -552,8 +565,12 @@ public:
 
 	Rect message_rect(Player player_) const
 	{
+		Fl_Font f = fl_font();
+		Fl_Fontsize sz = fl_size();
 		fl_font(CustomFont, w() / 24);
-		return Rect(0, (player_ == AI ? h() / 8 - fl_height() + fl_descent() : h() - h() / 8 - fl_height() + fl_descent()), w() / 2, fl_height());
+		Rect r = Rect(0, (player_ == AI ? h() / 8 - fl_height() + fl_descent() : h() - h() / 8 - fl_height() + fl_descent()), w() / 2, fl_height());
+		fl_font(f, sz);
+		return r;
 	}
 
 	Rect move_rect(Player player_) const
@@ -709,7 +726,7 @@ public:
 			std::string player_message = Util::message(_player.message);
 			fl_font(CustomFont, w() / (player_message.back() == '!' ? 24 : 34));
 			fl_color(FL_RED);
-			Util::draw_string(player_message, w() / 4 - Util::string_width(player_message) / 2, h() - h() / 8, true);
+			Util::draw_string(player_message, message_rect(PLAYER).center().x - Util::string_width(player_message) / 2, message_rect(PLAYER).baseline(), true);
 		}
 		if (_ai.message != NO_MESSAGE)
 		{
@@ -719,7 +736,7 @@ public:
 			if (pos != std::string::npos)
 				ai_message.erase(pos, 2);
 			fl_color(FL_RED);
-			Util::draw_string(ai_message, w() / 4 - Util::string_width(ai_message) / 2, h() / 8, true);
+			Util::draw_string(ai_message, message_rect(AI).center().x - Util::string_width(ai_message) / 2, message_rect(AI).baseline(), true);
 		}
 		if (_error_message != NO_MESSAGE)
 		{
@@ -730,28 +747,14 @@ public:
 			fl_color(FL_WHITE);
 			Util::draw_string(error_message, w() / 2 - Util::string_width(error_message) / 2, h() - fl_descent());
 		}
-		if (_game.closed != NOT && _ai.display_score == false)
+		if ((_game.closed == BY_PLAYER || _game.closed == BY_AI) && _ai.display_score == false)
 		{
 			fl_font(CustomFont, _CH / 7);
 			fl_color(GRAY);
-			static const std::string closed_sym =
-#if !defined(_WIN32) && !defined(USE_IMAGE_TEXT)
-				"⛔";
-#else
-				"^|26d4|";
-#endif
-			if (_game.closed == BY_AI)
-			{
-				int X = w() / 4 - Util::string_width(closed_sym) / 2;
-				int Y = h() / 8 - _CH / 7;
-				Util::draw_string(closed_sym, X, Y);
-			}
-			if (_game.closed == BY_PLAYER)
-			{
-				int X = w() / 4 - Util::string_width(closed_sym) / 2;
-				int Y = h() - h() / 16;
-				Util::draw_string(closed_sym, X, Y);
-			}
+			std::string closed_sym = Util::message(CLOSED_MARKER);
+			int X = closed_rect(_game.closed == BY_PLAYER ? PLAYER : AI).center().x;
+			int Y = closed_rect(_game.closed == BY_PLAYER ? PLAYER : AI).baseline();
+			Util::draw_string(closed_sym, X - Util::string_width(closed_sym) / 2 , Y);
 		}
 	}
 
@@ -1191,6 +1194,9 @@ public:
 
 		draw_rect(message_rect(PLAYER));
 		draw_rect(message_rect(AI));
+
+		draw_rect(closed_rect(PLAYER));
+		draw_rect(closed_rect(AI));
 	}
 
 	bool check_sleep(bool cancel_)

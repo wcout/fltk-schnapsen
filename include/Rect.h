@@ -20,4 +20,5 @@ struct Rect
 	Rect inset(int d_) const { return Rect(x + d_, y + d_, w - 2 * d_, h - 2 * d_); }
 	Rect center() const { return Rect(x + w / 2, y + h / 2, 1, 1); }
 	Rect& get(int &x_, int &y_, int &w_, int &h_) { x_ = x; y_ = y; w_ = w; h_ = h; return *this; }
+	int baseline() const { return center().y + fl_height() / 2 - fl_descent(); }
 };
