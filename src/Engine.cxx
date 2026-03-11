@@ -728,7 +728,7 @@ size_t Engine::ai_play_for_closed_lead()
 		Cards player_cards = assumed_player_cards();
 		if (have_40(player_cards).size()) // TODO: need a 'bool' method too
 		{
-			// player will 40 if he wins this trick
+			// player will have 40 if he wins this trick
 			Cards trumps = trumps_in_hand(player_cards);
 			trumps -= Card(QUEEN, _game.trump);
 			trumps -= Card(KING, _game.trump);
@@ -738,6 +738,7 @@ size_t Engine::ai_play_for_closed_lead()
 				Cards highest = highest_cards_in_hand(_ai.cards);
 				if (highest.size())
 				{
+					// so play card he must either trick with trump or leave
 					highest.sort_by_value(false); // low->hi
 					DBG("highest sorted by value: " << highest << "\n");
 					WNG("Use " << highest[0] << " to prevent player getting 40");
