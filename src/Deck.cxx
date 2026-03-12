@@ -1275,6 +1275,7 @@ public:
 		draw_grayout();
 	}
 
+	bool load_game(const std::string &name_);
 	void onCmd(const std::string &cmd_);
 
 	void onCmd()
@@ -2002,6 +2003,11 @@ public:
 		DBG("new game: " << (playout_ == PLAYER ? "PLAYER" : "AI") << " to lead\n");
 		_game.move = playout_;
 		init();
+		if (game_to_load.size())
+		{
+			load_game(game_to_load);
+			game_to_load.erase();
+		}
 
 		while (playing() && (_player.cards.size() || _ai.cards.size()))
 		{

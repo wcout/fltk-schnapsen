@@ -22,6 +22,7 @@ namespace Schnapsen
 	int debug = 0;
 	Fl_Font CustomFont = FL_HELVETICA;
 	Player first_to_move = Player::PLAYER;
+	std::string game_to_load;
 };
 using namespace Schnapsen;
 
@@ -167,6 +168,11 @@ void parse_arg(int argc_, char *argv_[])
 				value = argv_[i];
 			}
 		}
+		if (value.empty() && i + 1 == argc_ && arg[0] != '-')
+		{
+			game_to_load = arg;
+			continue;
+		}
 		if (process_arg(arg, value) == false)
 		{
 			exit(EXIT_FAILURE);
@@ -219,7 +225,7 @@ int main(int argc_, char *argv_[])
 		deck.wait_for_expose();
 		if (Fl::screen_scale(deck.screen_num()) != 1)
 			Fl::screen_scale(deck.screen_num(), 1);
-		if (Util::config_as_int("welcome"))
+		if (Util::config_as_int("welcome") && game_to_load.empty())
 		{
 			deck.welcome();
 		}

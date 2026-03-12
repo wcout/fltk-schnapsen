@@ -13,6 +13,86 @@
 #include <string>
 #include <cstdlib>
 
+bool Deck::load_game(const std::string &name_)
+{
+	std::string name(name_);
+	if (name.empty() || std::filesystem::exists(name) == false)
+	{
+		WNG("Not existing game file '" << name << "'!");
+		bell();
+		return false;
+	}
+	std::ifstream ifs(name.c_str(), std::ios::binary);
+	if (!ifs.is_open() || ifs.bad())
+	{
+		WNG("Bad game file '" << name << "'!");
+		bell();
+		return false;
+	}
+	std::string line;
+	_player.move_state = NONE;
+	_ai.move_state = NONE;
+	bool bad_file(false);
+	while (getline(ifs, line))
+	{
+    	line.erase(std::remove_if(line.begin(), line.end(), ::isspace), line.end());
+    	if (line.empty()) continue; // all whitespace
+		else if (line.size() && (line[0] == '#' || line[0] == '/')) continue; // comment
+		else if (line.find("player_cards:") == 0) _player.cards = line.substr(13);
+		else if (line.find("player_card:") == 0)
+		{
+			_player.card = Cards("|" + line.substr(12) + "|")[0];
+			_player.move_state = ON_TABLE;
+		}
+		else if (line.find("player_deck:") == 0 ) _player.deck = line.substr(12);
+		else if (line.find("player_score:") == 0 ) _player.score = atoi(line.substr(13).c_str());
+		else if (line.find("player_pending:") == 0) _player.pending = atoi(line.substr(15).c_str());
+		else if (line.find("ai_cards:") == 0) _ai.cards = line.substr(9);
+		else if (line.find("ai_card:") == 0)
+		{
+			_ai.card = Cards("|" + line.substr(12) + "|")[0];
+			_ai.move_state = ON_TABLE;
+		}
+		else if (line.find("ai_deck:") == 0) _ai.deck = line.substr(8);
+		else if (line.find("ai_score:") == 0) _ai.score = atoi(line.substr(9).c_str());
+		else if (line.find("ai_pending:") == 0) _ai.pending = atoi(line.substr(11).c_str());
+		else if (line.find("cards:") == 0) _game.cards = line.substr(6);
+		else if (line.find("closed:") == 0) _game.closed = static_cast<Closed>(atoi(line.substr(7).c_str()));
+		else if (line.find("ai_score_closed:") == 0) _ai.score_closed = atoi(line.substr(16).c_str());
+		else if (line.find("player_score_closed:") == 0) _player.score_closed = atoi(line.substr(20).c_str());
+		else if (line.find("trump:") == 0) _game.trump = Cards("|A" + line.substr(6) + "|")[0].suite();
+		else if (line.find("move:") == 0) _game.move = static_cast<Player>(atoi(line.substr(5).c_str()));
+		else { bad_file = true; break; }
+	}
+	// Check cards for completeness
+	Cards c = _player.cards + _player.deck + _ai.cards + _ai.deck + _game.cards;
+	if (_player.move_state == ON_TABLE)
+		c += _player.card;
+	if (_ai.move_state == ON_TABLE)
+		c += _ai.card;
+	if (bad_file ||
+	    c.size() != 20 || c.check() == false ||
+	    (_player.move_state == ON_TABLE && _game.move == PLAYER) ||
+	    (_ai.move_state == ON_TABLE && _game.move == AI))
+	{
+		WNG("Corrupt game file '" << name << "'!");
+		bell();
+		_game.cards = Cards::fullcards();
+		_player.cards.clear();
+		_player.deck.clear();
+		_ai.cards.clear();
+		_ai.deck.clear();
+		init();
+		_restart = true;
+		return false;
+	}
+	else
+	{
+		LOG("Loaded game file '" << name << "' - next to move: " << (_game.move == PLAYER ? "Player": "AI") << "\n");
+	}
+	return true;
+}
+
 void Deck::onCmd(const std::string &cmd_)
 {
 	DBG("Your command: '" << cmd_ << "'\n")
@@ -141,69 +221,11 @@ void Deck::onCmd(const std::string &cmd_)
 		std::string arg = cmd_.substr(4);
 		if (arg.size() && (arg[0] == ' ' || arg[0] == '='))
 			arg.erase(0, 1);
-		std::string name(arg.size() ? arg.c_str() : "game.scg");
-		std::ifstream ifs(name.c_str(), std::ios::binary);
-		if (!ifs.is_open() || ifs.bad())
-		{
-			WNG("Bad game file '" << name << "'!");
-			return;
-		}
-		std::string line;
-		_player.move_state = NONE;
-		_ai.move_state = NONE;
-		while (getline(ifs, line))
-		{
-			if (line.size() && (line[0] == '#' || line[0] == '/')) continue; // comment
-			if (line.find("player_cards:") == 0) _player.cards = line.substr(13);
-			if (line.find("player_card:") == 0)
-			{
-				_player.card = Cards("|" + line.substr(12) + "|")[0];
-				_player.move_state = ON_TABLE;
-			}
-			if (line.find("player_deck:") == 0 ) _player.deck = line.substr(12);
-			if (line.find("player_score:") == 0 ) _player.score = atoi(line.substr(13).c_str());
-			if (line.find("player_pending:") == 0) _player.pending = atoi(line.substr(15).c_str());
-			if (line.find("ai_cards:") == 0) _ai.cards = line.substr(9);
-			if (line.find("ai_card:") == 0)
-			{
-				_ai.card = Cards("|" + line.substr(12) + "|")[0];
-				_ai.move_state = ON_TABLE;
-			}
-			if (line.find("ai_deck:") == 0) _ai.deck = line.substr(8);
-			if (line.find("ai_score:") == 0) _ai.score = atoi(line.substr(9).c_str());
-			if (line.find("ai_pending:") == 0) _ai.pending = atoi(line.substr(11).c_str());
-			if (line.find("cards:") == 0) _game.cards = line.substr(6);
-			if (line.find("closed:") == 0) _game.closed = static_cast<Closed>(atoi(line.substr(7).c_str()));
-			if (line.find("ai_score_closed:") == 0) _ai.score_closed = atoi(line.substr(16).c_str());
-			if (line.find("player_score_closed:") == 0) _player.score_closed = atoi(line.substr(20).c_str());
-			if (line.find("trump:") == 0) _game.trump = Cards("|A" + line.substr(6) + "|")[0].suite();
-			if (line.find("move:") == 0) _game.move = static_cast<Player>(atoi(line.substr(5).c_str()));
-		}
-		// Check cards for completeness
-		Cards c = _player.cards + _player.deck + _ai.cards + _ai.deck + _game.cards;
-		if (_player.move_state == ON_TABLE)
-			c += _player.card;
-		if (_ai.move_state == ON_TABLE)
-			c += _ai.card;
-		if (c.size() != 20 || c.check() == false ||
-		    (_player.move_state == ON_TABLE && _game.move == PLAYER) ||
-		    (_ai.move_state == ON_TABLE && _game.move == AI))
-		{
-			WNG("Corrupt game file '" << name << "'!");
-			_game.cards = Cards::fullcards();
-			_player.cards.clear();
-			_player.deck.clear();
-			_ai.cards.clear();
-			_ai.deck.clear();
-			init();
-			_restart = true;
-		}
-		else
+		if (load_game(arg))
 		{
 			if (_game.move == AI)
 				_restart = true;
 			_history.clear();
-			LOG("Loaded game file '" << name << "' - next to move: " << (_game.move == PLAYER ? "Player": "AI") << "\n");
 		}
 	}
 	else if (cmd_ == "quit")
