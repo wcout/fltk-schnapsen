@@ -688,9 +688,26 @@ size_t Engine::ai_play_for_closed_lead()
 	{
 		// following last trick before pack clear
 		LOG("ai_play_for_closed_lead: following\n");
+
+		bool should_trick = false;
+		Cards player_cards = assumed_player_cards();
+		if (have_40(player_cards).size()) // TODO: need a 'bool' method too
+		{
+			// player will have 40 if he wins this trick
+			should_trick = true;
+		}
+
 		Cards tricks = all_cards_that_trick(_player.card, _ai.cards);
 		if (tricks.size())
 		{
+			if (should_trick)
+			{
+				WNG("We must trick, otherwise player will gain 40!");
+				size_t move = best_trick_card(_player.card, tricks);
+				assert(move != NO_MOVE);
+				return find(tricks[move], _ai.cards);
+			}
+
 			// we could trick, but that's maybe not what we want..
 			LOG("ai_play_for_closed_lead: we could trick with: " << tricks << "\n");
 			if ((_game.cards.back().face() == QUEEN && _ai.cards.find(Card(KING, _game.trump))) ||
