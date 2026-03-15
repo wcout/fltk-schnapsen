@@ -1733,8 +1733,7 @@ public:
 	{
 		_history.clear();
 		cursor(FL_CURSOR_DEFAULT);
-		if (_redeal)
-			_redeal_button->show();
+		_redeal ? _redeal_button->show() : _redeal_button->hide();
 		update();
 	}
 

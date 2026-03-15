@@ -282,6 +282,36 @@ bool Engine::test_change(GameState &player_, bool change_/*=false*/)
 	return true;
 }
 
+int Engine::gain(const Cards &player_, const Cards &opponent_)
+{
+	// only for closed game!
+	// calculate how many points the cards in player_ would minimal score
+	// when played out against opponent_ cards.
+	// player_ should normally contain 'highest_cards_in_hand()` of leader.
+	int points = 0;
+	Cards opponent(opponent_);
+	for (const auto &c : player_)
+	{
+		if (can_trick_with_suite(c, opponent) == false)
+		{
+			points += c.value();
+			Cards suite = suites_in_hand(c.suite(), opponent);
+			if (suite.size())
+			{
+				suite.sort_by_value(false);
+				Card r = suite[0];
+				points += r.value();
+				opponent -= r;
+			}
+		}
+		else
+		{
+			WNG("gain() used with trickable card " << c);
+		}
+	}
+	return points;
+}
+
 size_t Engine::ai_play_20_40()
 {
 	size_t move = NO_MOVE;
@@ -289,18 +319,33 @@ size_t Engine::ai_play_20_40()
 	if (suites.size())
 	{
 		// ai has 40
-
 		// optimization: if having 40 and player still may have trumps
 		// try first to pull a trump with A or 10
+		Cards highest = highest_cards_in_hand();
 		if (max_trumps_player() && _ai.score + 44 < 66)
 		{
-			Cards highest = highest_cards_in_hand();
 			Cards highest_trumps = trumps_in_hand(highest);
 			if (highest_trumps.size() && highest_trumps[0].value() >= 10)
 			{
 				WNG("***try pull trump before playing 40!\n");
 				move = find(highest_trumps[0], _ai.cards);
 				return move;
+			}
+
+			// also if having highest cards, maybe try to play these before
+			highest -= Card(QUEEN, _game.trump);
+			highest -= Card(KING, _game.trump);
+			if (highest.size() && _game.closed != NOT)
+			{
+				int points_needed = 66 - 40 - _ai.score - _ai.pending;
+				int gain_points = gain(highest, assumed_player_cards());
+				if (points_needed > 0) // 40 alone is enough to win!
+				{
+					LOG(points_needed << " points needed after 40 - possible gain with highest: " << gain_points << "\n");
+					// NOTE: don't care about gain_points currently
+					move = find(highest[0], _ai.cards);
+					return move;
+				}
 			}
 		}
 

@@ -89,6 +89,8 @@ bool Deck::load_game(const std::string &name_)
 	else
 	{
 		LOG("Loaded game file '" << name << "' - next to move: " << (_game.move == PLAYER ? "Player": "AI") << "\n");
+		_redeal = false;
+		prepare_game();
 	}
 	return true;
 }
@@ -225,7 +227,6 @@ void Deck::onCmd(const std::string &cmd_)
 		{
 			if (_game.move == AI)
 				_restart = true;
-			_history.clear();
 		}
 	}
 	else if (cmd_ == "quit")

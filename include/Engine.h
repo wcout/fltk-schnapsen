@@ -67,6 +67,7 @@ public:
 	size_t highest_card_that_tricks(const Card &c_, const Cards &cards_) const;
 	Cards assumed_player_cards() const;
 	Cards all_cards_that_trick(const Card &c_, const Cards &cards_) const;
+	int gain(const Cards &player_, const Cards &opponent_);
 	bool has_suite(const Cards &cards_, CardSuite suite_) const;
 	bool can_trick(const Card &c_, const Cards &cards_) const;
 	bool can_trick_with_suite(const Card &c_, const Cards &cards_) const;
