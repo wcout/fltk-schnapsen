@@ -1374,11 +1374,12 @@ public:
 	{
 		// log only when change of deck cards
 		static Cards cards;
-		if (unconditional_ == false &&
-			cards == _game.cards) return; // no change!
-		cards = _game.cards;
-		LOG("cards: " << cards << " (" << cards.size() << ")\n");
-
+		if (unconditional_ == true ||
+			cards != _game.cards)
+		{
+			cards = _game.cards;
+			LOG("cards: " << cards << " (" << cards.size() << ")\n");
+		}
 		// log only when change of playing cards
 		static Cards player_cards;
 		static Cards ai_cards;

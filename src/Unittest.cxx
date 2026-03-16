@@ -47,6 +47,8 @@ bool Unittest::run()
 	_game.trump = DIAMOND;
 	assert(_engine.highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_game.trump=DIAMOND)
 
+	temp = _game.cards;
+	_game.cards.clear();
 	Cards c3("|A♠|K♥|K♣|Q♣|A♠|");
 	_player.deck = "|T♣|";
 	_ai.deck = "|A♣|";
@@ -60,10 +62,22 @@ bool Unittest::run()
 	Cards c4("|A♦|T♦|K♦|Q♦|J♦|");
 	_player.deck = "|T♣|J♣|";
 	_ai.deck = "|T♣|K♣|K♥|Q♥|";
+	_game.cards.clear();
 	res = _engine.highest_cards_in_hand(c4);
 	assert(res.size() == 5);
 	_ai.deck.clear();
 	_player.deck.clear();
+
+	Cards c5("|K♠|K♥|K♣|Q♣|T♥|");
+	_player.deck = "|T♣|T♠";
+	_ai.deck = "|A♣|K♥";
+	_game.trump = HEART;
+	_game.cards = "|J♣|A♥|"; // game trump is Ace of hearts, so player hold highest hearts too
+	res = _engine.highest_cards_in_hand(c5);
+	assert(res == "|T♥|K♥|K♣|Q♣|");
+	_ai.deck.clear();
+	_player.deck.clear();
+	_game.cards = temp;
 
 	_game.trump = SPADE;
 	temp = _game.cards;

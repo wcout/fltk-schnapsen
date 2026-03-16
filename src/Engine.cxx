@@ -411,7 +411,11 @@ Cards Engine::highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suit
 {
 	Cards res;
 	// all cards of 'suite' that were already played
-	Cards played_suites(suites_in_hand(suite_, _ai.deck + _player.deck));
+	Cards played = _ai.deck + _player.deck;
+	if (_game.cards.size())
+		played += _game.cards.back(); // include open trump
+//	Cards played_suites(suites_in_hand(suite_, _ai.deck + _player.deck));
+	Cards played_suites(suites_in_hand(suite_, played));
 
 	// cards of suite in (ai) hand
 	Cards suites(suites_in_hand(suite_, cards_));
@@ -606,7 +610,10 @@ int Engine::max_trumps_player() const
 
 Cards Engine::hinder_20_40()
 {
-//#pragma message("Use this method in normal end game")
+	if (_game.closed == NOT)
+	{
+		WNG("hinder_20_40 should be used only in end game!");
+	}
 	// Use only in normal Endgame:
 	// check if player holds 20 or 40
 	// check if it is possible to hinder that
@@ -897,14 +904,28 @@ void Engine::ai_move_closed_lead()
 				Cards claim = cards_to_claim();
 				if (claim.size())
 				{
+					if (_game.cards.size())
+						claim.sort(_game.trump); // trumps first
+					LOG("claim: " << claim << "\n");
 					move = find(claim[0], _ai.cards);
 				}
+#if 0
 				else
 				{
+					// nothing to claim
+					// TODO: is this good?
 					Cards highest = highest_cards_in_hand();
 					if (highest.size())
+					{
+						if (_game.cards.size())
+							highest.sort(_game.trump); // trumps first
+						else
+							highest.sort_by_value(false); // low->hi
+						LOG("highest: " << highest << "\n");
 						move = find(highest[0], _ai.cards);
+					}
 				}
+#endif
 			}
 		}
 	}
