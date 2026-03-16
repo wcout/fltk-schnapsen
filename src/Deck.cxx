@@ -12,6 +12,7 @@
 #include <FL/Fl_Shared_Image.H>
 #include <FL/Fl_Tiled_Image.H>
 #include <FL/Fl_Input.H>
+#include <FL/Fl_File_Chooser.H>
 #include <FL/fl_draw.H>
 #include <FL/fl_utf8.h>
 
@@ -477,7 +478,18 @@ public:
 				_player.cards.erase(_player.cards.begin() + i);
 				_player.move_state = MOVING;
 				LOG("PL move: " << _player.card << "\n");
+				return;
 			}
+		}
+		if (idle() && cards_area_rect().includes(x_, y_) && Fl::event_button() == FL_RIGHT_MOUSE)
+		{
+			// select background
+			char *bg_tile = fl_file_chooser(Util::message(DECK_BG).c_str(), "*.{png,gif,jpg,svg}", Util::rsc_dir().c_str());
+			if (bg_tile)
+			{
+				Util::config("background", bg_tile);
+			}
+			redraw();
 		}
 	}
 
@@ -533,6 +545,13 @@ public:
 			(player_ == AI ? h() / 40 : h() - _CH - h() / 40),
 			4 * w() / 20 + _CW,
 			(player_ == AI ? _CH / 3 : _CH));
+	}
+
+	Rect cards_area_rect() const
+	{
+		Rect p{ move_rect(PLAYER) };
+		Rect a{ move_rect(AI) };
+		return Rect(p.x, a.y, a.x + a.w - p.x, p.y + p.h - a.y);
 	}
 
 	Rect change_rect() const
@@ -707,15 +726,12 @@ public:
 
 	void draw_table()
 	{
-		static Fl_Shared_Image *bg(Fl_Shared_Image::get(background_image().c_str()));
+		fl_rectf(0, 0, w(), h(), background_color());
+		Fl_Shared_Image *bg(Fl_Shared_Image::get(background_image().c_str()));
 		if (bg && bg->w() && bg->h())
 		{
 			Fl_Tiled_Image tbg(bg, w(), h());
 			tbg.draw(0, 0, w(), h());
-		}
-		else
-		{
-			fl_rectf(0, 0, w(), h(), background_color());
 		}
 	}
 
@@ -1166,9 +1182,9 @@ public:
 
 	void draw_debug_rects()
 	{
-		auto draw_rect = [&](Rect r) -> void
+		auto draw_rect = [&](Rect r, Fl_Color c_ = FL_GREEN) -> void
 		{
-			fl_color(FL_GREEN);
+			fl_color(c_);
 			fl_rect(r.x, r.y, r.w, r.h);
 			fl_color(GRAY);
 			fl_line_style(FL_DASH);
@@ -1197,6 +1213,8 @@ public:
 
 		draw_rect(closed_rect(PLAYER));
 		draw_rect(closed_rect(AI));
+
+		draw_rect(cards_area_rect(), FL_YELLOW);
 	}
 
 	bool check_sleep(bool cancel_)

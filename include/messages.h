@@ -43,7 +43,8 @@ enum class Message
 	AI_MARRIAGE_40,
 	SHUFFLE,
 	AI_SLEEP,
-	CLOSED_MARKER
+	CLOSED_MARKER,
+	DECK_BG
 };
 
 using enum Message;
@@ -112,8 +113,9 @@ std::map<Message, std::string> messages_de = {
 	{CLOSED_MARKER, "⛔"}
 #else
 	{AI_SLEEP, "^|1f634|!!"},
-	{CLOSED_MARKER, "^|26d4|"}
+	{CLOSED_MARKER, "^|26d4|"},
 #endif
+	{DECK_BG, "Tisch-Hintergrund auswählen:"}
 };
 
 std::map<Message, std::string> messages_en = {
@@ -177,8 +179,9 @@ std::map<Message, std::string> messages_en = {
 	{CLOSED_MARKER, "⛔"}
 #else
 	{AI_SLEEP, "^|1f634|!!"},
-	{CLOSED_MARKER, "^|26d4|"}
+	{CLOSED_MARKER, "^|26d4|"},
 #endif
+	{DECK_BG, "Select table background:"}
 };
 
 std::map<Message, std::string> sound = {
