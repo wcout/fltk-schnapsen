@@ -413,8 +413,7 @@ Cards Engine::highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suit
 	// all cards of 'suite' that were already played
 	Cards played = _ai.deck + _player.deck;
 	if (_game.cards.size())
-		played += _game.cards.back(); // include open trump
-//	Cards played_suites(suites_in_hand(suite_, _ai.deck + _player.deck));
+		played += _game.cards.back(); // including open trump certainly not in play
 	Cards played_suites(suites_in_hand(suite_, played));
 
 	// cards of suite in (ai) hand
@@ -909,23 +908,6 @@ void Engine::ai_move_closed_lead()
 					LOG("claim: " << claim << "\n");
 					move = find(claim[0], _ai.cards);
 				}
-#if 0
-				else
-				{
-					// nothing to claim
-					// TODO: is this good?
-					Cards highest = highest_cards_in_hand();
-					if (highest.size())
-					{
-						if (_game.cards.size())
-							highest.sort(_game.trump); // trumps first
-						else
-							highest.sort_by_value(false); // low->hi
-						LOG("highest: " << highest << "\n");
-						move = find(highest[0], _ai.cards);
-					}
-				}
-#endif
 			}
 		}
 	}
