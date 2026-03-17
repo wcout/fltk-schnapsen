@@ -483,11 +483,21 @@ public:
 		}
 		if (idle() && cards_area_rect().includes(x_, y_) && Fl::event_button() == FL_RIGHT_MOUSE)
 		{
-			// select background
-			char *bg_tile = fl_file_chooser(Util::message(DECK_BG).c_str(), "*.{png,gif,jpg,svg}", Util::rsc_dir().c_str());
-			if (bg_tile)
+			if (Fl::event_alt())
 			{
-				Util::config("background", bg_tile);
+				// clear background
+				Util::config("background", "NONE");
+			}
+			else
+			{
+				// select background
+				const char *bg_tile = Util::config("background").c_str();
+				bg_tile = fl_file_chooser(Util::message(DECK_BG).c_str(), "*.{png,gif,jpg,svg}",
+				                          (std::string(bg_tile) != "NONE"  ? bg_tile : Util::rsc_dir().c_str()));
+				if (bg_tile)
+				{
+					Util::config("background", bg_tile);
+				}
 			}
 			redraw();
 		}
