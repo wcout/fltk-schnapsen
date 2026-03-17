@@ -794,8 +794,14 @@ size_t Engine::ai_play_for_last_trick_lead()
 			if (card_tricks(p, ai_cards[i]))
 			{
 				// player wins trick, and plays out second card
-				if (card_tricks((ai_cards - ai_cards[i])[0], (player - p)[0]))
-					good.push_back(ai_cards[i]);
+				Card ai_card = (ai_cards - ai_cards[i])[0];
+				Card player_card = (player - p)[0];
+				if (card_tricks(ai_card, player_card))
+				{
+					// if player would win with that trick, it's no good anyway
+					if (_player.score + _player.pending + ai_card.value() + player_card.value() < 66)
+						good.push_back(ai_cards[i]);
+				}
 			}
 			else
 			{
