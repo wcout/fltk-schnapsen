@@ -22,6 +22,7 @@
 #include <chrono>
 #include <filesystem>
 #include <functional>
+#include <format>
 #include <cmath>
 
 #ifdef USE_MINIAUDIO
@@ -356,7 +357,20 @@ public:
 		}
 		else if (Fl::event_key('d')) // just for testing -> debug
 		{
-			debug();
+			debug(true);
+		}
+		else if (Fl::event_key('a'))
+		{
+			_animation_level++;
+			_animation_level %= 3;
+			error_message(ANIMATION, true);
+		}
+		else if (Fl::event_key('t'))
+		{
+			_game.trump_sort = !_game.trump_sort;
+			error_message(TRUMP_SORT, true);
+			_engine.sort_cards(_player.cards);
+			_engine.sort_cards(_ai.cards);
 		}
 		else if (Fl::event_key(FL_F + 1) && idle())
 		{
@@ -747,6 +761,36 @@ public:
 		}
 	}
 
+	std::string format_message(Message msg_)
+	{
+		std::string m = Util::message(msg_);
+		if (m.find("{") != std::string::npos)
+		{
+			switch (msg_)
+			{
+				case ANIMATION:
+					m = std::vformat(m, std::make_format_args(_animation_level));
+					break;
+				case TRUMP_SORT:
+				{
+					static const std::string ON("☻");
+					static const std::string OFF("-");
+					m = std::vformat(m, std::make_format_args((_game.trump_sort ? ON : OFF)));
+				}
+				default:
+					break;
+			}
+		}
+		return m;
+	}
+
+	static void cb_clear_error(void *d_)
+	{
+		Deck *deck = static_cast<Deck *>(d_);
+		deck->error_message(NO_MESSAGE);
+		deck->redraw();
+	}
+
 	void draw_messages()
 	{
 		if (_player.message != NO_MESSAGE)
@@ -768,13 +812,16 @@ public:
 		}
 		if (_error_message != NO_MESSAGE)
 		{
-			std::string error_message = Util::message(_error_message);
+			std::string error_message = format_message(_error_message);
 			fl_color(FL_RED);
 			fl_rectf(0, h() - h() / 40, w(), h() / 40);
 			fl_font(FL_HELVETICA_BOLD, h() / 50);
 			fl_color(FL_WHITE);
 			Util::draw_string(error_message, w() / 2 - Util::string_width(error_message) / 2, h() - fl_descent());
+			if (!Fl::has_timeout(cb_clear_error, this))
+				Fl::add_timeout(3.0, cb_clear_error, this);
 		}
+		else Fl::remove_timeout(cb_clear_error, this);
 		if ((_game.closed == BY_PLAYER || _game.closed == BY_AI) && _ai.display_score == false)
 		{
 			fl_font(CustomFont, _CH / 7);

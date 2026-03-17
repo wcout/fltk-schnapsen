@@ -44,7 +44,9 @@ enum class Message
 	SHUFFLE,
 	AI_SLEEP,
 	CLOSED_MARKER,
-	DECK_BG
+	DECK_BG,
+	ANIMATION,
+	TRUMP_SORT
 };
 
 using enum Message;
@@ -110,12 +112,14 @@ std::map<Message, std::string> messages_de = {
 	{MATCHES_WON, "Partien: "},
 #if !defined(_WIN32) && !defined(USE_IMAGE_TEXT)
 	{AI_SLEEP, "😴!!"},
-	{CLOSED_MARKER, "⛔"}
+	{CLOSED_MARKER, "⛔"},
 #else
 	{AI_SLEEP, "^|1f634|!!"},
 	{CLOSED_MARKER, "^|26d4|"},
 #endif
-	{DECK_BG, "Tisch-Hintergrund auswählen:"}
+	{DECK_BG, "Tisch-Hintergrund auswählen:"},
+	{ANIMATION, "Animationsstufe: {}"},
+	{TRUMP_SORT, "Sortieren der Karten nach Trumpf: {}"}
 };
 
 std::map<Message, std::string> messages_en = {
@@ -176,12 +180,14 @@ std::map<Message, std::string> messages_en = {
 	{MATCHES_WON, "Matches: "},
 #if !defined(_WIN32) && !defined(USE_IMAGE_TEXT)
 	{AI_SLEEP, "😴!!"},
-	{CLOSED_MARKER, "⛔"}
+	{CLOSED_MARKER, "⛔"},
 #else
 	{AI_SLEEP, "^|1f634|!!"},
 	{CLOSED_MARKER, "^|26d4|"},
 #endif
-	{DECK_BG, "Select table background:"}
+	{DECK_BG, "Select table background:"},
+	{ANIMATION, "Animation level: {}"},
+	{TRUMP_SORT, "Sort cards by trump: {}"}
 };
 
 std::map<Message, std::string> sound = {
@@ -204,5 +210,7 @@ std::map<Message, std::string> sound = {
 	{MUST_TRICK_WITH_TRUMP, "not_allowed"},
 	{MUST_TRICK_WITH_SUITE, "not_allowed"},
 	{WELCOME, "welcome"},
-	{SHUFFLE, "shuffle"}
+	{SHUFFLE, "shuffle"},
+	{ANIMATION, "change"},
+	{TRUMP_SORT, "change"}
 };
