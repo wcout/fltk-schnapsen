@@ -491,9 +491,11 @@ public:
 			else
 			{
 				// select background
+				_grayout = true;
 				const char *bg_tile = Util::config("background").c_str();
 				bg_tile = fl_file_chooser(Util::message(DECK_BG).c_str(), "*.{png,gif,jpg,svg}",
 				                          (std::string(bg_tile) != "NONE"  ? bg_tile : Util::rsc_dir().c_str()));
+				_grayout = false;
 				if (bg_tile)
 				{
 					Util::config("background", bg_tile);
