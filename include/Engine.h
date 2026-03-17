@@ -89,6 +89,7 @@ public:
 	int cards_in_play(CardSuite suite_) const;
 	int max_cards_player(CardSuite suite_) const;
 	int max_trumps_player() const;
+	Cards valid_moves(const Cards &hand_, const Card &lead_);
 	Cards pull_trump_cards(Cards cards_, Cards from_) const;
 	Cards closed_lead_no_trick(Cards leader_, Cards follower_);
 	size_t winning_move();

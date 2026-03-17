@@ -123,6 +123,7 @@ bool Engine::card_tricks(const Card &c1_, const Card &c2_) const
 	{
 		result = true;
 	}
+//	LOG("== (" << Card::suite_symbol(_game.trump) << ") does card " << c1_ << " trick card " << c2_ << ": " << (result==true ? "yes" : "no") << "\n");
 	return result;
 }
 
@@ -420,7 +421,7 @@ Cards Engine::highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suit
 	Cards suites(suites_in_hand(suite_, cards_));
 
 	// check all cards in hand if there are higher cards that are not already played
-	for (auto c : suites)
+	for (auto &c : suites)
 	{
 		Cards temp(played_suites);
 		temp += suites; // include self
@@ -724,9 +725,92 @@ Cards Engine::closed_lead_no_trick(Cards leader_, Cards follower_)
 	return res;
 }
 
+Cards Engine::valid_moves(const Cards &hand_, const Card &lead_)
+{
+	//
+	// Return valid moves *in closed state* for hand_ with move lead_
+	//
+
+	Cards res;
+
+	for (auto &c : hand_)
+	{
+		if (c.suite() == lead_.suite())
+		{
+			// if having suite, we must trick with it, if we can
+			if (c.value() > lead_.value())
+				res.push_back(c);
+		}
+	}
+	if (res.empty())
+	{
+		for (auto &c : hand_)
+		{
+			// if having suite (and we can't trick) we must give color
+			if (c.suite() == lead_.suite())
+			{
+				if (c.value() < lead_.value())
+					res.push_back(c);
+			}
+		}
+	}
+	if (res.empty())
+	{
+		for (auto &c : hand_)
+		{
+			// otherwise we must trick with trump
+			if (c.suite() == _game.trump && card_tricks(c, lead_))
+			{
+				res.push_back(c);
+			}
+		}
+	}
+	if (res.empty())
+	{
+		// otherwise any card is valid
+		res = hand_;
+	}
+	LOG("valid moves for hand " << hand_ << " with lead " << lead_  << ": " << res << "\n");
+	return res;
+}
+
 size_t Engine::ai_play_for_last_trick_lead()
 {
-#pragma message("IMPLEMENT")
+	//
+	// Test if winning last trick is possible (with last 2 cards in hand)
+	//
+
+	assert( _player.cards.size() == 2 && _ai.cards.size() == 2);
+	Cards player = assumed_player_cards();
+	Cards ai_cards = _ai.cards;
+
+	Cards good;
+
+	for (size_t i = 0; i < ai_cards.size(); i++) // NOTE: 0-1
+	{
+		Cards valid = valid_moves(player, ai_cards[i]);
+		for (auto &p : valid)
+		{
+			if (card_tricks(p, ai_cards[i]))
+			{
+				// player wins trick, and plays out second card
+				if (card_tricks((ai_cards - ai_cards[i])[0], (player - p)[0]))
+					good.push_back(ai_cards[i]);
+			}
+			else
+			{
+				// ai wins trick, and plays out second card
+				if (!card_tricks((player - p)[0], (ai_cards - ai_cards[i])[0]))
+					good.push_back(ai_cards[i]);
+			}
+		}
+	}
+
+	LOG("good: " << good << "\n");
+	if (good.size())
+	{
+		return find(good[0], _ai.cards);
+	}
 	return NO_MOVE;
 }
 
@@ -874,7 +958,10 @@ void Engine::ai_move_closed_lead()
 		// special case, before last trick
 		size_t m = ai_play_for_last_trick_lead();
 		if (m != NO_MOVE)
+		{
+			LOG("ai_play_for_last_trick suggested: " << _ai.cards[m] << "\n");
 			move = m;
+		}
 	}
 
 	m = ai_play_20_40();
@@ -891,7 +978,7 @@ void Engine::ai_move_closed_lead()
 			assert(move != NO_MOVE);
 			WNG("hinder 20/40 with " << _ai.cards[move] << " from " << hinder);
 		}
-		else
+		else if (!(_ai.cards.size() == 2 && move != NO_MOVE)) // play for last move!
 		{
 			Cards trump_claim = cards_to_claim(_game.trump);
 			if (trump_claim.size() && (int)trump_claim.size() >= max_trumps_player())
@@ -911,6 +998,7 @@ void Engine::ai_move_closed_lead()
 			}
 		}
 	}
+
 	if (move == NO_MOVE)
 	{
 		Cards pull = pull_trump_cards(_ai.cards, _player.cards);
