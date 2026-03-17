@@ -61,6 +61,7 @@ public:
 	Suites have_40(const Cards &cards_);
 	Suites have_20() { return have_20(_ai.cards); } // shortcut
 	Suites have_40() { return have_40(_ai.cards); } // shortcut
+	bool check_40(const Cards &cards_) { return have_40(cards_).size(); }
 	size_t find(const Card &c_, const Cards &cards_) const;
 	size_t lowest_card(const Cards &cards_, bool no_trump_ = true) const;
 	size_t lowest_card_that_tricks(const Card &c_, const Cards &cards_) const;

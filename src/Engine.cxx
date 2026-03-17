@@ -832,7 +832,7 @@ size_t Engine::ai_play_for_closed_lead()
 
 		bool should_trick = false;
 		Cards player_cards = assumed_player_cards();
-		if (have_40(player_cards).size()) // TODO: need a 'bool' method too
+		if (check_40(player_cards))
 		{
 			// player will have 40 if he wins this trick
 			should_trick = true;
@@ -884,7 +884,7 @@ size_t Engine::ai_play_for_closed_lead()
 		// leading last trick before pack clear
 		DBG("ai_play_for_closed_lead: leading\n");
 		Cards player_cards = assumed_player_cards();
-		if (have_40(player_cards).size()) // TODO: need a 'bool' method too
+		if (check_40(player_cards))
 		{
 			// player will have 40 if he wins this trick
 			Cards trumps = trumps_in_hand(player_cards);
@@ -1047,7 +1047,6 @@ void Engine::ai_move_lead()
 	if (_game.cards.size() == 2)
 	{
 		// special case, before pack clearing
-		// TODO: implement
 		size_t m = ai_play_for_closed_lead();
 		if (m != NO_MOVE)
 			_move = m;
@@ -1072,7 +1071,6 @@ void Engine::ai_move_follow()
 	if (_game.cards.size() == 2)
 	{
 		// special case, before pack clearing
-		// TODO: implement
 		size_t m = ai_play_for_closed_lead();
 		if (m != NO_MOVE)
 		{
