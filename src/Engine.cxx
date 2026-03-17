@@ -1085,13 +1085,12 @@ void Engine::ai_move_follow()
 	Suites s40 = have_40(_ai.cards);
 	if (s20.size() || s40.size() || _player.card.value() >= 10)
 	{
-		// clumsily try to not destroy a 40 by tricking
-		// TODO: better method for such things...
+		// try to not destroy a 40 by tricking
 		Cards temp = _ai.cards;
 		if (s40.size())
 		{
-			temp.erase(temp.begin() + find(Card(QUEEN,_game.trump), temp));
-			temp.erase(temp.begin() + find(Card(KING,_game.trump), temp));
+			temp -= Card(QUEEN, _game.trump);
+			temp -= Card(KING, _game.trump);
 		}
 		size_t m = lowest_card_that_tricks(_player.card, temp);
 		if (m != NO_MOVE)
