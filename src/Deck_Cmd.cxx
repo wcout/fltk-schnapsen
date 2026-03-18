@@ -13,6 +13,29 @@
 #include <string>
 #include <cstdlib>
 
+// helper
+static Suites suites_from_string(std::string s_)
+{
+	size_t pos;
+	Suites suites;
+	if (s_.size() && s_[0] == '|')
+		s_.erase(0, 1);
+	while ((pos = s_.find('|')) != std::string::npos)
+	{
+		std::string suite_sym = s_.substr(0, pos);
+		s_.erase(0, pos + 1);
+		for (auto &[suite, sym] : ::suite_symbols)
+		{
+			if (sym == suite_sym)
+			{
+				suites.push_back(suite);
+				break;
+			}
+		}
+	}
+	return suites;
+}
+
 bool Deck::load_game(const std::string &name_)
 {
 	std::string name(name_);
@@ -32,6 +55,8 @@ bool Deck::load_game(const std::string &name_)
 	std::string line;
 	_player.move_state = NONE;
 	_ai.move_state = NONE;
+	_player.s20_40.clear();
+	_ai.s20_40.clear();
 	bool bad_file(false);
 	while (getline(ifs, line))
 	{
@@ -39,6 +64,7 @@ bool Deck::load_game(const std::string &name_)
     	if (line.empty()) continue; // all whitespace
 		else if (line.size() && (line[0] == '#' || line[0] == '/')) continue; // comment
 		else if (line.find("player_cards:") == 0) _player.cards = line.substr(13);
+		else if (line.find("player_20_40:") == 0) _player.s20_40 = suites_from_string(line.substr(13));
 		else if (line.find("player_card:") == 0)
 		{
 			_player.card = Cards("|" + line.substr(12) + "|")[0];
@@ -48,6 +74,7 @@ bool Deck::load_game(const std::string &name_)
 		else if (line.find("player_score:") == 0 ) _player.score = atoi(line.substr(13).c_str());
 		else if (line.find("player_pending:") == 0) _player.pending = atoi(line.substr(15).c_str());
 		else if (line.find("ai_cards:") == 0) _ai.cards = line.substr(9);
+		else if (line.find("ai_20_40:") == 0) _ai.s20_40 = suites_from_string(line.substr(9));
 		else if (line.find("ai_card:") == 0)
 		{
 			_ai.card = Cards("|" + line.substr(12) + "|")[0];
@@ -198,12 +225,26 @@ void Deck::onCmd(const std::string &cmd_)
 		ofs << "player_cards:" << _player.cards << "\n";
 		if (_player.move_state == ON_TABLE)
 			ofs << "player_card:" << _player.card << "\n";
+		if (_player.s20_40.size())
+		{
+			ofs << "player_20_40:|";
+			for (auto &s : _player.s20_40)
+				ofs << Card::suite_symbol(s) << "|";
+			ofs << "\n";
+		}
 		if (_ai.move_state == ON_TABLE)
 			ofs << "ai_card:" << _ai.card << "\n";
 		ofs << "player_deck:" << _player.deck << "\n";
 		ofs << "player_score:" << _player.score << "\n";
 		ofs << "player_pending:" << _player.pending << "\n";
 		ofs << "ai_cards:" << _ai.cards << "\n";
+		if (_ai.s20_40.size())
+		{
+			ofs << "ai_20_40:|";
+			for (auto &s : _ai.s20_40)
+				ofs << Card::suite_symbol(s) << "|";
+			ofs << "\n";
+		}
 		if (_ai.move_state == ON_TABLE)
 			ofs << "ai_card:" << _ai.card << "\n";
 		if (_ai.move_state == ON_TABLE)
