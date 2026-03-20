@@ -74,6 +74,24 @@ Cards Cards::operator &= (const Cards &c_)
 	return *this;
 }
 
+Cards Cards::operator |= (const Cards &c_)
+{
+	for (auto &c : c_)
+	{
+		while (1)
+		{
+			auto i = find_pos(c);
+			if (i)
+			{
+				erase(begin() + i.value());
+			}
+			else break;
+		}
+		push_back(c);
+	}
+	return *this;
+}
+
 Cards Cards::operator - (const Cards &c_) const
 {
 	Cards res(*this);
@@ -122,6 +140,21 @@ Cards Cards::operator &= (const Card &c_)
 		}
 		else break;
 	}
+	return *this;
+}
+
+Cards Cards::operator |= (const Card &c_)
+{
+	while (1)
+	{
+		auto i = find_pos(c_);
+		if (i)
+		{
+			erase(begin() + i.value());
+		}
+		else break;
+	}
+	push_back(c_);
 	return *this;
 }
 
@@ -289,18 +322,19 @@ int Cards::value() const
 }
 
 /*static*/
-Cards Cards::fullcards()
+Cards Cards::fullcards(CardSuite suite_/* = ANY_SUITE*/)
 {
 	Cards cards;
 	for (auto s : { SPADE, HEART, DIAMOND, CLUB } )
 	{
+		if (suite_ != ANY_SUITE && s != suite_) continue;
 		for (auto f : { JACK, QUEEN, KING, TEN, ACE } )
 		{
 			cards.push_back(Card(f, s));
 			cards.back().load();
 		}
 	}
-	assert(cards.size() == 20);
+	assert(cards.size() == (suite_ == ANY_SUITE ? 20 : 5));
 	return cards;
 }
 

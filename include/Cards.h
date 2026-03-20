@@ -20,11 +20,13 @@ public:
 	Cards operator + (const Cards &c_) const;
 	Cards operator -= (const Cards &c_);
 	Cards operator &= (const Cards &c_);
+	Cards operator |= (const Cards &c_);
 	Cards operator - (const Cards &c_) const;
 	Cards operator += (const Card &c_);
 	Cards operator + (const Card &c_) const;
 	Cards operator -= (const Card &c_);
 	Cards operator &= (const Card &c_);
+	Cards operator |= (const Card &c_);
 	Cards operator - (const Card &c_) const;
 	bool operator == (const std::string& s_);
 	Cards& from_string(const std::string &s_);
@@ -37,6 +39,6 @@ public:
 	Cards& sort(const CardSuite trump_);
 	Cards& sort_by_value(bool high_to_low = true);
 	int value() const;
-	static Cards fullcards();
+	static Cards fullcards(CardSuite suite_ = ANY_SUITE);
 	virtual std::ostream &printOn(std::ostream &os_) const;
 };
