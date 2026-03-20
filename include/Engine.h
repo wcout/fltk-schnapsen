@@ -84,13 +84,16 @@ public:
 	Cards suites_in_hand(CardSuite suite_, const Cards &cards_) const;
 	Cards trumps_in_hand(const Cards &cards_) const;
 	size_t must_give_color_or_trick(const Card &c_, Cards &cards_) const;
-	Cards cards_to_claim(CardSuite suite_ = ANY_SUITE) const;
+	Cards cards_to_claim(const Cards& lead_, const Cards& follow_, CardSuite suite_ = ANY_SUITE, int *gain_ = nullptr) const;
+	Cards cards_to_claim(CardSuite suite_ = ANY_SUITE, int *gain_ = nullptr) const;
 	Cards trumps_to_claim() const;
+	Cards trumps_to_claim(int &gain_) { return cards_to_claim(_game.trump, &gain_); }
+	Cards cards_to_claim(int &gain_) { return cards_to_claim(ANY_SUITE, &gain_); }
 	Cards count_played_suite(CardSuite suite_) const;
 	int cards_in_play(CardSuite suite_) const;
 	int max_cards_player(CardSuite suite_) const;
 	int max_trumps_player() const;
-	Cards valid_moves(const Cards &hand_, const Card &lead_);
+	Cards legal_moves(const Cards &hand_, const Card &lead_);
 	Cards pull_trump_cards(Cards cards_, Cards from_) const;
 	Cards closed_lead_no_trick(Cards leader_, Cards follower_);
 	size_t winning_move();
@@ -98,12 +101,15 @@ public:
 	size_t default_move(const Cards &cards_) const;
 	size_t default_move() const { return default_move(_ai.cards); }
 	Engine& sort_cards(Cards &cards_);
+	Player check_trick(Player move_);
 	void do_close(GameState &player_);
 	bool unit_tests();
+	void init();
 private:
 	GameData &_game;
 	GameState &_player;
 	GameState &_ai;
 	UI &_ui;
 	size_t _move;
+	Cards _exclude_cards;
 };

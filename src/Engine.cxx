@@ -15,6 +15,11 @@ bool Engine::unit_tests()
 	return ut.run();
 }
 
+void Engine::init()
+{
+	_exclude_cards.clear();
+}
+
 Engine& Engine::sort_cards(Cards &cards_)
 {
 	(_game.trump_sort ? cards_.sort(_game.trump) : cards_.sort());
@@ -501,25 +506,37 @@ Cards Engine::assumed_player_cards() const
 	Cards player_cards = Cards::fullcards() - _player.deck - _ai.deck - _ai.cards;
 	if (_game.cards.size())
 		player_cards -= _game.cards.back(); // open trump is certainly not in player cards
+	WNG("exclude_cards: " << _exclude_cards);
+	player_cards -= _exclude_cards;
 	player_cards.sort();
 	DBG("assumed player cards: " << player_cards << "\n")
 	return player_cards;
 }
 
-Cards Engine::cards_to_claim(CardSuite suite_/* = ANY_SUITE*/) const
+Cards Engine::cards_to_claim(const Cards& lead_, const Cards& follow_, CardSuite suite_/* = ANY_SUITE*/, int *gain_/* = nullptr*/) const
 {
+//	DBG("cards_to_claim " << lead_ << " -> " << follow_ << " (" << Card::suite_symbol(suite_) << ")\n");
 	Cards res;
-	Cards player_cards = assumed_player_cards();
-	for (auto &c : _ai.cards)
+	Cards follow = follow_;
+	follow.sort_by_value();
+	Cards lead(lead_);
+	lead.sort_by_value();
+	if (gain_) *gain_ = 0;
+	for (auto &c : lead)
 	{
 		if (suite_ != ANY_SUITE && c.suite() != suite_) continue;
-		for (size_t i = 0; i < player_cards.size(); i++)
+		for (size_t i = 0; i < follow.size(); i++)
 		{
-			const Card &pc = player_cards[i];
-			if (pc.suite() != c.suite()) continue;
-			if (card_tricks(pc, c)) break;
+			const Card &f = follow[i];
+			if (f.suite() != c.suite()) continue;
+			if (card_tricks(f, c)) break;
 			res.push_back(c);
-			player_cards.erase(player_cards.begin() + i);
+			if (gain_)
+			{
+				*gain_ += c.value();
+				*gain_ += f.value();
+			}
+			follow.erase(follow.begin() + i);
 			break;
 		}
 	}
@@ -529,9 +546,13 @@ Cards Engine::cards_to_claim(CardSuite suite_/* = ANY_SUITE*/) const
 	return res;
 }
 
+Cards Engine::cards_to_claim(CardSuite suite_/* = ANY_SUITE*/, int *gain_/* = nullptr*/) const
+{
+	return cards_to_claim(_ai.cards, assumed_player_cards(), suite_, gain_);
+}
+
 Cards Engine::trumps_to_claim() const
 {
-	// NOTE: seeem unused currently
 	return cards_to_claim(_game.trump);
 }
 
@@ -614,7 +635,7 @@ Cards Engine::hinder_20_40()
 	{
 		WNG("hinder_20_40 should be used only in end game!");
 	}
-	// Use only in normal Endgame:
+	// Use only in normal endgame:
 	// check if player holds 20 or 40
 	// check if it is possible to hinder that
 	Suites s20 = have_20(_player.cards);
@@ -699,6 +720,7 @@ Cards Engine::closed_lead_no_trick(Cards leader_, Cards follower_)
 	auto for_suite = [&](CardSuite suite_) -> Cards
 	{
 		Cards cards;
+		if (suite_ == _game.trump) return cards; // ADDED: skip trump suite
 		Cards leader = suites_in_hand(suite_, leader_);
 		Cards follower = suites_in_hand(suite_, follower_);
 		if (leader.size() < 2 || follower.size() < 2) return cards;
@@ -725,7 +747,7 @@ Cards Engine::closed_lead_no_trick(Cards leader_, Cards follower_)
 	return res;
 }
 
-Cards Engine::valid_moves(const Cards &hand_, const Card &lead_)
+Cards Engine::legal_moves(const Cards &hand_, const Card &lead_)
 {
 	//
 	// Return valid moves *in closed state* for hand_ with move lead_
@@ -788,7 +810,7 @@ size_t Engine::ai_play_for_last_trick_lead()
 
 	for (size_t i = 0; i < ai_cards.size(); i++) // NOTE: 0-1
 	{
-		Cards valid = valid_moves(player, ai_cards[i]);
+		Cards valid = legal_moves(player, ai_cards[i]);
 		for (auto &p : valid)
 		{
 			if (card_tricks(p, ai_cards[i]))
@@ -910,9 +932,10 @@ size_t Engine::ai_play_for_closed_lead()
 
 size_t Engine::winning_move()
 {
-	 // assumed_player_cards() is only valid when auto closed
-	if (_game.closed != AUTO)
+	 // NOTE: assumed_player_cards() is only valid when (auto?) closed
+	if (_game.closed == NOT)
 		return NO_MOVE;
+
 	// This should be the cards player has in hand
 	Cards player_cards(assumed_player_cards());
 	// test all ai cards, if a trick would push the score to win
@@ -977,6 +1000,7 @@ void Engine::ai_move_closed_lead()
 	}
 	else
 	{
+		int gain = 0; // total gain from all claimed trumps
 		Cards hinder = hinder_20_40();
 		if (hinder.size())
 		{
@@ -986,15 +1010,23 @@ void Engine::ai_move_closed_lead()
 		}
 		else if (!(_ai.cards.size() == 2 && move != NO_MOVE)) // play for last move!
 		{
-			Cards trump_claim = cards_to_claim(_game.trump);
-			if (trump_claim.size() && (int)trump_claim.size() >= max_trumps_player())
+			Cards trump_claim = trumps_to_claim(gain);
+			Cards pull = pull_trump_cards(_ai.cards, _player.cards);
+			LOG("gain: " << gain << " ==> " <<  _ai.score + _ai.pending + gain << "\n");
+			if (_ai.score + _ai.pending + gain >= 66)
+			{
+				// that's a sure win
+				move = find(trump_claim[0], _ai.cards);
+			}
+			else if (pull.size() && (int)pull.size() + (int)trump_claim.size() >= max_trumps_player())
 			{
 				move = find(trump_claim[0], _ai.cards);
 			}
 			else
 			{
-				Cards claim = cards_to_claim();
-				if (claim.size())
+				Cards claim = cards_to_claim(gain);
+				LOG("gain: " << gain << " ==> " <<  _ai.score + _ai.pending + gain << "\n");
+				if (_ai.score + _ai.pending + gain >= 66)
 				{
 					if (_game.cards.size())
 						claim.sort(_game.trump); // trumps first
@@ -1116,6 +1148,54 @@ void Engine::ai_move_follow()
 			}
 		}
 	}
+}
+
+Player Engine::check_trick(Player move_)
+{
+	if (move_ == PLAYER)
+	{
+		_game.move = card_tricks(_ai.card, _player.card) ? AI : PLAYER;
+		if (_game.move == AI) LOG(_ai.card << " tricks " << _player.card << "\n")
+		else LOG("Player card " << _player.card << " tricks AI card " << _ai.card << "\n")
+	}
+	else
+	{
+		_game.move = card_tricks(_player.card, _ai.card) ? PLAYER : AI;
+		if (_game.move == PLAYER) LOG(_player.card << " tricks " << _ai.card << "\n")
+		else LOG("AI card " << _ai.card << " tricks player card " << _player.card << "\n")
+	}
+	LOG("next move: " << (_game.move == PLAYER ? "PLAYER" : "AI") << "\n")
+
+	if (_game.move == AI && _game.closed != NOT && _game.closed != AUTO)
+	{
+		// could gain information from player not tricking
+		if (_player.card.suite() == _ai.card.suite())
+		{
+			// player had suite, but no higher card of that suite
+			// => all cards of suite > ai_card can be excluded from assumed player cards.
+			Cards suite = Cards::fullcards(_ai.card.suite());
+			if (_ai.card.value() <= 10) suite -= Card(ACE, _ai.card.suite());
+			if (_ai.card.value() <= 4) suite -= Card(TEN, _ai.card.suite());
+			if (_ai.card.value() <= 3) suite -= Card(KING, _ai.card.suite());
+			_exclude_cards |= suite;
+		}
+		else
+		{
+			// player had none of this suite
+			// => all cards of suite can be excluded from assumed player cards
+			_exclude_cards |= Cards::fullcards(_ai.card.suite());
+			if (_ai.card.suite() != _game.trump)
+			{
+				// also player did not trick with trump, so has no trumps
+				_exclude_cards |= Cards::fullcards(_game.trump);
+			}
+		}
+	}
+
+	_player.move_state = NONE;
+	_ai.move_state = NONE;
+	_ui.animate_trick();
+	return _game.move;
 }
 
 size_t Engine::default_move(const Cards &cards_) const

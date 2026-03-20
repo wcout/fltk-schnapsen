@@ -1815,6 +1815,7 @@ public:
 	virtual void prepare_game() override
 	{
 		_history.clear();
+		_engine.init();
 		cursor(FL_CURSOR_DEFAULT);
 		_redeal ? _redeal_button->show() : _redeal_button->hide();
 		update();
@@ -1999,23 +2000,7 @@ public:
 	void check_trick(Player move_)
 	{
 		_game.marriage = NO_MARRIAGE;
-		if (move_ == PLAYER)
-		{
-			_game.move = _engine.card_tricks(_ai.card, _player.card) ? AI : PLAYER;
-			if (_game.move == AI) LOG(_ai.card << " tricks " << _player.card << "\n")
-			else LOG("Player card " << _player.card << " tricks AI card " << _ai.card << "\n")
-		}
-		else
-		{
-			_game.move = _engine.card_tricks(_player.card, _ai.card) ? PLAYER : AI;
-			if (_game.move == PLAYER) LOG(_player.card << " tricks " << _ai.card << "\n")
-			else LOG("AI card " << _ai.card << " tricks player card " << _player.card << "\n")
-		}
-		LOG("next move: " << (_game.move == PLAYER ? "PLAYER" : "AI") << "\n")
-
-		_player.move_state = NONE;
-		_ai.move_state = NONE;
-		animate_trick();
+		_game.move = _engine.check_trick(move_);
 
 		if (_game.move == PLAYER) // player won trick
 		{

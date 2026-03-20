@@ -98,6 +98,14 @@ bool Unittest::run()
 	assert(_engine.lowest_card(p2, false) == 0);
 	_game.cards = temp;
 
+	assert(_engine.cards_to_claim(Cards("|T♥|K♥|Q♣|"), Cards("|A♠|T♠|K♠|Q♠|A♥|T♦|A♣|T♣|K♣|J♣|"), CLUB) == Cards());
+	assert(_engine.cards_to_claim(Cards("|T♥|K♥|Q♣|"), Cards("|A♠|T♠|K♠|Q♠|A♥|T♦|J♣|"), CLUB) == Cards("|Q♣|"));
+	assert(_engine.cards_to_claim(Cards("|T♥|K♥|A♣|Q♣|"), Cards("|A♠|T♠|K♠|Q♠|A♥|T♦|K♣|J♣|"), CLUB) == Cards("|A♣|Q♣|"));
+	assert(_engine.cards_to_claim(Cards("|T♥|K♥|Q♣|A♣|"), Cards("|A♠|T♠|K♠|Q♠|A♥|T♦|K♣|J♣|"), CLUB) == Cards("|A♣|Q♣|"));
+	assert(_engine.cards_to_claim(Cards("|T♥|K♥|A♣|K♣|"), Cards("|A♠|T♠|K♠|Q♠|A♥|T♦|J♣|"), CLUB) == Cards("|A♣|"));
+	assert(_engine.cards_to_claim(Cards("|T♥|A♥|A♣|K♣|"), Cards("|A♠|K♠|Q♠|Q♥|T♦|J♣|")) == Cards("|A♥|A♣|"));
+	assert(_engine.cards_to_claim(Cards("|T♥|A♦|A♣|K♣|"), Cards("|A♠|K♠|Q♠|Q♥|T♦|J♣|")) == Cards("|A♦|A♣|T♥|"));
+
 	_game.trump = SPADE;
 	Cards acards("|T♦|K♦|J♦|T♣|K♣|");
 	Cards pcards("|A♦|Q♦|T♥|A♣|J♣|");
