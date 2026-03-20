@@ -223,7 +223,7 @@ std::optional<Card> Cards::find(const Card &c_) const
 	return {};
 }
 
-void Cards::shuffle()
+Cards& Cards::shuffle()
 {
 	LOG("shuffle\n");
 	assert(size());
@@ -240,9 +240,10 @@ void Cards::shuffle()
 		std::shuffle(begin(), end(), gen);
 	}
 	check();
+	return *this;
 }
 
-void Cards::sort()
+Cards& Cards::sort()
 {
 	auto sortRuleCards = [] (Card const &c1_, Card const &c2_) -> bool
 	{
@@ -250,9 +251,10 @@ void Cards::sort()
 		return c1_.suite_weight() > c2_.suite_weight();
 	};
 	std::sort(begin(), end(), sortRuleCards);
+	return *this;
 }
 
-void Cards::sort(const CardSuite trump_)
+Cards& Cards::sort(const CardSuite trump_)
 {
 	auto sortRuleCards = [&] (Card const &c1_, Card const &c2_) -> bool
 	{
@@ -264,9 +266,10 @@ void Cards::sort(const CardSuite trump_)
 		return sw1 > sw2;
 	};
 	std::sort(begin(), end(), sortRuleCards);
+	return *this;
 }
 
-void Cards::sort_by_value(bool high_to_low/* = true*/)
+Cards& Cards::sort_by_value(bool high_to_low/* = true*/)
 {
 	auto sortRuleCards = [&] (Card const &c1_, Card const &c2_) -> bool
 	{
@@ -274,6 +277,7 @@ void Cards::sort_by_value(bool high_to_low/* = true*/)
 	};
 	sort(); // first bring suites in defined order
 	std::sort(begin(), end(), sortRuleCards);
+	return *this;
 }
 
 int Cards::value() const
