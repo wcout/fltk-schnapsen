@@ -110,7 +110,6 @@ bool Deck::load_game(const std::string &name_)
 		_ai.cards.clear();
 		_ai.deck.clear();
 		init();
-		_restart = true;
 		return false;
 	}
 	else
