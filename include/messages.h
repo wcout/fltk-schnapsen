@@ -46,7 +46,8 @@ enum class Message
 	CLOSED_MARKER,
 	DECK_BG,
 	ANIMATION,
-	TRUMP_SORT
+	TRUMP_SORT,
+	PLACE_CARD
 };
 
 using enum Message;
@@ -211,6 +212,7 @@ std::map<Message, std::string> sound = {
 	{MUST_TRICK_WITH_SUITE, "not_allowed"},
 	{WELCOME, "welcome"},
 	{SHUFFLE, "shuffle"},
+	{PLACE_CARD, "put" },
 	{ANIMATION, "change"},
 	{TRUMP_SORT, "change"}
 };

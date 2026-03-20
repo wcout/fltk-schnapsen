@@ -1157,6 +1157,7 @@ size_t Engine::ai_move()
 	_ai.cards.erase(_ai.cards.begin() + _move);
 	_ui.animate_move();
 
+	_ui.bell(PLACE_CARD, false);
 	_ai.move_state = ON_TABLE;
 	_ui.update();
 	LOG("AI move: " << _ai.card << "\n");

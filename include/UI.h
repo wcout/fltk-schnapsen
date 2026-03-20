@@ -17,7 +17,7 @@ public:
 	virtual void animate_change([[maybe_unused]]bool from_hand_ = false) {}
 	virtual void wait([[maybe_unused]]double s_) {}
 	virtual void message([[maybe_unused]]Message m_, [[maybe_unused]]bool bell_ = false) {}
-	virtual void bell([[maybe_unused]]Message m_ = NO_MESSAGE) {}
+	virtual void bell([[maybe_unused]]Message m_ = NO_MESSAGE, [[maybe_unused]]bool visual_ = true) {}
 	virtual void prepare_game() {}
 	virtual void player_move() {}
 	virtual void ai_move() {}

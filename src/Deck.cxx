@@ -14,7 +14,6 @@
 #include <FL/Fl_Input.H>
 #include <FL/Fl_File_Chooser.H>
 #include <FL/fl_draw.H>
-#include <FL/fl_utf8.h>
 
 #include <string>
 #include <vector>
@@ -478,6 +477,7 @@ public:
 						_player.score += 40;
 					}
 				}
+				bell(PLACE_CARD, false);
 				_player.move_state = ON_TABLE; // _player.card is on table
 				return;
 			}
@@ -1442,10 +1442,15 @@ public:
 		// log only when change of playing cards
 		static Cards player_cards;
 		static Cards ai_cards;
+		static int player_score = 0;
+		static int ai_score = 0;
 		if (unconditional_ == false &&
-			_ai.cards == ai_cards && _player.cards == player_cards) return; // no change
-		ai_cards = _ai.cards;
+			_ai.cards == ai_cards && _player.cards == player_cards &&
+			_ai.score == ai_score && _player.score == player_score) return; // no change
 		player_cards = _player.cards;
+		ai_cards = _ai.cards;
+		player_score = _player.score;
+		ai_score = _ai.score;
 
 		LOG("PL deck: " << _player.deck << " (" << _player.deck.size() << ")\n");
 		LOG("AI deck: " << _ai.deck << " (" << _ai.deck.size() << ")\n");
@@ -1903,7 +1908,7 @@ public:
 		return true;
 	}
 
-	void bell([[maybe_unused]]Message m_ = NO_MESSAGE) override
+	void bell([[maybe_unused]]Message m_ = NO_MESSAGE, [[maybe_unused]]bool visual_ = true) override
 	{
 #ifdef USE_MINIAUDIO
 		std::string snd = sound[m_];
@@ -1919,6 +1924,8 @@ public:
 		if (snd.empty())
 		{
 			fl_beep();
+			if (visual_)
+				flicker();
 		}
 #else
 		// NOTE: under Wayland fl_beep() outputs a \007 character to stderr.
@@ -1926,7 +1933,8 @@ public:
 		//       most likely because stderr/stdout are redirected or disabled.
 		fl_beep();
 #endif
-		flicker();
+		if (visual_)
+			flicker();
 	}
 
 	bool check_end()
