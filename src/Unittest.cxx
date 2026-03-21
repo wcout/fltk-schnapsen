@@ -105,6 +105,7 @@ bool Unittest::run()
 	assert(_engine.cards_to_claim(Cards("|T♥|K♥|A♣|K♣|"), Cards("|A♠|T♠|K♠|Q♠|A♥|T♦|J♣|"), CLUB) == Cards("|A♣|"));
 	assert(_engine.cards_to_claim(Cards("|T♥|A♥|A♣|K♣|"), Cards("|A♠|K♠|Q♠|Q♥|T♦|J♣|")) == Cards("|A♥|A♣|"));
 	assert(_engine.cards_to_claim(Cards("|T♥|A♦|A♣|K♣|"), Cards("|A♠|K♠|Q♠|Q♥|T♦|J♣|")) == Cards("|A♦|A♣|T♥|"));
+	assert(_engine.cards_to_claim(Cards("|A♠|K♥|A♦|K♦|"), Cards("|T♠|Q♠|T♥|Q♥|")) == Cards("|A♠|"));
 
 	_game.trump = SPADE;
 	Cards acards("|T♦|K♦|J♦|T♣|K♣|");

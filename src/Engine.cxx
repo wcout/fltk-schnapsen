@@ -542,7 +542,7 @@ Cards Engine::cards_to_claim(const Cards& lead_, const Cards& follow_, CardSuite
 	}
 	// TODO: sort by value or trump?
 	res.sort_by_value();
-	DBG("cards_to_claim: " << res << "\n")
+	DBG("cards_to_claim (" << Card::suite_symbol(suite_) << "): " << res << "\n")
 	return res;
 }
 
@@ -1020,7 +1020,8 @@ void Engine::ai_move_closed_lead()
 			}
 			else if (pull.size() && (int)pull.size() + (int)trump_claim.size() >= max_trumps_player())
 			{
-				move = find(trump_claim[0], _ai.cards);
+				if (trump_claim.size())
+					move = find(trump_claim[0], _ai.cards);
 			}
 			else
 			{
