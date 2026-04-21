@@ -171,7 +171,7 @@ void GameBook::draw(Rect r_)
 #ifdef USE_SVG_DIGITS
 		os << "   ^|" << pbuf << "|       ^|" << abuf << "|";
 #else
-		os << "  " << std::setw(2) << pbuf << "      " << std::setw(2) <<  abuf;
+		os << "  " << std::setw(2) << pbuf << "      " << std::setw(2) << abuf;
 #endif
 		Y += H / 12;
 		Util::draw_string(os.str(), X, Y);

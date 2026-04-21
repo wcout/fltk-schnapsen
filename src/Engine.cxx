@@ -40,18 +40,15 @@ size_t Engine::best_trick_card(const Card &c_, Cards &tricks_) const
 			break;
 		}
 	}
-	if (move == NO_MOVE)
+	if (move == NO_MOVE && _ai.score < 33)
 	{
-		if (_ai.score < 33)
+		// try to find a trick that pushes score beyond 32
+		for (auto &c : tricks_)
 		{
-			// try to find a trick that pushes score beyond 32
-			for (auto &c : tricks_)
+			if (c.value() + c_.value() + _ai.score + _ai.pending >= 33)
 			{
-				if (c.value() + c_.value() + _ai.score + _ai.pending >= 33)
-				{
-					move = find(c, tricks_);
-					break;
-				}
+				move = find(c, tricks_);
+				break;
 			}
 		}
 	}
@@ -66,6 +63,9 @@ size_t Engine::best_trick_card(const Card &c_, Cards &tricks_) const
 
 size_t Engine::best_trick_card_or_no_move(const Card &c_, Cards &tricks_) const
 {
+	if (tricks_.empty())
+		return NO_MOVE;
+
 	size_t move = best_trick_card(c_, tricks_);
 	assert(move != NO_MOVE);
 
@@ -73,14 +73,30 @@ size_t Engine::best_trick_card_or_no_move(const Card &c_, Cards &tricks_) const
 	{
 		// that was the default move
 		Card c = tricks_[move];
-		// Do not trick with trump a low non-trump
+		// Do not trick with trump a low card
 		if (c.suite() == _game.trump && c_.value() <= 4)
 		{
 			// with some exceptions:
-			if (_player.score + c.value() + c_.value() < 66)
+			int score = _player.score + _player.pending + c.value() + c_.value();
+			if (score < 66)
 			{
-				WNG("Don't waste trump " << c << " on low non-trump " << _player.card);
+				WNG("Don't waste trump " << c << " on low card " << _player.card);
 				return NO_MOVE;
+			}
+		}
+		// check if jack could be changed for ace, so don't use it to trick,
+		// when queen or king are available
+		Card m = tricks_[move];
+		if (m == Card(JACK, _game.trump) && c_.value() > 4 &&
+		    _game.cards.size() >= 4 && _game.closed == NOT && _game.cards.back().value() == 11)
+		{
+			if (tricks_.find(Card(QUEEN, _game.trump)))
+			{
+				move = find(Card(QUEEN, _game.trump), tricks_);
+			}
+			else if (tricks_.find(Card(KING, _game.trump)))
+			{
+				move = find(Card(KING, _game.trump), tricks_);
 			}
 		}
 	}
@@ -249,7 +265,7 @@ size_t Engine::find(const Card &c_, const Cards &cards_) const
 	return NO_MOVE;
 }
 
-bool Engine::test_change(GameState &player_, bool change_/*=false*/)
+bool Engine::test_change(PlayerData &player_, bool change_/*=false*/)
 {
 	if (_game.cards.size() < 4 || _game.closed != NOT) return false;
 	auto i = player_.cards.find_pos(Card(JACK, _game.cards.back().suite()));
@@ -339,8 +355,8 @@ size_t Engine::ai_play_20_40()
 			}
 
 			// also if having highest cards, maybe try to play these before
-			highest -= Card(QUEEN, _game.trump);
-			highest -= Card(KING, _game.trump);
+			highest -= Card(QUEEN, suites[0]);
+			highest -= Card(KING, suites[0]);
 			if (highest.size() && _game.closed != NOT)
 			{
 				int points_needed = 66 - 40 - _ai.score - _ai.pending;
@@ -360,12 +376,12 @@ size_t Engine::ai_play_20_40()
 		_ui.bell(AI_MARRIAGE_40);
 		if (_ai.score + 43 == 65)
 		{
-			move = find(Card(KING, _game.trump), _ai.cards);
+			move = find(Card(KING, suites[0]), _ai.cards);
 		}
 		else
 		{
 			// otherwise use queen
-			move = find(Card(QUEEN, _game.trump), _ai.cards);
+			move = find(Card(QUEEN, suites[0]), _ai.cards);
 		}
 		LOG("AI declares 40 with " << _ai.cards[move] << "\n");
 		_ai.s20_40.push_front(_ai.cards[move].suite());
@@ -454,7 +470,7 @@ Cards Engine::highest_cards_in_hand(const Cards &cards_)
 	return res;
 }
 
-void Engine::do_close(GameState &player_)
+void Engine::do_close(PlayerData &player_)
 {
 	// close game
 	LOG("*** closed by " << (_game.move == PLAYER ? "player" : "AI") << "!\n");
@@ -479,15 +495,16 @@ bool Engine::ai_test_close()
 			if (have_40().size()) maybe_score += 40;
 			else if (have_20().size()) maybe_score += 20;
 		}
-		bool do_close = maybe_score >= 66; // that's a sure thing!
+		bool do_close = maybe_score >= 66; // enough with 20/40 alone!
 		if (!do_close)
 		{
 			// test if cards are good enough
 			Cards highest = highest_cards_in_hand();
 			maybe_score += highest.value();
 			maybe_score += highest.size() * 3; // at average expect win of a queen per trick
-			do_close = maybe_score >= 60 &&
-				(size_t)max_trumps_player() <= trumps_in_hand(_ai.cards).size();
+			int trumps = (int)trumps_in_hand(_ai.cards).size();
+			int remain_trumps = max_trumps_player();
+			do_close = maybe_score >= 66 && remain_trumps <= trumps;
 		}
 		DBG("maybe_score: " << maybe_score << "\n")
 		if (do_close)
@@ -508,6 +525,8 @@ Cards Engine::assumed_player_cards() const
 		player_cards -= _game.cards.back(); // open trump is certainly not in player cards
 	WNG("exclude_cards: " << _exclude_cards);
 	player_cards -= _exclude_cards;
+	if (_player.move_state == ON_TABLE)
+		player_cards -= _player.card;
 	player_cards.sort();
 	DBG("assumed player cards: " << player_cards << "\n")
 	return player_cards;
@@ -518,7 +537,7 @@ Cards Engine::cards_to_claim(const Cards& lead_, const Cards& follow_, CardSuite
 //	DBG("cards_to_claim " << lead_ << " -> " << follow_ << " (" << Card::suite_symbol(suite_) << ")\n");
 	Cards res;
 	Cards follow = follow_;
-	follow.sort_by_value();
+	follow.sort();
 	Cards lead(lead_);
 	lead.sort_by_value();
 	if (gain_) *gain_ = 0;
@@ -527,16 +546,24 @@ Cards Engine::cards_to_claim(const Cards& lead_, const Cards& follow_, CardSuite
 		if (suite_ != ANY_SUITE && c.suite() != suite_) continue;
 		for (size_t i = 0; i < follow.size(); i++)
 		{
-			const Card &f = follow[i];
+			Card f = follow[i];
 			if (f.suite() != c.suite()) continue;
 			if (card_tricks(f, c)) break;
 			res.push_back(c);
+			// find lowest of suite (player will use this card)
+			size_t j = i;
+			while (j < follow.size() && follow[j].suite() == c.suite())
+			{
+				f = follow[j];
+				j++;
+			}
+
 			if (gain_)
 			{
 				*gain_ += c.value();
 				*gain_ += f.value();
 			}
-			follow.erase(follow.begin() + i);
+			follow -= f;
 			break;
 		}
 	}
@@ -690,13 +717,13 @@ Cards Engine::pull_trump_cards(Cards cards_, Cards from_) const
 	{
 		if (c.suite() == _game.trump) continue; // skip trump suite
 		// check if card can be tricked by player with suite
-		// NOTE: With CLOSE_AUTO remaining cards are added to
-		//       player hand, so the result is only a 'probable'
-		//       result.
+		// NOTE: When closed before talon empty, remaining cards are added
+		//       to player hand, so the result is only a 'probable' result.
 		Cards suites = suites_in_hand(c.suite(), from_ + _game.cards) ;
 		bool no_trick = true;
 		for (auto &s : suites)
 		{
+			if (card_tricks(c, s)) { no_trick = false; break; } // this is not a pull, but a claim!
 			if (!card_tricks(s, c)) continue;
 			no_trick = false;
 			break;
@@ -709,6 +736,32 @@ Cards Engine::pull_trump_cards(Cards cards_, Cards from_) const
 	}
 	res.sort_by_value(false); // sort low to high
 	DBG("pull trump cards: " << res << "\n");
+	return res;
+}
+
+Cards Engine::give_trump_cards(Cards cards_, Cards from_) const
+{
+	// all trump cards in cards_, that can be used to
+	// reduce players trumps.
+	// Useable only when closed.
+	Cards res;
+	// does from_ (=player) even have trumps?
+	Cards trumps = suites_in_hand(_game.trump, from_);
+	if (trumps.empty())
+	{
+		return res; // no trumps to reduce
+	}
+	Cards ai_trumps = suites_in_hand(_game.trump, cards_);
+	if (!(ai_trumps.size() > trumps.size()))
+	{
+		return res;
+	}
+	ai_trumps.sort_by_value(false);
+	for (size_t i = 0; i < trumps.size(); i++)
+	{
+		res += ai_trumps[i];
+	}
+	DBG("give trump cards: " << res << "\n");
 	return res;
 }
 
@@ -747,7 +800,7 @@ Cards Engine::closed_lead_no_trick(Cards leader_, Cards follower_)
 	return res;
 }
 
-Cards Engine::legal_moves(const Cards &hand_, const Card &lead_)
+Cards Engine::legal_moves(const Cards &hand_, const Card &lead_) const
 {
 	//
 	// Return valid moves *in closed state* for hand_ with move lead_
@@ -792,7 +845,7 @@ Cards Engine::legal_moves(const Cards &hand_, const Card &lead_)
 		// otherwise any card is valid
 		res = hand_;
 	}
-	DBG("valid moves for hand " << hand_ << " with lead " << lead_  << ": " << res << "\n");
+	DBG("valid moves for hand " << hand_ << " with lead " << lead_ << ": " << res << "\n");
 	return res;
 }
 
@@ -851,36 +904,56 @@ size_t Engine::ai_play_for_closed_lead()
 	{
 		// following last trick before pack clear
 		DBG("ai_play_for_closed_lead: following\n");
-
-		bool should_trick = false;
 		Cards player_cards = assumed_player_cards();
-		if (check_40(player_cards))
-		{
-			// player will have 40 if he wins this trick
-			should_trick = true;
-		}
-
 		Cards tricks = all_cards_that_trick(_player.card, _ai.cards);
+		Cards not_tricks = _ai.cards - tricks;
+		not_tricks.sort_by_value(false); // low-high
+
 		if (tricks.size())
 		{
-			if (should_trick)
+			size_t move = best_trick_card(_player.card, tricks);
+			assert(move != NO_MOVE);
+			move = find(tricks[move], _ai.cards);
+
+			// we could trick, check if needed/useful
+			DBG("ai_play_for_closed_lead: we could trick with: " << tricks << "\n");
+
+			// check if not tricking will give player a sure win
+			if (not_tricks.size()) // not tricking is possible
 			{
-				WNG("We must trick, otherwise player will gain 40!");
-				size_t move = best_trick_card(_player.card, tricks);
-				assert(move != NO_MOVE);
-				return find(tricks[move], _ai.cards);
+				int player_gain = 0;
+				int player_score = _player.score;
+				if (check_40(player_cards))
+				{
+					Suites s = have_40(player_cards);
+					player_cards -= Card(QUEEN, s[0]);
+					player_cards -= Card(KING, s[0]);
+					player_score += 40;
+				}
+				else if (check_20(player_cards))
+				{
+					Suites s = have_20(player_cards);
+					player_cards -= Card(QUEEN, s[0]);
+					player_cards -= Card(KING, s[0]);
+					player_score += 20;
+				}
+				Cards ai_cards = _ai.cards - not_tricks[0] + _game.cards.back(); // this will be ai cards when **NOT** tricking
+				cards_to_claim(player_cards, ai_cards, ANY_SUITE, &player_gain); // player could claim these cards afterwards
+				player_score += (_player.pending + _player.card.value() + not_tricks[0].value() + player_gain); // and reach this score
+				DBG("player gain: " << player_gain << " ==> " << player_score << "\n");
+				if (player_score >= 66)
+				{
+					WNG("We must trick, otherwise player wins for sure");
+					return move;
+				}
 			}
 
-			// we could trick, but that's maybe not what we want..
-			DBG("ai_play_for_closed_lead: we could trick with: " << tricks << "\n");
 			if ((_game.cards.back().face() == QUEEN && _ai.cards.find(Card(KING, _game.trump))) ||
 			    (_game.cards.back().face() == KING  && _ai.cards.find(Card(QUEEN, _game.trump))))
 			{
 				// we could gain 40, if we do **not** trick
-				Cards not_tricks = _ai.cards - tricks;
 				if (not_tricks.size())
 				{
-					not_tricks.sort_by_value(false); // low-high
 					DBG("ai_play_for_closed_lead: we could gain 40, when **not** tricking!\n");
 					return find(not_tricks[0], _ai.cards);
 				}
@@ -918,7 +991,7 @@ size_t Engine::ai_play_for_closed_lead()
 				Cards highest = highest_cards_in_hand(_ai.cards);
 				if (highest.size())
 				{
-					// so play card he must either trick with trump or leave
+					// so player must either trick with trump or let AI trick
 					highest.sort_by_value(false); // low->hi
 					DBG("highest sorted by value: " << highest << "\n");
 					WNG("Use " << highest[0] << " to prevent player getting 40");
@@ -930,9 +1003,9 @@ size_t Engine::ai_play_for_closed_lead()
 	return NO_MOVE;
 }
 
-size_t Engine::winning_move()
+size_t Engine::winning_move() const
 {
-	 // NOTE: assumed_player_cards() is only valid when (auto?) closed
+	// NOTE: assumed_player_cards() is only valid when (auto?) closed
 	if (_game.closed == NOT)
 		return NO_MOVE;
 
@@ -942,8 +1015,11 @@ size_t Engine::winning_move()
 	for (size_t m = 0; m < _ai.cards.size(); m++)
 	{
 		Card &c = _ai.cards[m];
-		if (can_trick(c, player_cards)) continue;
-		// This is a card player can't trick
+		Cards legal = legal_moves(player_cards, c);
+		if (can_trick(c, legal)) continue;
+		// This is a card player can't trick, search lowest player response
+
+		// NOTE: could we simpler work on with 'legal', instead player_cards??
 		Card player_card;
 		Cards same_suite = suites_in_hand(c.suite(), player_cards);
 		if (same_suite.size())
@@ -969,6 +1045,27 @@ size_t Engine::winning_move()
 	return NO_MOVE;
 }
 
+size_t Engine::winning_move_follow() const
+{
+	if (_player.move_state != ON_TABLE)
+		return NO_MOVE;
+
+	// try to find a game winning trick
+	Cards legal = _game.closed != NOT ? legal_moves(_ai.cards, _player.card) : _ai.cards;
+	for (auto &c : legal)
+	{
+		if (card_tricks(c, _player.card))
+		{
+			if (c.value() + _player.card.value() + _ai.score + _ai.pending >= 66)
+			{
+				DBG("winning_move_follow: " << c << "\n");
+				return find(c, _ai.cards);
+			}
+		}
+	}
+	return NO_MOVE;
+}
+
 void Engine::ai_move_closed_lead()
 {
 	// end game, ai plays out
@@ -979,6 +1076,20 @@ void Engine::ai_move_closed_lead()
 	{
 		// this move wins the game..
 		_move = m;
+		return;
+	}
+	int gain = 0; // gain from claim
+	Cards claim = cards_to_claim(gain);
+	if (gain)
+	{
+		if (have_40().size()) gain += 40;
+		else if (have_20().size()) gain += 20;
+	}
+	LOG("claim gain: " << gain << " ==> " << _ai.score + _ai.pending + gain << "\n");
+	if (_ai.score + _ai.pending + gain >= 66)
+	{
+		// that's a sure win
+		_move = find(claim[0], _ai.cards);
 		return;
 	}
 
@@ -1000,7 +1111,12 @@ void Engine::ai_move_closed_lead()
 	}
 	else
 	{
-		int gain = 0; // total gain from all claimed trumps
+		Cards trumps = highest_cards_of_suite_in_hand(_ai.cards, _game.trump);
+		if (trumps.size() > (size_t)max_trumps_player())
+		{
+			_move = find(trumps[0], _ai.cards);
+			return;
+		}
 		Cards hinder = hinder_20_40();
 		if (hinder.size())
 		{
@@ -1010,24 +1126,37 @@ void Engine::ai_move_closed_lead()
 		}
 		else if (!(_ai.cards.size() == 2 && move != NO_MOVE)) // play for last move!
 		{
+			// Gather infos
 			Cards trump_claim = trumps_to_claim(gain);
 			Cards pull = pull_trump_cards(_ai.cards, _player.cards);
-			LOG("gain: " << gain << " ==> " <<  _ai.score + _ai.pending + gain << "\n");
-			if (_ai.score + _ai.pending + gain >= 66)
+			LOG("trump gain: " << gain << " ==> " << _ai.score + _ai.pending + gain << "\n");
+			Cards highest = highest_cards_in_hand();
+			Cards highest_non_trump = highest - highest_trumps_in_hand();
+			Card lowest_player_card = _player.cards[lowest_card(_player.cards, false)];
+			int highest_gain = highest.value() + highest.size() * lowest_player_card.value(); // TODO: calculate exactly!
+			DBG("highest non trump: " << highest_non_trump << "\n");
+			DBG("highest_gain: " << highest_gain << "\n");
+			if ((size_t)max_trumps_player() <= highest_trumps_in_hand().size() &&
+			         (_ai.score + _ai.pending + highest_gain >= 66))
 			{
-				// that's a sure win
-				move = find(trump_claim[0], _ai.cards);
+				Cards winning = highest_trumps_in_hand() + highest_non_trump;
+				move = find(winning[0], _ai.cards);
 			}
 			else if (pull.size() && (int)pull.size() + (int)trump_claim.size() >= max_trumps_player())
 			{
-				if (trump_claim.size())
-					move = find(trump_claim[0], _ai.cards);
+				Cards pull_then_claim = pull[0].value() < 10 ? pull + trump_claim : trump_claim + pull;
+				if (pull_then_claim.size())
+				{
+					DBG("pull_then_claim: " << pull_then_claim << "\n");
+					move = find(pull_then_claim[0], _ai.cards);
+				}
 			}
 			else
 			{
 				Cards claim = cards_to_claim(gain);
-				LOG("gain: " << gain << " ==> " <<  _ai.score + _ai.pending + gain << "\n");
-				if (_ai.score + _ai.pending + gain >= 66)
+				LOG("cards gain: " << gain << " ==> " << _ai.score + _ai.pending + gain << "\n");
+				gain += _ai.pending;
+				if (_ai.score + gain >= 66 || (_ai.score < 33 && _ai.score + gain >= 33))
 				{
 					if (_game.cards.size())
 						claim.sort(_game.trump); // trumps first
@@ -1041,8 +1170,19 @@ void Engine::ai_move_closed_lead()
 	if (move == NO_MOVE)
 	{
 		Cards pull = pull_trump_cards(_ai.cards, _player.cards);
+		pull += give_trump_cards(_ai.cards, _player.cards);
+		pull.sort_by_value(false);
 		if (pull.size())
-			move = find(pull[0], _ai.cards);
+		{
+			Card m = pull[0];
+			for (auto &c : pull)
+			{
+				// prefer non trump, if same value
+				if (c.value() == m.value() && c.suite() != _game.trump)
+					m = c;
+			}
+			move = find(m, _ai.cards);
+		}
 	}
 
 	if (move == NO_MOVE && _game.cards.empty())
@@ -1059,7 +1199,11 @@ void Engine::ai_move_closed_lead()
 void Engine::ai_move_closed_follow()
 {
 	// end game, player has moved, ai to follow
-	_move = must_give_color_or_trick(_player.card, _ai.cards);
+	size_t m = winning_move_follow();
+	if (m != NO_MOVE)
+		_move = m;
+	else
+		_move = must_give_color_or_trick(_player.card, _ai.cards);
 	assert(_move != NO_MOVE);
 }
 
@@ -1096,11 +1240,30 @@ void Engine::ai_move_lead()
 			ai_move_closed_lead(); // use closed routine!
 		}
 	}
+	else if (_game.marriage == NO_MARRIAGE)
+	{
+		// try to play lowest of a (non trump) suite player does not have
+		Cards highest = highest_cards_in_hand();
+		highest -= trumps_in_hand();
+		highest.sort_by_value(false); // low->hi
+		if (highest.size() && highest[0].value() <= 3) // only cards up to king
+		{
+			_move = find(highest[0], _ai.cards);
+			WNG("play card of suite player has no higher of: " << highest[0] << "\n");
+		}
+	}
 }
 
 void Engine::ai_move_follow()
 {
 	// normal game, player has moved, ai to follow
+	size_t m = winning_move_follow();
+	if (m != NO_MOVE)
+	{
+		_move = m;
+		return;
+	}
+
 	if (_game.cards.size() == 2)
 	{
 		// special case, before pack clearing
@@ -1109,46 +1272,86 @@ void Engine::ai_move_follow()
 		{
 			WNG("ai_play_for_closed_lead suggested " << _ai.cards[m]);
 			_move = m;
+			return;
 		}
 	}
 
 	Suites s20 = have_20(_ai.cards);
 	Suites s40 = have_40(_ai.cards);
-	if (s20.size() || s40.size() || _player.card.value() >= 10)
+	Cards tricks = all_cards_that_trick(_player.card, _ai.cards);
+	if (tricks.size())
 	{
-		// try to not destroy a 40 by tricking
-		Cards temp = _ai.cards;
+		Cards temp = tricks;
 		if (s40.size())
 		{
-			temp -= Card(QUEEN, _game.trump);
-			temp -= Card(KING, _game.trump);
+			temp -= Card(QUEEN, s40[0]);
+			temp -= Card(KING, s40[0]);
 		}
-		size_t m = lowest_card_that_tricks(_player.card, temp);
-		if (m != NO_MOVE)
+		else if (s20.size())
 		{
-			_move = find(temp[m], _ai.cards);
+			temp -= Card(QUEEN, s20[0]);
+			temp -= Card(KING, s20[0]);
 		}
-	}
-	else
-	{
-		Cards tricks = all_cards_that_trick(_player.card, _ai.cards);
-		if (tricks.size())
+		size_t move = best_trick_card_or_no_move(_player.card, temp);
+		if (move != NO_MOVE)
+			_move = find(temp[move], _ai.cards);
+		else
 		{
-			size_t move = best_trick_card_or_no_move(_player.card, tricks);
-			if (move != NO_MOVE)
-				_move = find(tricks[move], _ai.cards);
-			else
+			// another exception: do rather trick, than give away a high card
+			assert(_move != NO_MOVE);
+			if (_ai.cards[_move].value() >= 10)
 			{
-				// another exception: do rather trick, than give away a high card
-				assert(_move != NO_MOVE);
-				if (_ai.cards[_move].value() >= 10)
+				size_t move = find(tricks[best_trick_card(_player.card, tricks)], _ai.cards);
+				// Some pro/cons to tear a 20/40 rather than giving away a high cards...
+				int ai_score = _ai.score + _ai.pending + _ai.cards[move].value() + _player.card.value();
+				int player_score = _player.score + _player.pending + _ai.cards[_move].value() + _player.card.value();
+				if (player_score >= 46 || ai_score >= 46 || (s40.empty() && _ai.score < 33 && ai_score >= 33))
 				{
 					WNG("Nevertheless trick, rather than giving away " << _ai.cards[_move]);
-					_move = find(tricks[best_trick_card(_player.card, tricks)], _ai.cards);
+					_move = move;
 				}
 			}
 		}
 	}
+}
+
+Suites Engine::possible_marriages() const
+{
+	Suites pm = { SPADE, HEART, DIAMOND, CLUB };
+	for (auto &c : _player.deck)
+	{
+		if (c.face() == QUEEN || c.face() == KING)
+		{
+			const auto it = std::find(pm.begin(), pm.end(), c.suite());
+			if (it != pm.end())
+				pm.erase(it);
+		}
+	}
+	for (auto &c : _ai.deck)
+	{
+		if (c.face() == QUEEN || c.face() == KING)
+		{
+			const auto it = std::find(pm.begin(), pm.end(), c.suite());
+			if (it != pm.end())
+				pm.erase(it);
+		}
+	}
+	DBG("Possible marriages: ");
+	for ([[maybe_unused]]auto m : pm)
+		LOG(Card::suite_symbol(m));
+	DBG("\n");
+	return pm;
+}
+
+bool Engine::marriage_possible(CardSuite s_) const
+{
+	Suites pm = possible_marriages();
+	return std::find(pm.begin(), pm.end(), s_) != pm.end();
+}
+
+bool Engine::marriage_40_possible() const
+{
+	return marriage_possible(_game.trump);
 }
 
 Player Engine::check_trick(Player move_)

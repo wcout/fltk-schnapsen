@@ -5,14 +5,14 @@
 class Unittest
 {
 public:
-	explicit Unittest(GameData &game_, GameState &player_, GameState &ai_, Engine &engine_) :
+	explicit Unittest(GameData &game_, PlayerData &player_, PlayerData &ai_, Engine &engine_) :
 		_game(game_), _player(player_), _ai(ai_), _engine(engine_)
 	{
 	}
 	bool run();
 private:
 	GameData &_game;
-	GameState &_player;
-	GameState &_ai;
+	PlayerData &_player;
+	PlayerData &_ai;
 	Engine &_engine;
 };

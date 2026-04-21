@@ -20,4 +20,5 @@ private:
 	static int _H;
 	std::string _last_id;
 	static std::unordered_map<std::string, Fl_RGB_Image *> _images;
+	std::string _pathname;
 };

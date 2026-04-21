@@ -18,7 +18,8 @@ endif
 cxxflags += -DUSE_SVG_DIGITS
 
 # to enable custom font (must be placed in 'rsc' dir)
-#cxxflags += -DCUSTOM_FONT=\"MysteryQuest-Regular.ttf\"
+#cxxflags += -DCUSTOM_FONT=\"Mystery_Quest-Regular.ttf\"
+#cxxflags += -DCUSTOM_FONT=\"DynaPuff-Regular.ttf\"
 
 
 $(APPLICATION): $(APPLICATION).cxx include/system.h \
@@ -36,6 +37,7 @@ $(APPLICATION): $(APPLICATION).cxx include/system.h \
                                    include/Welcome.h src/Welcome.cxx \
                                    include/FontLoader.h src/FontLoader.cxx \
                                    include/Alert.h src/Alert.cxx \
+                                   include/Args.h src/Args.cxx \
                                    include/Unittest.h src/Unittest.cxx
 
 	$(FLTK)$(FLTK_CONFIG) --use-images --compile $(APPLICATION).cxx $(cxxflags)

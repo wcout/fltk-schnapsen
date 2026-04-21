@@ -45,13 +45,13 @@ using enum Message;
 using enum Closed;
 using enum Marriage;
 
-struct GameHistory
+struct GameState
 {
-	GameHistory(GameState &player_, GameState &ai_, GameData &game_) :
+	GameState(PlayerData &player_, PlayerData &ai_, GameData &game_) :
 		player(player_), ai(ai_), game(game_) {}
-	GameState player;
-	GameState ai;
-	GameData game;
+	PlayerData player;
+	PlayerData ai;
+	GameData   game;
 };
 
 //
@@ -152,7 +152,8 @@ public:
 		_animation_level(Util::config("animate").empty() ? 1 : Util::config_as_int("animate")),
 		_show_ai_cards(false),
 		_closing(0),
-		_restart(false)
+		_restart(false),
+		_card_scale(1.0)
 	{
 		_game.trump_sort = Util::config_as_int("trump-sort");
 		_player.games_won = Util::stats_as_int("player_games_won");
@@ -163,9 +164,10 @@ public:
 		fl_register_images();
 		std::string card_root = Util::home_dir() + cardDir + "/";
 		std::string cardback = Util::config("cardback");
-		_back.image("card_back", card_root + "back/" + (cardback.empty() ? "Card_back_red.svg" : cardback));
+		_back.image("card_back", card_root + "back/" + ((cardback.empty() || cardback == "default") ? "Card_back_red.svg" : cardback));
 		_shadow.image("card_shadow", card_root + "Card_shadow.svg");
 		_outline.image("card_outline", card_root + "Card_outline.svg");
+		_empty.image("card_empty", card_root + "Card_empty.svg");
 		_game.cards = Cards::fullcards();
 		assert(_game.cards.check());
 		_card_template = _game.cards[0];
@@ -188,6 +190,13 @@ public:
 		int xpos = Util::config_as_int("xpos");
 		int ypos = Util::config_as_int("ypos");
 		position(xpos, ypos);
+		std::string s = Util::config("card_scale");
+		if (s.size())
+		{
+			double card_scale = atof(s.c_str());
+			if (card_scale >= 1 && card_scale <= 1.5)
+				_card_scale = card_scale;
+		}
 		_redeal_button->callback([](Fl_Widget *wgt_, void *)
 		{
 			static_cast<Deck *>(wgt_->window())->redeal();
@@ -371,6 +380,31 @@ public:
 			_engine.sort_cards(_player.cards);
 			_engine.sort_cards(_ai.cards);
 		}
+		else if (Fl::event_key('+'))
+		{
+			_card_scale += 0.05;
+			if (_card_scale > 1.5)
+			{
+				_card_scale = 1.5;
+				bell();
+			}
+			redraw();
+		}
+		else if (Fl::event_key('-'))
+		{
+			_card_scale -= 0.05;
+			if (_card_scale < 1)
+			{
+				_card_scale = 1;
+				bell();
+			}
+			redraw();
+		}
+		else if (Fl::event_key('0'))
+		{
+			_card_scale = 1;
+			redraw();
+		}
 		else if (Fl::event_key(FL_F + 1) && idle())
 		{
 			welcome();
@@ -388,6 +422,29 @@ public:
 			return false;
 		}
 		return true;
+	}
+
+	void select_background()
+	{
+		if (Fl::event_alt())
+		{
+			// clear background
+			Util::config("background", "NONE");
+		}
+		else
+		{
+			// select background image
+			_grayout = true;
+			const char *bg_tile = Util::config("background").c_str();
+			bg_tile = fl_file_chooser(Util::message(DECK_BG).c_str(), "*.{png,gif,jpg,svg}",
+				                          (std::string(bg_tile) != "NONE" ? bg_tile : Util::rsc_dir().c_str()));
+			_grayout = false;
+			if (bg_tile)
+			{
+				Util::config("background", bg_tile);
+			}
+		}
+		redraw();
 	}
 
 	void handle_click(int x_, int y_)
@@ -421,7 +478,7 @@ public:
 				(Fl::event_button() > 1 || !valid_move(_player.card)))
 			{
 					// withdraw move, put card back to hand
-				LOG("withdraw or invalid " <<  _player.card << "\n");
+				LOG("withdraw or invalid " << _player.card << "\n");
 				_player.cards.push_back(_player.card);
 				_player.move_state = NONE;
 				_engine.sort_cards(_player.cards);
@@ -497,25 +554,7 @@ public:
 		}
 		if (idle() && cards_area_rect().includes(x_, y_) && Fl::event_button() == FL_RIGHT_MOUSE)
 		{
-			if (Fl::event_alt())
-			{
-				// clear background
-				Util::config("background", "NONE");
-			}
-			else
-			{
-				// select background
-				_grayout = true;
-				const char *bg_tile = Util::config("background").c_str();
-				bg_tile = fl_file_chooser(Util::message(DECK_BG).c_str(), "*.{png,gif,jpg,svg}",
-				                          (std::string(bg_tile) != "NONE"  ? bg_tile : Util::rsc_dir().c_str()));
-				_grayout = false;
-				if (bg_tile)
-				{
-					Util::config("background", bg_tile);
-				}
-			}
-			redraw();
+			select_background();
 		}
 	}
 
@@ -575,8 +614,8 @@ public:
 
 	Rect cards_area_rect() const
 	{
-		Rect p{ move_rect(PLAYER) };
-		Rect a{ move_rect(AI) };
+		Rect p{ on_table_rect(PLAYER) };
+		Rect a{ on_table_rect(AI) };
 		return Rect(p.x, a.y, a.x + a.w - p.x, p.y + p.h - a.y);
 	}
 
@@ -627,7 +666,22 @@ public:
 		int dx = _CW / 8;
 		return Rect(
 			(player_ == AI ? mx + dx : _player.move_state == MOVING ? Fl::event_x() - _CW / 2 : mx - dx - _CW),
-			(player_ == AI ? m - _CH / 2 - _CH / 8: _player.move_state == MOVING ? Fl::event_y() - _CH / 2 : m - _CH / 2 + _CH / 8),
+			(player_ == AI ? m - _CH / 2 - _CH / 8 : _player.move_state == MOVING ? Fl::event_y() - _CH / 2 : m - _CH / 2 + _CH / 8),
+			_CW,
+			_CH
+			);
+	}
+
+	Rect on_table_rect(Player player_) const
+	{
+		int ma = h() / 40 + _CH / 3 + h() / 40 + _CH / 2;
+		int mp = h() - h() / 40 - _CH - h() / 40 - _CH / 2;
+		int m = (ma + mp) / 2;
+		int mx = cards_rect(player_).center().x;
+		int dx = _CW / 8;
+		return Rect(
+			(player_ == AI ? mx + dx : mx - dx - _CW),
+			(player_ == AI ? m - _CH / 2 - _CH / 8 : m - _CH / 2 + _CH / 8),
 			_CW,
 			_CH
 			);
@@ -710,7 +764,7 @@ public:
 
 	void draw_suite_symbol(CardSuite suite_, int x_, int y_)
 	{
-		fl_font(FL_HELVETICA, _CH / 7);
+		fl_font(FL_COURIER, _CH / 6);
 		fl_color(FL_BLACK);
 		Card c(ACE, suite_);
 		std::ostringstream os;
@@ -736,7 +790,7 @@ public:
 		std::string def_image(Util::rsc_dir() + "deck.gif");
 		std::string image = Util::config("background");
 		if (image == "NONE") return "";
-		if (image == "") return def_image;
+		if (image == "" || image == "default") return def_image;
 		return image;
 	}
 
@@ -943,16 +997,7 @@ public:
 		int dest_X = cards_rect(player_).center().x;
 		int dest_Y = cards_rect(player_).center().y;
 
-		size_t cards_to_deal = (_ai.cards.size() < 5 && _player.cards.size() < 5) ? 3 : 2;
-		if (_ai.cards.size() >= 4 && _player.cards.size() >= 4)
-			cards_to_deal = 1; // called from fillup cards
-
-//		DBG("animate_deal(" << (player_ == PLAYER ? "PLAYER" : "AI") << "): " << cards_to_deal << " cards\n");
-
-		for (size_t i = 0; i < cards_to_deal; i++)
-		{
-			do_animate(&Deck::draw_animated_trick, src_X, src_Y, dest_X, dest_Y);
-		}
+		do_animate(&Deck::draw_animated_trick, src_X, src_Y, dest_X, dest_Y);
 	}
 
 	void animate_fillup(Player player_)
@@ -974,6 +1019,7 @@ public:
 		int dest_Y = pack_rect().center().y;
 
 		static constexpr int step = 3;
+
 		for (size_t i = 0; i < save.size(); i += step)
 		{
 			for (int c = 0; c < step; c++)
@@ -1018,7 +1064,7 @@ public:
 		do_animate(&Deck::draw_animated_change, src_X, src_Y, dest_X, dest_Y, 10);
 	}
 
-	void animate_close()
+	void animate_close() override
 	{
 		if (_animation_level == 0) return;
 
@@ -1055,7 +1101,7 @@ public:
 		// _game.cards.back() is the trump card
 		if (_game.cards.size())
 		{
-			int X = pack_rect().center().x;
+			int X = change_rect().x;
 			int Y = change_rect().y;
 			if (_game.closed == NOT && _game.cards.size() != 20 && _player.cards.size() > 3 && !_closing)
 			{
@@ -1073,7 +1119,14 @@ public:
 					double d = card_stack_pos(i);
 					double x = (double)X - d;
 					double y = (double)Y - d;
-					_back.image()->draw(floor(x), floor(y));
+					// Speedup shuffle/deal animation under Cairo:
+					// Cairo cached images (patterns) are slow, when image is very detailed
+					// as is the case with some card backs. So draw only top card with the card back,
+					// the lower cards only with a much faster "empty" image.
+					if (i + 1 == _game.cards.size() - 1 || _animate_func == nullptr)
+						_back.image()->draw(floor(x), floor(y));
+					else
+						_empty.image()->draw(floor(x), floor(y));
 				}
 				if (_game.closed == NOT)
 				{
@@ -1091,13 +1144,16 @@ public:
 
 		if (_game.closed != NOT && _game.cards.size() && !_closing)
 		{
+			int SW = card_stack_pos(_game.cards.size() - 1); // TEST: shadow size depends on stack size
 			int X = pack_rect().x;
-			int Y = change_rect().y;
+			int Y = pack_rect().center().y - _CW / 2 - SW / 2;
 
 			// Use clipping for the card shadow to go over side of pack
 			Rect r(pack_rect());
-			fl_push_clip(r.x + r.w - card_stack_pos(_game.cards.size() - 1), r.y, r.w * 2, r.h);
-			_shadow.rot90_image()->draw(X + _CW / 12, Y + _CW / 12);
+//			fl_push_clip(r.x + r.w - card_stack_pos(_game.cards.size() - 1), r.y, r.w * 2, r.h);
+//			_shadow.rot90_image()->draw(X + _CW / 12, Y + _CW / 12);
+			fl_push_clip(r.x + r.w - SW, r.y, r.w * 2, r.h);
+			_shadow.rot90_image()->draw(X + SW, Y + SW);
 			fl_pop_clip();
 
 			_back.rot90_image()->draw(X, Y);
@@ -1111,13 +1167,19 @@ public:
 		int Y = deck_rect(PLAYER).y;
 		for (size_t i = 0; i < _player.deck.size(); i++)
 		{
-			_back.image()->draw(X - i * w() / 800, Y - i * w() / 800);
+			if (i + 1 == _player.deck.size() || _animate_func == nullptr)
+				_back.image()->draw(X - i * w() / 800, Y - i * w() / 800);
+			else
+				_empty.image()->draw(X - i * w() / 800, Y - i * w() / 800);
 		}
 		X = deck_rect(AI).x;
 		Y = deck_rect(AI).y;
 		for (size_t i = 0; i < _ai.deck.size(); i++)
 		{
-			_back.image()->draw(X - i * w() / 800, Y - i * w() / 800);
+			if (i + 1 == _ai.deck.size() || _animate_func == nullptr)
+				_back.image()->draw(X - i * w() / 800, Y - i * w() / 800);
+			else
+				_empty.image()->draw(X - i * w() / 800, Y - i * w() / 800);
 		}
 		if (_player.deck.size())
 		{
@@ -1136,10 +1198,10 @@ public:
 		// cards moving or on table
 		if (_ai.move_state == ON_TABLE)
 		{
-			int X =  move_rect(AI).x;
-			int Y =  move_rect(AI).y;
+			int X =  on_table_rect(AI).x;
+			int Y =  on_table_rect(AI).y;
 			_ai.card.image()->draw(X, Y);
-			_ai.card.rect(move_rect(AI));
+			_ai.card.rect(on_table_rect(AI));
 		}
 		if (_player.move_state != NONE)
 		{
@@ -1162,18 +1224,18 @@ public:
 			bool show_closed_score = _game.closed == BY_AI && _strictness > 0;
 			fl_font(CustomFont, w() / 42);
 			fl_color(show_closed_score ? FL_RED : FL_BLUE);
-			char buf[20];
-			snprintf(buf, sizeof(buf), "%d", (show_closed_score ? _player.score_closed : _player.score));
-			Util::draw_string(buf, w() - Util::string_width(buf), h() - fl_descent());
+			std::ostringstream os;
+			os << (show_closed_score ? _player.score_closed : _player.score);
+			Util::draw_string(os.str(), w() - Util::string_width(os.str()), h() - fl_descent());
 		}
 		if (_ai.score && (_ai.display_score | ::debug))
 		{
 			bool show_closed_score = _game.closed == BY_PLAYER && _strictness > 0;
 			fl_font(CustomFont, w() / 42);
 			fl_color(show_closed_score ? FL_RED : FL_BLUE);
-			char buf[20];
-			snprintf(buf, sizeof(buf), "%d", (show_closed_score ? _ai.score_closed : _ai.score));
-			Util::draw_string(buf, w() - Util::string_width(buf), fl_height() - fl_descent());
+			std::ostringstream os;
+			os << (show_closed_score ? _ai.score_closed : _ai.score);
+			Util::draw_string(os.str(), w() - Util::string_width(os.str()), fl_height() - fl_descent());
 		}
 	}
 
@@ -1181,9 +1243,9 @@ public:
 	{
 		fl_font(FL_HELVETICA, _CH / 20);
 		fl_color(FL_YELLOW);
-		char buf[30];
-		snprintf(buf, sizeof(buf), " v%s", VERSION);
-		Util::draw_string(buf, 0, fl_height() - fl_descent(), true);
+		std::ostringstream os;
+		os << "v" << VERSION;
+		Util::draw_string(os.str(), 0, fl_height() - fl_descent(), true);
 	}
 
 	void draw_grayout()
@@ -1273,6 +1335,7 @@ public:
 		draw_rect(closed_rect(PLAYER));
 		draw_rect(closed_rect(AI));
 
+		draw_rect(on_table_rect(PLAYER));
 		draw_rect(cards_area_rect(), FL_YELLOW);
 	}
 
@@ -1315,6 +1378,7 @@ public:
 		// measure a "standard card"
 		double ratio = (double)w() / h();
 		int W = (w() / 8 + (ratio >= 800. / 600 ? h() / 5 : h() / 10)) / 2;
+		W *= _card_scale;
 		int H = 1.5 * W;
 		bool scale_change = (_CW != W || _CH != H);
 		if (scale_change)
@@ -1330,7 +1394,7 @@ public:
 		draw_table();
 		draw_gamebook();
 		if (_game.trump != NO_SUITE)
-			draw_suite_symbol(_game.trump, w() / 3 - _CW / 4, h() - h() / 2 + _CH / 2 + _CH / 5);
+			draw_suite_symbol(_game.trump, pack_rect().x + pack_rect().w, pack_rect().y + pack_rect().h + _CH / 5);
 		draw_messages();
 		draw_20_40_suites();
 		draw_cards();
@@ -1485,9 +1549,8 @@ public:
 		Util::logstream().flush();
 	}
 
-	void init()
+	void init2()
 	{
-		collect();
 		player_message(NO_MESSAGE);
 		ai_message(NO_MESSAGE);
 		error_message(NO_MESSAGE);
@@ -1512,6 +1575,12 @@ public:
 		_redeal = false;
 		_player.deck_info = false;
 		_ai.deck_info = false;
+	}
+
+	void init()
+	{
+		collect();
+		init2();
 		_game.cards.shuffle();
 		assert(_game.cards.size() == 20);
 		bell(SHUFFLE);
@@ -1560,18 +1629,18 @@ public:
 		for (int i = 0; i < 3; i++)
 		{
 			Card c = _game.cards.front();
-			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
 			_game.cards.pop_front();
+			animate_deal(_game.move == PLAYER ? PLAYER : AI);
+			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
 		}
-		animate_deal(_game.move == PLAYER ? PLAYER : AI);
 		// 3 cards to ai
 		for (int i = 0; i < 3; i++)
 		{
 			Card c = _game.cards.front();
-			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
 			_game.cards.pop_front();
+			animate_deal(_game.move == PLAYER ? AI : PLAYER);
+			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
 		}
-		animate_deal(_game.move == PLAYER ? AI : PLAYER);
 		// trump card
 		Card trump = _game.cards.front();
 		_game.cards.pop_front();
@@ -1584,18 +1653,18 @@ public:
 		for (int i = 0; i < 2; i++)
 		{
 			Card c = _game.cards.front();
-			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
 			_game.cards.pop_front();
+			animate_deal(_game.move == PLAYER ? PLAYER : AI);
+			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
 		}
-		animate_deal(_game.move == PLAYER ? PLAYER : AI);
 		// 2 cards to ai
 		for (int i = 0; i < 2; i++)
 		{
 			Card c = _game.cards.front();
-			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
 			_game.cards.pop_front();
+			animate_deal(_game.move == PLAYER ? AI : PLAYER);
+			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
 		}
-		animate_deal(_game.move == PLAYER ? AI : PLAYER);
 
 		// TEST TEST
 		Suites res;
@@ -1692,6 +1761,7 @@ public:
 		Util::config("height", std::to_string(h()));
 		Util::config("xpos", std::to_string(x()));
 		Util::config("ypos", std::to_string(y()));
+		Util::config("card_scale", std::to_string(_card_scale));
 		Util::save_config();
 	}
 
@@ -1851,7 +1921,7 @@ public:
 
 	void message(Message m_, bool bell_ = false) override
 	{
-		if (m_ == CLOSED)  m_ = _game.move == AI ? AI_CLOSED : YOU_CLOSED;
+		if (m_ == CLOSED) m_ = _game.move == AI ? AI_CLOSED : YOU_CLOSED;
 		// NOTE: conflict with Fl_Widget::CHANGED!
 		if (m_ == Message::CHANGED) m_ = _game.move == AI ? AI_CHANGED : YOU_CHANGED;
 		_game.move == AI ? ai_message(m_, bell_) : player_message(m_, bell_);
@@ -2185,20 +2255,20 @@ public:
 	{
 		std::ostringstream os;
 		os << Util::message(GAMES_WON) << _player.games_won << " / " << _ai.games_won;
-		os << "    " << Util::message(MATCHES_WON) <<  _player.matches_won << " / " << _ai.matches_won;
+		os << "    " << Util::message(MATCHES_WON) << _player.matches_won << " / " << _ai.matches_won;
 		return os.str();
 	}
 
 	void update_history()
 	{
-		GameHistory h(_player, _ai, _game);
+		GameState h(_player, _ai, _game);
 		_history.push_back(h);
 	}
 
 	bool back_history()
 	{
 		if (_history.empty()) return false;
-		GameHistory h = _history.back();
+		GameState h = _history.back();
 		if (_history.size() != 1)
 			_history.pop_back();
 		_player = h.player;
@@ -2209,8 +2279,8 @@ public:
 
 private:
 	// Engine
-	GameState _player;
-	GameState _ai;
+	PlayerData _player;
+	PlayerData _ai;
 	GameData _game;
 	Engine _engine;
 
@@ -2222,6 +2292,7 @@ private:
 	CardImage _back;
 	CardImage _shadow;
 	CardImage _outline;
+	CardImage _empty;
 	int _CW;					// card pixel width (used as "unit" for UI)
 	int _CH;					// card pixel height
 	Cmd_Input *_cmd_input;
@@ -2239,5 +2310,6 @@ private:
 	bool _show_ai_cards;
 	int _closing;			// used for closing animation
 	bool _restart;
-	std::vector<GameHistory> _history;
+	std::vector<GameState> _history;
+	double _card_scale;
 };

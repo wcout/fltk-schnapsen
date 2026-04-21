@@ -15,4 +15,4 @@ constexpr auto RESET_ATTR = "\033[0m";
 #define OUT(x) { std::cout << x; }
 #define LOG(x) { if (Util::logstream().good()) Util::logstream() << x; if (Util::config_as_int("loglevel") > 0) std::cout << LOG_PREFIX << x << RESET_ATTR; }
 #define DBG(x) { if (Util::logstream().good()) Util::logstream() << x; if (Util::config_as_int("loglevel") > 1) std::cout << DBG_PREFIX << x << RESET_ATTR; }
-#define WNG(x) { if (Util::logstream().good()) Util::logstream() << "!" << x << "\n"; std::cout << WNG_PREFIX << x << RESET_ATTR << "\n"; }
+#define WNG(x) { if (Util::logstream().good()) Util::logstream() << "!" << x << "\n"; std::cerr << WNG_PREFIX << x << RESET_ATTR << "\n"; }

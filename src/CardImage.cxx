@@ -51,24 +51,30 @@ CardImage& CardImage::image(const std::string &id_, const std::string &pathname_
 {
 	assert(_images.find(id_) == _images.end());
 	std::string pathname(pathname_);
-	Fl_RGB_Image *svg = new Fl_SVG_Image(pathname.c_str());
-	if ((!svg || svg->w() <= 0 || svg->h() <= 0))
+	Fl_RGB_Image *img = new Fl_SVG_Image(pathname.c_str());
+	if ((!img || img->w() <= 0 || img->h() <= 0))
 	{
-		delete svg;
-		pathname.erase(pathname.size() - 3);
-		pathname.append("png");
-		svg = new Fl_PNG_Image(pathname.c_str());
+		delete img;
+		img = nullptr;
+		// try as PNG image
+		if (pathname.size() > 4 && pathname.at(pathname.size() - 4) == '.')
+		{
+			pathname.erase(pathname.size() - 3);
+			pathname.append("png");
+			img = new Fl_PNG_Image(pathname.c_str());
+		}
 	}
-	if ((!svg || svg->w() <= 0 || svg->h() <= 0))
+	if ((!img || img->w() <= 0 || img->h() <= 0))
 	{
 		std::ostringstream os;
 		os << "Card image '" << pathname << "' not found!";
 		throw std::runtime_error(os.str());
 	}
-	assert(svg && svg->w() > 0 && svg->h() > 0);
-	if (svg->as_svg_image())
-		svg->as_svg_image()->proportional = false;
-	_images[id_] = svg;
+	_pathname = pathname;
+	assert(img && img->w() > 0 && img->h() > 0);
+	if (img->as_svg_image())
+		img->as_svg_image()->proportional = false;
+	_images[id_] = img;
 	_last_id = id_;
 	return *this;
 }

@@ -53,43 +53,51 @@ bool Deck::load_game(const std::string &name_)
 		return false;
 	}
 	std::string line;
-	_player.move_state = NONE;
-	_ai.move_state = NONE;
-	_player.s20_40.clear();
-	_ai.s20_40.clear();
+	// TODO: better way to clear cards/state
+	// NOTE: can't use {} initialization, because games_won, matches_won in PlayerData!
+	init2();
+	_player.cards.clear();
+	_player.deck.clear();
+	_ai.cards.clear();
+	_ai.deck.clear();
+	_game.cards.clear();
 	bool bad_file(false);
 	while (getline(ifs, line))
 	{
     	line.erase(std::remove_if(line.begin(), line.end(), ::isspace), line.end());
     	if (line.empty()) continue; // all whitespace
-		else if (line.size() && (line[0] == '#' || line[0] == '/')) continue; // comment
-		else if (line.find("player_cards:") == 0) _player.cards = line.substr(13);
-		else if (line.find("player_20_40:") == 0) _player.s20_40 = suites_from_string(line.substr(13));
-		else if (line.find("player_card:") == 0)
+		else if (line[0] == '#' || line[0] == '/') continue; // comment
+		else if (line.starts_with("player_cards:")) _player.cards = line.substr(13);
+		else if (line.starts_with("player_20_40:")) _player.s20_40 = suites_from_string(line.substr(13));
+		else if (line.starts_with("player_card:"))
 		{
 			_player.card = Cards("|" + line.substr(12) + "|")[0];
 			_player.move_state = ON_TABLE;
 		}
-		else if (line.find("player_deck:") == 0 ) _player.deck = line.substr(12);
-		else if (line.find("player_score:") == 0 ) _player.score = atoi(line.substr(13).c_str());
-		else if (line.find("player_pending:") == 0) _player.pending = atoi(line.substr(15).c_str());
-		else if (line.find("ai_cards:") == 0) _ai.cards = line.substr(9);
-		else if (line.find("ai_20_40:") == 0) _ai.s20_40 = suites_from_string(line.substr(9));
-		else if (line.find("ai_card:") == 0)
+		else if (line.starts_with("player_deck:")) _player.deck = line.substr(12);
+		else if (line.starts_with("player_score:")) _player.score = atoi(line.substr(13).c_str());
+		else if (line.starts_with("player_pending:")) _player.pending = atoi(line.substr(15).c_str());
+		else if (line.starts_with("ai_cards:")) _ai.cards = line.substr(9);
+		else if (line.starts_with("ai_20_40:")) _ai.s20_40 = suites_from_string(line.substr(9));
+		else if (line.starts_with("ai_card:"))
 		{
 			_ai.card = Cards("|" + line.substr(12) + "|")[0];
 			_ai.move_state = ON_TABLE;
 		}
-		else if (line.find("ai_deck:") == 0) _ai.deck = line.substr(8);
-		else if (line.find("ai_score:") == 0) _ai.score = atoi(line.substr(9).c_str());
-		else if (line.find("ai_pending:") == 0) _ai.pending = atoi(line.substr(11).c_str());
-		else if (line.find("cards:") == 0) _game.cards = line.substr(6);
-		else if (line.find("closed:") == 0) _game.closed = static_cast<Closed>(atoi(line.substr(7).c_str()));
-		else if (line.find("ai_score_closed:") == 0) _ai.score_closed = atoi(line.substr(16).c_str());
-		else if (line.find("player_score_closed:") == 0) _player.score_closed = atoi(line.substr(20).c_str());
-		else if (line.find("trump:") == 0) _game.trump = Cards("|A" + line.substr(6) + "|")[0].suite();
-		else if (line.find("move:") == 0) _game.move = static_cast<Player>(atoi(line.substr(5).c_str()));
+		else if (line.starts_with("ai_deck:")) _ai.deck = line.substr(8);
+		else if (line.starts_with("ai_score:")) _ai.score = atoi(line.substr(9).c_str());
+		else if (line.starts_with("ai_pending:")) _ai.pending = atoi(line.substr(11).c_str());
+		else if (line.starts_with("cards:")) _game.cards = line.substr(6);
+		else if (line.starts_with("closed:")) _game.closed = static_cast<Closed>(atoi(line.substr(7).c_str()));
+		else if (line.starts_with("ai_score_closed:")) _ai.score_closed = atoi(line.substr(16).c_str());
+		else if (line.starts_with("player_score_closed:")) _player.score_closed = atoi(line.substr(20).c_str());
+		else if (line.starts_with("trump:")) _game.trump = Cards("|A" + line.substr(6) + "|")[0].suite();
+		else if (line.starts_with("move:")) _game.move = static_cast<Player>(atoi(line.substr(5).c_str()));
 		else { bad_file = true; break; }
+	}
+	if (_game.cards.empty()) // cards needs not be specfied, it is then computed from the other cards
+	{
+		_game.cards = Cards::fullcards() - _player.cards - _ai.cards - _player.deck - _ai.deck - _ai.card - _player.card;
 	}
 	// Check cards for completeness
 	Cards c = _player.cards + _player.deck + _ai.cards + _ai.deck + _game.cards;
@@ -99,12 +107,17 @@ bool Deck::load_game(const std::string &name_)
 		c += _ai.card;
 	if (bad_file ||
 	    c.size() != 20 || c.check() == false ||
+		 (_game.move != PLAYER && _game.move != AI) ||
+		 (_game.closed != NOT && _game.closed != BY_PLAYER && _game.closed != BY_AI && _game.closed != AUTO) ||
 	    (_player.move_state == ON_TABLE && _game.move == PLAYER) ||
 	    (_ai.move_state == ON_TABLE && _game.move == AI))
 	{
 		WNG("Corrupt game file '" << name << "'!");
 		bell();
+		// TODO: better way to reset cards
 		_game.cards = Cards::fullcards();
+		_player.move_state = NONE;
+		_ai.move_state = NONE;
 		_player.cards.clear();
 		_player.deck.clear();
 		_ai.cards.clear();
@@ -124,42 +137,42 @@ bool Deck::load_game(const std::string &name_)
 void Deck::onCmd(const std::string &cmd_)
 {
 	DBG("Your command: '" << cmd_ << "'\n")
-	if (cmd_.find("animate=") == 0)
+	if (cmd_.starts_with("animate="))
 	{
 		int value = atoi(cmd_.substr(8).c_str());
 		if (value >= 0 && value <= 2)
 			_animation_level = value;
 		OUT("animate: " << _animation_level << "\n");
 	}
-	else if (cmd_.find("debug=") == 0)
+	else if (cmd_.starts_with("debug="))
 	{
 		int value = atoi(cmd_.substr(6).c_str());
 		if (value >= 1 && value <= 4) // don't allow 0 here
 			::debug = value;
 		OUT("debug: " << ::debug << "\n");
 	}
-	else if (cmd_.find("loglevel=") == 0)
+	else if (cmd_.starts_with("loglevel="))
 	{
 		int value = atoi(cmd_.substr(9).c_str());
 		if (value >= 0 && value <= 2)
 			Util::config("loglevel", std::to_string(value));
 		OUT("loglevel: " << Util::config_as_int("loglevel") << "\n");
 	}
-	else if (cmd_.find("error=") == 0)
+	else if (cmd_.starts_with("error="))
 	{
 		error_message((Message)atoi(cmd_.substr(6).c_str()));
 	}
-	else if (cmd_.find("player_message=") == 0)
+	else if (cmd_.starts_with("player_message="))
 	{
 		Message m = (Message)atoi(cmd_.substr(15).c_str());
 		player_message(m);
 	}
-	else if (cmd_.find("ai_message=") == 0)
+	else if (cmd_.starts_with("ai_message="))
 	{
 		Message m = (Message)atoi(cmd_.substr(11).c_str());
 		ai_message(m);
 	}
-	else if (cmd_.find("message=") == 0)
+	else if (cmd_.starts_with("message="))
 	{
 		fl_message_font_ = FL_COURIER_BOLD;
 		fl_message_size_ = h() / 40;
@@ -181,7 +194,7 @@ void Deck::onCmd(const std::string &cmd_)
 			fl_alert("%s", Util::message(m).c_str());
 		}
 	}
-	else if (cmd_.find("gb=") == 0)
+	else if (cmd_.starts_with("gb="))
 	{
 		std::string args = cmd_.substr(3);
 		if (args.empty())
@@ -193,7 +206,7 @@ void Deck::onCmd(const std::string &cmd_)
 			_game.book.push_back(std::make_pair(first, second));
 		}
 	}
-	else if (cmd_.find("cip") == 0)
+	else if (cmd_.starts_with("cip"))
 	{
 		OUT(Card::suite_symbol(HEART) << ": " << _engine.cards_in_play(HEART) << " (" << _engine.max_cards_player(HEART) << ")\n");
 		OUT(Card::suite_symbol(SPADE) << ": " << _engine.cards_in_play(SPADE) << " (" << _engine.max_cards_player(SPADE) << ")\n");
@@ -214,7 +227,7 @@ void Deck::onCmd(const std::string &cmd_)
 		if (back_history()) bell();
 		return;
 	}
-	else if (cmd_.find("save") == 0)
+	else if (cmd_.starts_with("save"))
 	{
 		std::string arg = cmd_.substr(4);
 		if (arg.size() && (arg[0] == ' ' || arg[0] == '='))
@@ -258,7 +271,7 @@ void Deck::onCmd(const std::string &cmd_)
 		ofs << "trump:" << Card::suite_symbol(_game.trump) << "\n";
 		LOG("Saved to game file: '" << name << "\n");
 	}
-	else if (cmd_.find("load") == 0)
+	else if (cmd_.starts_with("load"))
 	{
 		std::string arg = cmd_.substr(4);
 		if (arg.size() && (arg[0] == ' ' || arg[0] == '='))

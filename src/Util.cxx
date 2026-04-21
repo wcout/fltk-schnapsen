@@ -66,8 +66,10 @@ std::string Util::cardset_dir()
 {
 	std::string dir = home_dir() + cardDir + "/";
 	std::string cardset = ::config["cardset"];
-	if (cardset.empty())
+	if (cardset.empty() || cardset == "default")
+	{
 		cardset = "English_pattern";
+	}
 	dir += cardset + "/";
 	return dir;
 }

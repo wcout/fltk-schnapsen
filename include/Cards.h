@@ -18,6 +18,8 @@ public:
 	Cards operator = (const std::string &s_);
 	Cards operator += (const Cards &c_);
 	Cards operator + (const Cards &c_) const;
+	Cards operator | (const Cards &c_) const;
+	Cards operator | (const Card &c_) const;
 	Cards operator -= (const Cards &c_);
 	Cards operator &= (const Cards &c_);
 	Cards operator |= (const Cards &c_);

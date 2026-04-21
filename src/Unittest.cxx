@@ -85,8 +85,20 @@ bool Unittest::run()
 	Cards p1("|A♠|Q♥|Q♦|Q♣|J♣|");
 	Cards a1("|K♠|Q♠|K♥|K♦|A♣|");
 	Cards pull = _engine.pull_trump_cards(a1, p1);
-	assert(pull.size() == 3);
-	assert(pull == "|K♥|K♦|A♣|");
+	assert(pull.size() == 0);
+	_game.trump = HEART;
+	p1 = "|K♠|T♥|K♥|Q♥|K♦|";
+	a1 = "|Q♠|A♥|J♥|A♦|T♣|";
+	pull = _engine.pull_trump_cards(a1, p1);
+	assert(pull == "|T♣|");
+	p1 = "|J♠|T♥|K♥|Q♥|K♦|";
+	a1 = "|Q♠|A♥|J♥|A♦|T♣|";
+	pull = _engine.pull_trump_cards(a1, p1);
+	assert(pull == "|T♣|");
+	p1 = "|J♠|T♥|K♥|Q♥|K♣|";
+	a1 = "|Q♠|A♥|J♥|A♦|T♣|";
+	pull = _engine.pull_trump_cards(a1, p1);
+	assert(pull == "|A♦|");
 	_game.cards = temp;
 
 	_game.trump = SPADE;
@@ -100,12 +112,14 @@ bool Unittest::run()
 
 	assert(_engine.cards_to_claim(Cards("|T♥|K♥|Q♣|"), Cards("|A♠|T♠|K♠|Q♠|A♥|T♦|A♣|T♣|K♣|J♣|"), CLUB) == Cards());
 	assert(_engine.cards_to_claim(Cards("|T♥|K♥|Q♣|"), Cards("|A♠|T♠|K♠|Q♠|A♥|T♦|J♣|"), CLUB) == Cards("|Q♣|"));
-	assert(_engine.cards_to_claim(Cards("|T♥|K♥|A♣|Q♣|"), Cards("|A♠|T♠|K♠|Q♠|A♥|T♦|K♣|J♣|"), CLUB) == Cards("|A♣|Q♣|"));
-	assert(_engine.cards_to_claim(Cards("|T♥|K♥|Q♣|A♣|"), Cards("|A♠|T♠|K♠|Q♠|A♥|T♦|K♣|J♣|"), CLUB) == Cards("|A♣|Q♣|"));
+	assert(_engine.cards_to_claim(Cards("|T♥|K♥|A♣|Q♣|"), Cards("|A♠|T♠|K♠|Q♠|A♥|T♦|K♣|J♣|"), CLUB) == Cards("|A♣|"));
+	assert(_engine.cards_to_claim(Cards("|T♥|K♥|Q♣|A♣|"), Cards("|A♠|T♠|K♠|Q♠|A♥|T♦|K♣|J♣|"), CLUB) == Cards("|A♣|"));
 	assert(_engine.cards_to_claim(Cards("|T♥|K♥|A♣|K♣|"), Cards("|A♠|T♠|K♠|Q♠|A♥|T♦|J♣|"), CLUB) == Cards("|A♣|"));
 	assert(_engine.cards_to_claim(Cards("|T♥|A♥|A♣|K♣|"), Cards("|A♠|K♠|Q♠|Q♥|T♦|J♣|")) == Cards("|A♥|A♣|"));
 	assert(_engine.cards_to_claim(Cards("|T♥|A♦|A♣|K♣|"), Cards("|A♠|K♠|Q♠|Q♥|T♦|J♣|")) == Cards("|A♦|A♣|T♥|"));
-	assert(_engine.cards_to_claim(Cards("|A♠|K♥|A♦|K♦|"), Cards("|T♠|Q♠|T♥|Q♥|")) == Cards("|A♠|"));
+//	assert(_engine.cards_to_claim(Cards("|A♠|Q♠|A♥|T♥|Q♥|"), Cards("|K♠|J♠|T♦|A♣|T♣|K♣|Q♣|J♣|")) == Cards("|A♠|Q♠|")); // WRONG
+	assert(_engine.cards_to_claim(Cards("|A♠|Q♠|A♥|T♥|Q♥|"), Cards("|K♠|J♠|T♦|A♣|T♣|K♣|Q♣|J♣|")) == Cards("|A♠|"));	// OK
+	assert(_engine.cards_to_claim(Cards("|T♠|Q♠|A♣|"), Cards("|A♠|K♠|Q♥|")) == Cards());
 
 	_game.trump = SPADE;
 	Cards acards("|T♦|K♦|J♦|T♣|K♣|");

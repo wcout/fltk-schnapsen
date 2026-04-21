@@ -30,11 +30,11 @@ Fl_Font FontLoader::load(const char* filePath_, const char* fontName_, Fl_Font d
 #ifdef _WIN32
 	success = (AddFontResourceEx(filePath_, FR_PRIVATE, 0) != 0);
 #elif __APPLE__
-	CFURLRef url = CFURLCreateFromFileSystemRepresentation(NULL, (const UInt8*)filePath_, strlen(filePath_), false);
+	CFURLRef url = CFURLCreateFromFileSystemRepresentation(NULL, reinterpret_cast<const UInt8*>(filePath_), strlen(filePath_), false);
 	success = CTFontManagerRegisterFontsForURL(url, kCTFontManagerScopeProcess, NULL);
 	if(url) CFRelease(url);
 #else
-	success = FcConfigAppFontAddFile(NULL, (const FcChar8*)filePath_);
+	success = FcConfigAppFontAddFile(NULL, reinterpret_cast<const FcChar8*>(filePath_));
 #endif
 
 	return setupFont(success, fontName_, defaultFont_);
@@ -64,9 +64,9 @@ Fl_Font FontLoader::load(const unsigned char* data_, unsigned int len_, const ch
 	int fd = mkstemp(path);
 	if (fd != -1)
 	{
-		write(fd, data_, len_);
+		success = write(fd, data_, len_) == len_;
 		close(fd);
-		success = FcConfigAppFontAddFile(NULL, (const FcChar8*)path);
+		success = success && FcConfigAppFontAddFile(NULL, reinterpret_cast<const FcChar8*>(path));
 	}
 #endif
 
@@ -84,8 +84,42 @@ Fl_Font FontLoader::setupFont(bool success_, const char* fontName_, Fl_Font defa
 		WNG("Failed to load custom font '" << fontName_ << "'");
 		return defaultFont_;
 	}
+	// We have to use the font name as FLTK presents us
+	static std::string fontName;
+	fontName = fontName_;
+	int n = Fl::set_fonts();
+	for (int i = 0; i < n; i++)
+	{
+		std::string fn = Fl::get_font_name(i);
+		if (!fontName.starts_with(fn)) continue;
+		fontName = fn;
+		if (fn.starts_with(fontName_))
+			fontName = fn;
+	}
+	LOG("Use font: '" << fontName << "'\n");
 	Fl_Font index = _index;
-	Fl::set_font(index, fontName_);
+	Fl::set_font(index, fontName.c_str());
 	_index++;
 	return index;
+}
+
+//
+// Make font name from font file e.g. "name_subname-Regular.ttf" => "name subname Regular"
+//
+/*static*/
+std::string FontLoader::convertToFontName(const std::string &name_)
+{
+	std::string name(name_);
+	size_t pos;
+	while ((pos = name.find('-')) != std::string::npos)
+	{
+		name[pos] = ' ';
+	}
+	while ((pos = name.find('_')) != std::string::npos)
+	{
+		name[pos] = ' ';
+	}
+	if ((pos = name.rfind('.')) != std::string::npos)
+		name.erase(pos);
+	return name;
 }

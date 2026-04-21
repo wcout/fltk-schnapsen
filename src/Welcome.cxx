@@ -41,7 +41,7 @@ void Welcome::draw()
 	fl_draw_box(box(), 0, 0, w(), h(), color());
 	Rect r(*this, box());
 	fl_push_clip(r.x - x(), r.y - y(), r.w, r.h);
-	fl_font(FL_HELVETICA_BOLD, h() / 7);
+	fl_font(FL_COURIER_BOLD, h() / 7);
 	for (int i = 0; i < 30; i++)
 	{
 		static const std::vector<CardSuite> suites = { HEART, SPADE, DIAMOND, CLUB };

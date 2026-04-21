@@ -176,6 +176,25 @@ bool Cards::operator == (const std::string& s_)
 	return os.str() == s_;
 }
 
+Cards Cards::operator | (const Cards &c_) const
+{
+	Cards res(*this);
+	for (auto c : c_)
+	{
+		if (!find(c))
+			res.push_back(c);
+	}
+	return res;
+}
+
+Cards Cards::operator | (const Card &c_) const
+{
+	Cards res(*this);
+	if (!find(c_))
+		res.push_back(c_);
+	return res;
+}
+
 Cards& Cards::from_string(const std::string &s_)
 {
 	// parse card-string in format: '|T♣|Q♦|T♦|Q♣|J♦|Q♠|T♠|Q♥|J♠|A♦|K♥|J♣|K♠|J♥|T♥|A♥|A♣|A♠|K♣|K♦|'
