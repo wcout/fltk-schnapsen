@@ -84,7 +84,7 @@ int Alert::handle(int e_)
 	if (e_ == FL_NO_EVENT) return 1;
 	if (e_ == FL_KEYDOWN || e_ == FL_PUSH)
 	{
-		delete this;
+		hide();
 		return 1;
 	}
 	return Fl_Double_Window::handle(e_);
@@ -127,4 +127,5 @@ void Alert::run()
 	{
 		Fl::wait();
 	}
+	delete this;
 }

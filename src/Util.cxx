@@ -1,7 +1,7 @@
 #include "Util.h"
 #include <FL/filename.H>
 #include <FL/fl_draw.H>
-#include <FL/Fl_SVG_Image.H>
+#include <FL/Fl_Shared_Image.H>
 #include <FL/Fl.H>
 
 #include <fstream>
@@ -287,13 +287,15 @@ void Util::draw_string(const std::string &text_, int x_, int y_, bool shadow_/*=
 			image_name += ".svg";
 			if (image_name.find('/') == std::string::npos)
 				image_name = rsc_dir() + image_name;
-			Fl_SVG_Image svg(image_name.c_str());
-			if (svg.w() > 0 && svg.h() > 0)
+			Fl_Shared_Image *img = Fl_Shared_Image::get(image_name.c_str());
+			if (img)
 			{
-				svg.normalize();
-				svg.scale(fl_height(), fl_height(), 1, 1);
-				svg.draw(x_ + dx, y_ - fl_height() + fl_descent());
-				dx += svg.w();
+				img->scale(fl_height() - fl_descent(), fl_height() - fl_descent(), 1, 1);
+//				DBG("Symbol " << image_name << ": " << img->w() << "x" << img->h() << " fl_height=" << fl_height() << ", fl_descent=" << fl_descent() << "\n");
+				img->draw(x_ + dx, y_ - fl_height() + (fl_height() - img->h()) / 2 + fl_descent());
+				dx += img->w();
+				if (img->refcount() > 1) // don't completely release - keep cached
+					img->release();
 			}
 			line.erase(0, end_image + 1);
 		}
@@ -337,12 +339,13 @@ int Util::string_size(const std::string &text_, int &w_, int &h_)
 			image_name += ".svg";
 			if (image_name.find('/') == std::string::npos)
 				image_name = rsc_dir() + image_name;
-			Fl_SVG_Image svg(image_name.c_str());
-			if (svg.w() > 0 && svg.h() > 0)
+			Fl_Shared_Image *img = Fl_Shared_Image::get(image_name.c_str());
+			if (img)
 			{
-				svg.normalize();
-				svg.scale(fl_height(), fl_height(), 1, 1);
-				w += svg.w();
+				img->scale(fl_height() - fl_descent(), fl_height() - fl_descent(), 1, 1);
+				w += img->w();
+				if (img->refcount() > 1) // don't completely release - keep cached
+					img->release();
 			}
 			line.erase(0, end_image + 1);
 		}

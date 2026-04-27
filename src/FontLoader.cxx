@@ -32,7 +32,7 @@ Fl_Font FontLoader::load(const char* filePath_, const char* fontName_, Fl_Font d
 #elif __APPLE__
 	CFURLRef url = CFURLCreateFromFileSystemRepresentation(NULL, reinterpret_cast<const UInt8*>(filePath_), strlen(filePath_), false);
 	success = CTFontManagerRegisterFontsForURL(url, kCTFontManagerScopeProcess, NULL);
-	if(url) CFRelease(url);
+	if (url) CFRelease(url);
 #else
 	success = FcConfigAppFontAddFile(NULL, reinterpret_cast<const FcChar8*>(filePath_));
 #endif
@@ -60,7 +60,7 @@ Fl_Font FontLoader::load(const unsigned char* data_, unsigned int len_, const ch
 	CFRelease(f); CFRelease(p); CFRelease(d);
 #else
 	// Linux: Use a temporary file for the memory data
-	char path[] = "/tmp/fltk_f_XXXXXX";
+	char path[] = "/tmp/fltk_font_XXXXXX";
 	int fd = mkstemp(path);
 	if (fd != -1)
 	{

@@ -14,7 +14,7 @@
 #include "system.h"
 
 constexpr char APPLICATION[] = "fltk-schnapsen";
-constexpr char VERSION[] = "1.0.2";
+constexpr char VERSION[] = "1.0.3";
 
 #include "Deck.h"
 namespace Schnapsen
@@ -61,7 +61,6 @@ int main(int argc_, char *argv_[])
 #ifdef CUSTOM_FONT
 	static std::string fontName{FontLoader::convertToFontName(CUSTOM_FONT)}; // NOTE: this must be a static string!
 	std::string font_path = Util::rsc_dir() + CUSTOM_FONT;
-//	Fl::set_font(FL_HELVETICA, FontLoader::load(font_path.c_str(), fontName.c_str()));
 	CustomFont = FontLoader::load(font_path.c_str(), fontName.c_str());
 #endif
 

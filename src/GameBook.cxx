@@ -56,7 +56,7 @@ std::vector<std::pair<int, int>> GameBook::to_value(const std::string &str_)
 		ss >> c;	// ','
 		if (player_score < 0 || ai_score < 0) break;
 //		LOG("\t" << player_score << " | " << ai_score << "\n");
-		v.push_back(std::make_pair(player_score, ai_score));
+		v.emplace_back(player_score, ai_score);
 	}
 	return v;
 }
@@ -177,18 +177,17 @@ void GameBook::draw(Rect r_)
 		Util::draw_string(os.str(), X, Y);
 	};
 
-	std::vector<std::pair<int, int>> *value = this;
+	std::vector<std::pair<int, int>> value = *this;
 	if (_current > 0)
 	{
-		value = &_history[_current - 1];
+		value = _history[_current - 1];
 	}
+	value.insert(value.begin(), std::make_pair(0, 0));
 	// limit display to last 8 scores
-	size_t first = value->size() > 8 ? value->size() - 8 : 0;
-	if (first == 0)
-		draw_score(std::make_pair(0, 0));
-	for (size_t i = 0; i < value->size(); i++)
+	size_t first = value.size() > 8 ? value.size() - 8 : 0;
+	for (size_t i = 0; i < value.size(); i++)
 	{
-		auto s = value->at(i);
+		auto s = value[i];
 		player_score += s.first;
 		ai_score += s.second;
 		if (i < first) continue;

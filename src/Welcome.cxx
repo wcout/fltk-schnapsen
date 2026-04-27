@@ -38,13 +38,15 @@ int Welcome::handle(int e_)
 
 void Welcome::draw()
 {
+	static const std::vector<CardSuite> suites = { HEART, SPADE, DIAMOND, CLUB };
+	static const std::vector<CardFace> faces = { ACE, TEN, KING, QUEEN, JACK };
+	static int frame = 0;
 	fl_draw_box(box(), 0, 0, w(), h(), color());
 	Rect r(*this, box());
 	fl_push_clip(r.x - x(), r.y - y(), r.w, r.h);
 	fl_font(FL_COURIER_BOLD, h() / 7);
 	for (int i = 0; i < 30; i++)
 	{
-		static const std::vector<CardSuite> suites = { HEART, SPADE, DIAMOND, CLUB };
 		int x = random() % w();
 		int y = random() % h();
 		auto s = random() % suites.size();
@@ -57,7 +59,14 @@ void Welcome::draw()
 	fl_font(FL_COURIER_BOLD, h() / 42);
 	int stat_h = fl_height() + fl_descent();
 
-	Card c(QUEEN, HEART);
+	static CardFace face = QUEEN;
+	static CardSuite suite = HEART;
+	if (++frame % 25 == 0)
+	{
+		face = faces[random() % faces.size()];
+		suite = suites[random() % suites.size()];
+	}
+	Card c(face, suite);
 	int W = w() / 2 - w() / 10;
 	int H = 1.5 * W;
 	int Y = h() / 4;

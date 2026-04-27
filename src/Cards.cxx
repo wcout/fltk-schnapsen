@@ -219,7 +219,7 @@ Cards& Cards::from_string(const std::string &s_)
 				{
 					if (fabbr == face_str)
 					{
-						cards.push_back(Card(face, suite));
+						cards.emplace_back(face, suite);
 						break;
 					}
 				}
@@ -349,7 +349,7 @@ Cards Cards::fullcards(CardSuite suite_/* = ANY_SUITE*/)
 		if (suite_ != ANY_SUITE && s != suite_) continue;
 		for (auto f : { JACK, QUEEN, KING, TEN, ACE } )
 		{
-			cards.push_back(Card(f, s));
+			cards.emplace_back(f, s);
 			cards.back().load();
 		}
 	}

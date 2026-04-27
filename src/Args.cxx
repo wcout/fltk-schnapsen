@@ -14,11 +14,34 @@ using namespace Schnapsen;
 /*static*/
 std::string Args::arg0;
 
-/*static*/
-void Args::list_decks(std::ostringstream &os_)
+
+namespace {
+
+void list_cardbacks(std::ostringstream &os_, int id_ = 0)
+{
+	std::filesystem::path back(Util::home_dir() + cardDir + "/back");
+	if (!id_)
+		os_ << "\navailaible card backs (--cardback):\n";
+	int id = 0;
+	for (auto const &dir_entry : std::filesystem::directory_iterator(back))
+	{
+		++id;
+		if (dir_entry.is_regular_file())
+		{
+			if (id_ && id_ == id)
+				os_ << dir_entry.path().filename().c_str(); // NOTE: c_str() to get name unquoted
+			else if (!id_)
+				os_ << "[" << id << "]" << "\t" << dir_entry.path().filename() << "\n";
+		}
+	}
+}
+
+void list_cardsets(std::ostringstream &os_, int id_ = 0)
 {
 	std::string svg_cards(Util::home_dir() + cardDir);
-	os_ << "\navailaible cardsets:\n";
+	if (!id_)
+		os_ << "\navailaible cardsets (--cardset):\n";
+	int id = 0;
 	for (auto const &dir_entry : std::filesystem::directory_iterator(svg_cards))
 	{
 		std::filesystem::path card(dir_entry.path());
@@ -28,42 +51,61 @@ void Args::list_decks(std::ostringstream &os_)
 		if (dir_entry.is_directory() &&
 			(std::filesystem::exists(card) || std::filesystem::exists(card_png)))
 		{
-			os_ << "\t" << dir_entry.path().filename() << "\n";
-		}
-	}
-	std::filesystem::path back(Util::home_dir() + cardDir + "/back");
-	os_ << "\navailaible card backs:\n";
-	for (auto const &dir_entry : std::filesystem::directory_iterator(back))
-	{
-		if (dir_entry.is_regular_file())
-		{
-			os_ << "\t" << dir_entry.path().filename() << "\n";
+			++id;
+			if (id_ && id_ == id)
+				os_ << dir_entry.path().filename().c_str(); // NOTE: c_str() to get name unquoted
+			else if (!id_)
+				os_ << "[" << id << "]"<< "\t" << dir_entry.path().filename() << "\n";
 		}
 	}
 }
 
-/*static*/
-std::string Args::make_help(const string_map &la_, const string_map &sa_)
+std::string make_help(const string_map &la_, const string_map &sa_, bool list_ = false)
 {
 	std::ostringstream os;
-	os << APPLICATION << " " << VERSION << "\n\n";
-	os << "Usage:\n";
-	for (const auto &[option, description] : la_)
+	if (list_ == false)
 	{
-		os << "--" << option << "\t" << description << "\n";
+		os << APPLICATION << " " << VERSION << "\n\n";
+		os << "Usage:\n";
+		for (const auto &[option, description] : la_)
+		{
+			os << "--" << option << "\t" << description << "\n";
+		}
+		os << "\n";
+		for (const auto &[option, description] : sa_)
+		{
+			os << "-" << option << "\t" << description << "\n";
+		}
 	}
-	os << "\n";
-	for (const auto &[option, description] : sa_)
+	else
 	{
-		os << "-" << option << "\t" << description << "\n";
+		list_cardsets(os);
+		list_cardbacks(os);
+		os << "\nSpecify name or [id] in command line";
 	}
-	list_decks(os);
 	return os.str();
 }
 
-/*static*/
-bool Args::process(const std::string &arg_, const std::string &value_)
+void fix_name(std::string &name_, void (*f_)(std::ostringstream&, int))
 {
+	if (std::isdigit(name_[0]))
+	{
+		int id = std::atoi(name_.c_str());
+		if (id == 0)
+			name_ = "default";
+		else if (id > 0)
+		{
+			std::ostringstream os;
+			f_(os, id);
+			std::string name = os.str();
+			name_ = name;
+		}
+	}
+}
+
+bool process(const std::string &arg_, const std::string &value_)
+{
+	std::string value(value_);
 	static const string_map long_args =
 	{
 		{ "strict", "{strictness}\tconfirm strict(er) to the rules [0-2] 0=off, 2=all" },
@@ -78,6 +120,7 @@ bool Args::process(const std::string &arg_, const std::string &value_)
 	static const string_map short_args =
 		{
 		{ "h", "this help" },
+		{ "l", "list available cardsets/cardbacks" },
 		{ "v", "display version" },
 		{ "R", "random first move" },
 		{ "S", "draw text with shadow" },
@@ -124,9 +167,11 @@ bool Args::process(const std::string &arg_, const std::string &value_)
 	};
 
 	std::string arg = find(arg_.substr(2), long_args); // accept incomplete arg specification
-	if (value_.size() && arg.size())
+	if (value.size() && arg.size())
 	{
-		Util::config(arg, value_);
+		if (arg == "cardset") fix_name(value, list_cardsets);
+		if (arg == "cardback") fix_name(value, list_cardbacks);
+		Util::config(arg, value);
 	}
 	else if (arg_.size() >= 2 && arg_[0] == '-' && check_short_arg(arg_, short_args))
 	{
@@ -152,6 +197,11 @@ bool Args::process(const std::string &arg_, const std::string &value_)
 				break;
 			case 'h':
 				OUT(make_help(long_args, short_args));
+				OUT(make_help(long_args, short_args, true));
+				return false;
+			case 'l':
+				fl_message_font_ = FL_COURIER;
+				fl_alert("%s", make_help(long_args, short_args, true).c_str());
 				return false;
 			case 'v':
 				OUT(APPLICATION << " " << VERSION << "\n");
@@ -174,6 +224,8 @@ bool Args::process(const std::string &arg_, const std::string &value_)
 	}
 	return true;
 }
+
+}; // namespace
 
 /*static*/
 bool Args::parse(int argc_, char *argv_[])

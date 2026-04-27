@@ -233,6 +233,7 @@ public:
 			_player.last_drawn = c;
 			return true;
 		}
+		bell(NO_CHANGE);
 		return false;
 	}
 
@@ -376,6 +377,7 @@ public:
 		else if (Fl::event_key('t'))
 		{
 			_game.trump_sort = !_game.trump_sort;
+			DBG("handle_key 't': trump_sort is now " << _game.trump_sort << "\n");
 			error_message(TRUMP_SORT, true);
 			_engine.sort_cards(_player.cards);
 			_engine.sort_cards(_ai.cards);
@@ -407,7 +409,7 @@ public:
 		}
 		else if (Fl::event_key(FL_F + 1) && idle())
 		{
-			welcome();
+			delayed_call(&Deck::welcome);
 		}
 		else if (Fl::event_key(FL_F + 12) && ::debug) // just for testing -> cmd
 		{
@@ -583,6 +585,7 @@ public:
 		{
 			if (handle_key())
 			{
+				check_sleep(true);
 				return 1; // important to stop ESC from Welcome to also close main window
 			}
 		}
@@ -812,6 +815,8 @@ public:
 		{
 			Fl_Tiled_Image tbg(bg, w(), h());
 			tbg.draw(0, 0, w(), h());
+			if (bg->refcount() > 1) // keep cached
+				bg->release();
 		}
 	}
 
@@ -823,12 +828,15 @@ public:
 			switch (msg_)
 			{
 				case ANIMATION:
-					m = std::vformat(m, std::make_format_args(_animation_level));
+				{
+					std::string a("^g" + std::to_string(_animation_level));
+					m = std::vformat(m, std::make_format_args(a));
 					break;
+				}
 				case TRUMP_SORT:
 				{
-					static const std::string ON("☻");
-					static const std::string OFF("-");
+					static const std::string ON("^|2705|");
+					static const std::string OFF("^|274c|");
 					m = std::vformat(m, std::make_format_args((_game.trump_sort ? ON : OFF)));
 				}
 				default:
@@ -952,6 +960,17 @@ public:
 			int D = _CH / 20;
 			c.rect(Rect(X, Y + D, i == _player.cards.size() - 1 ? image->w() : w() / 20, _CH - 2 * D));
 		}
+	}
+
+	void delayed_call(DeckMemberFn func_)
+	{
+		static DeckMemberFn func;
+		func = func_;
+		Fl::add_timeout(0.0, [](void *d_)
+		{
+			Deck *deck = static_cast<Deck *>(d_);
+			std::invoke(func, deck);
+		}, this);
 	}
 
 	void do_animate(DeckMemberFn animate_func_,
@@ -1245,7 +1264,7 @@ public:
 		fl_color(FL_YELLOW);
 		std::ostringstream os;
 		os << "v" << VERSION;
-		Util::draw_string(os.str(), 0, fl_height() - fl_descent(), true);
+		Util::draw_string(os.str(), 2, fl_height() - fl_descent(), true);
 	}
 
 	void draw_grayout()
@@ -1457,11 +1476,7 @@ public:
 			std::string c((static_cast<Cmd_Input *>(w_))->value());
 			Deck *deck = static_cast<Deck *>((static_cast<Cmd_Input *>(w_))->window());
 			deck->_cmd = c; // store cmd for onCmd()
-			Fl::add_timeout(0.0, [](void *d_)
-			{
-				Deck *deck = static_cast<Deck *>(d_);
-				deck->onCmd();
-			}, deck);
+			deck->delayed_call(&Deck::onCmd);
 		});
 	}
 
@@ -1845,12 +1860,12 @@ public:
 				if (_player.score >= 66)
 				{
 					int score = _strictness >= 1 ? _ai.score_closed : _ai.score;
-					_game.book.push_back(std::make_pair(score < 33 ? score == 0 ? 3 : 2 : 1, 0));
+					_game.book.emplace_back(score < 33 ? score == 0 ? 3 : 2 : 1, 0);
 				}
 				else
 				{
 					// TODO: officially the points are counted at the moment of closing
-					_game.book.push_back(std::make_pair(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 2));
+					_game.book.emplace_back(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 2);
 				}
 			}
 			else
@@ -1859,12 +1874,12 @@ public:
 				if (_ai.score >= 66)
 				{
 					int score = _strictness >= 1 ? _player.score_closed : _player.score;
-					_game.book.push_back(std::make_pair(0, score < 33 ? score == 0 ? 3 : 2 : 1));
+					_game.book.emplace_back(0, score < 33 ? score == 0 ? 3 : 2 : 1);
 				}
 				else
 				{
 					// TODO: officially the points are counted at the moment of closing
-					_game.book.push_back(std::make_pair(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 2, 0));
+					_game.book.emplace_back(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 2, 0);
 				}
 			}
 		}
@@ -1873,11 +1888,11 @@ public:
 			// normal game (not closed)
 			if (_game.move == PLAYER)
 			{
-				_game.book.push_back(std::make_pair(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 1, 0));
+				_game.book.emplace_back(_ai.score < 33 ? _ai.score == 0 ? 3 : 2 : 1, 0);
 			}
 			else
 			{
-				_game.book.push_back(std::make_pair(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 1));
+				_game.book.emplace_back(0, _player.score < 33 ? _player.score == 0 ? 3 : 2 : 1);
 			}
 		}
 	}
@@ -1948,7 +1963,7 @@ public:
 
 	void error_message(Message m_, bool bell_ = false)
 	{
-		if (bell_) bell(m_);
+		if (bell_) bell(m_, false);
 		_error_message = m_;
 		std::string m(Util::message(m_));
 		DBG("error_message(" << m << ")\n")
