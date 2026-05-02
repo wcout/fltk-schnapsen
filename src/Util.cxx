@@ -1,3 +1,7 @@
+#ifdef STANDALONE
+#define APPLICATION "DrawTest"
+#endif
+#include "debug.h"
 #include "Util.h"
 #include <FL/filename.H>
 #include <FL/fl_draw.H>
@@ -290,7 +294,7 @@ void Util::draw_string(const std::string &text_, int x_, int y_, bool shadow_/*=
 			Fl_Shared_Image *img = Fl_Shared_Image::get(image_name.c_str());
 			if (img)
 			{
-				img->scale(fl_height() - fl_descent(), fl_height() - fl_descent(), 1, 1);
+				img->scale(fl_height() - fl_descent() / 2, fl_height() - fl_descent() / 2, 1, 1);
 //				DBG("Symbol " << image_name << ": " << img->w() << "x" << img->h() << " fl_height=" << fl_height() << ", fl_descent=" << fl_descent() << "\n");
 				img->draw(x_ + dx, y_ - fl_height() + (fl_height() - img->h()) / 2 + fl_descent());
 				dx += img->w();
@@ -342,7 +346,7 @@ int Util::string_size(const std::string &text_, int &w_, int &h_)
 			Fl_Shared_Image *img = Fl_Shared_Image::get(image_name.c_str());
 			if (img)
 			{
-				img->scale(fl_height() - fl_descent(), fl_height() - fl_descent(), 1, 1);
+				img->scale(fl_height() - fl_descent() / 2, fl_height() - fl_descent() / 2, 1, 1);
 				w += img->w();
 				if (img->refcount() > 1) // don't completely release - keep cached
 					img->release();
@@ -398,3 +402,31 @@ std::ostream& Util::logstream()
 	static std::ofstream ofs((temp_dir() + "/fltk-schnapsen.log").c_str(), std::ios::binary);
 	return ofs;
 }
+
+#ifdef STANDALONE
+#include <FL/Fl_Double_Window.H>
+class TestWin : public Fl_Double_Window
+{
+public:
+	TestWin(int w_, int h_) : Fl_Double_Window(w_, h_, "DrawTest") {}
+	void draw() override
+	{
+		Fl_Double_Window::draw();
+		fl_font(FL_HELVETICA, 30);
+		fl_color(FL_BLACK);
+		Util::draw_string("Das ist ein Test: ^|bum| ^|1f3c6| ...", 100, 100);
+		Util::draw_string("Das ist ein Test: ^|1f4ad| 💭 ...", 100, 200);
+		fl_font(FL_HELVETICA, 40);
+		Util::draw_string("Das ist ein Test: ^|1f4ad| 💭 ...", 100, 300);
+		Util::draw_string("👍 ^|1f44d| Congrats, your game!", 100, 400);
+	}
+};
+
+int main()
+{
+	fl_register_images();
+	TestWin win(800, 600);
+	win.show();
+	return Fl::run();
+}
+#endif

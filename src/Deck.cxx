@@ -1142,7 +1142,7 @@ public:
 					// Cairo cached images (patterns) are slow, when image is very detailed
 					// as is the case with some card backs. So draw only top card with the card back,
 					// the lower cards only with a much faster "empty" image.
-					if (i + 1 == _game.cards.size() - 1 || _animate_func == nullptr)
+					if (i + 1 == _game.cards.size() - 1/* || _animate_func == nullptr*/)
 						_back.image()->draw(floor(x), floor(y));
 					else
 						_empty.image()->draw(floor(x), floor(y));
@@ -1186,7 +1186,7 @@ public:
 		int Y = deck_rect(PLAYER).y;
 		for (size_t i = 0; i < _player.deck.size(); i++)
 		{
-			if (i + 1 == _player.deck.size() || _animate_func == nullptr)
+			if (i + 1 == _player.deck.size()/* || _animate_func == nullptr*/)
 				_back.image()->draw(X - i * w() / 800, Y - i * w() / 800);
 			else
 				_empty.image()->draw(X - i * w() / 800, Y - i * w() / 800);
@@ -1195,7 +1195,7 @@ public:
 		Y = deck_rect(AI).y;
 		for (size_t i = 0; i < _ai.deck.size(); i++)
 		{
-			if (i + 1 == _ai.deck.size() || _animate_func == nullptr)
+			if (i + 1 == _ai.deck.size()/* || _animate_func == nullptr*/)
 				_back.image()->draw(X - i * w() / 800, Y - i * w() / 800);
 			else
 				_empty.image()->draw(X - i * w() / 800, Y - i * w() / 800);

@@ -69,7 +69,9 @@ public:
 	size_t highest_card_that_tricks(const Card &c_, const Cards &cards_) const;
 	Cards assumed_player_cards() const;
 	Cards all_cards_that_trick(const Card &c_, const Cards &cards_) const;
+#if 0
 	int gain(const Cards &player_, const Cards &opponent_);
+#endif
 	bool has_suite(const Cards &cards_, CardSuite suite_) const;
 	bool can_trick(const Card &c_, const Cards &cards_) const;
 	bool can_trick_with_suite(const Card &c_, const Cards &cards_) const;
@@ -78,6 +80,8 @@ public:
 	size_t best_trick_card_or_no_move(const Card &c_, Cards &tricks_) const;
 	bool test_change(PlayerData &player_, bool change_ = false);
 	size_t ai_play_20_40();
+	size_t ai_play_20_40(const Card& c_);
+	size_t ai_declare_marriage(CardSuite suite_);
 	bool ai_test_close();
 	Cards highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suite_);
 	Cards highest_trumps_in_hand() { return highest_cards_of_suite_in_hand(_ai.cards, _game.trump); }

@@ -304,34 +304,16 @@ bool Engine::test_change(PlayerData &player_, bool change_/*=false*/)
 	return true;
 }
 
-int Engine::gain(const Cards &player_, const Cards &opponent_)
+size_t Engine::ai_play_20_40(const Card& c_)
 {
-	// only for closed game!
-	// calculate how many points the cards in player_ would minimal score
-	// when played out against opponent_ cards.
-	// player_ should normally contain 'highest_cards_in_hand()` of leader.
-	int points = 0;
-	Cards opponent(opponent_);
-	for (auto &c : player_)
+	// Check if playing that card, can declare a marriage
+	DBG("ai_play_20_40 " << c_ << "\n");
+	if ((c_.face() == QUEEN && _ai.cards.find(Card(KING, c_.suite()))) ||
+	    (c_.face() == KING && _ai.cards.find(Card(QUEEN, c_.suite()))))
 	{
-		if (can_trick_with_suite(c, opponent) == false)
-		{
-			points += c.value();
-			Cards suite = suites_in_hand(c.suite(), opponent);
-			if (suite.size())
-			{
-				suite.sort_by_value(false);
-				Card r = suite[0];
-				points += r.value();
-				opponent -= r;
-			}
-		}
-		else
-		{
-			WNG("gain() used with trickable card " << c);
-		}
+		return ai_declare_marriage(c_.suite());
 	}
-	return points;
+	return NO_MOVE;
 }
 
 size_t Engine::ai_play_20_40()
@@ -340,7 +322,7 @@ size_t Engine::ai_play_20_40()
 	Suites suites = have_40(_ai.cards);
 	if (suites.size())
 	{
-		// ai has 40
+		// AI has 40
 		// optimization: if having 40 and player still may have trumps
 		// try first to pull a trump with A or 10
 		Cards highest = highest_cards_in_hand();
@@ -353,64 +335,47 @@ size_t Engine::ai_play_20_40()
 				move = find(highest_trumps[0], _ai.cards);
 				return move;
 			}
-
-			// also if having highest cards, maybe try to play these before
-			highest -= Card(QUEEN, suites[0]);
-			highest -= Card(KING, suites[0]);
-			if (highest.size() && _game.closed != NOT)
-			{
-				int points_needed = 66 - 40 - _ai.score - _ai.pending;
-				int gain_points = gain(highest, assumed_player_cards());
-				if (points_needed > 0) // 40 alone is enough to win!
-				{
-					DBG(points_needed << " points needed after 40 - possible gain with highest: " << gain_points << "\n");
-					// NOTE: don't care about gain_points currently
-					move = find(highest[0], _ai.cards);
-					return move;
-				}
-			}
-		}
-
-		// play the 40, check if using king wins game
-		_game.marriage = MARRIAGE_40;
-		_ui.bell(AI_MARRIAGE_40);
-		if (_ai.score + 43 == 65)
-		{
-			move = find(Card(KING, suites[0]), _ai.cards);
-		}
-		else
-		{
-			// otherwise use queen
-			move = find(Card(QUEEN, suites[0]), _ai.cards);
-		}
-		LOG("AI declares 40 with " << _ai.cards[move] << "\n");
-		_ai.s20_40.push_front(_ai.cards[move].suite());
-		if (_ai.deck.empty())
-		{
-			_ai.pending += 40;
-		}
-		else
-		{
-			_ai.score += 40;
 		}
 	}
-	else if ((suites = have_20(_ai.cards)).size())
+	else if ((suites = have_20(_ai.cards)).empty())
 	{
-		_game.marriage = MARRIAGE_20;
-		_ui.bell(AI_MARRIAGE_20);
-		size_t first_suite_queen = find(Card(QUEEN, suites[0]), _ai.cards);
-		move = first_suite_queen;
-		LOG("AI declares 20 with " << _ai.cards[move] << "\n");
-		_ai.s20_40.push_front(_ai.cards[move].suite());
-		if (_ai.deck.empty())
-		{
-			_ai.pending += 20;
-		}
-		else
-		{
-			_ai.score += 20;
-		}
+		return NO_MOVE;
 	}
+	return ai_declare_marriage(suites[0]);
+}
+
+size_t Engine::ai_declare_marriage(CardSuite suite_)
+{
+	DBG("ai_declare_marriage " << suite_names[suite_] << "\n");
+	int score = (suite_ == _game.trump) ? 40 : 20;
+	if (_ai.deck.empty())
+	{
+		_ai.pending += score;
+	}
+	else
+	{
+		_ai.score += score;
+	}
+
+	size_t move = NO_MOVE;
+	// play the 20/40, check if using king wins game
+	_game.marriage = score == 40 ? MARRIAGE_40 : MARRIAGE_20;
+	_ui.bell(score == 40 ? AI_MARRIAGE_40 : AI_MARRIAGE_20);
+
+	if (_ai.score + score + 3 == 65)
+	{
+		move = find(Card(KING, suite_), _ai.cards);
+	}
+	else
+	{
+		// otherwise use queen
+		move = find(Card(QUEEN, suite_), _ai.cards);
+	}
+	assert(move != NO_MOVE);
+
+	LOG("AI declares " << score << " with " << _ai.cards[move] << "\n");
+	_ai.s20_40.push_front(_ai.cards[move].suite());
+
 	return move;
 }
 
@@ -671,11 +636,6 @@ Cards Engine::hinder_20_40()
 	{
 		return {};
 	}
-	if (s20.size() > 1)
-	{
-		// don't deal with more than one 20 suites
-		return {};
-	}
 
 	if (s40.size())
 	{
@@ -685,7 +645,7 @@ Cards Engine::hinder_20_40()
 		{
 			return {};
 		}
-		return all_cards_that_trick(Card(QUEEN, s40[0]), _ai.cards);
+		return cards_to_claim(s40[0]);
 	}
 
 	if (s20.size())
@@ -696,7 +656,7 @@ Cards Engine::hinder_20_40()
 		{
 			return {};
 		}
-		return all_cards_that_trick(Card(QUEEN, s20[0]), _ai.cards);
+		return cards_to_claim(s20[0]);
 	}
 	return {};
 }
@@ -979,24 +939,20 @@ size_t Engine::ai_play_for_closed_lead()
 		// leading last trick before pack clear
 		DBG("ai_play_for_closed_lead: leading\n");
 		Cards player_cards = assumed_player_cards();
-		if (check_40(player_cards))
+		int player_gain = 0;
+		Cards player_claim = cards_to_claim(player_cards, _ai.cards, ANY_SUITE, &player_gain);
+		DBG("player_gain: " << player_gain << "\n");
+		if (check_40(player_cards) || player_gain + _player.pending + _player.score >= 55)
 		{
-			// player will have 40 if he wins this trick
-			Cards trumps = trumps_in_hand(player_cards);
-			trumps -= Card(QUEEN, _game.trump);
-			trumps -= Card(KING, _game.trump);
-			if (trumps.empty())
+			WNG("player might win or have 40 if he wins this trick!");
+			Cards highest = highest_cards_in_hand(_ai.cards);
+			if (highest.size())
 			{
-				// player has no additional trumps
-				Cards highest = highest_cards_in_hand(_ai.cards);
-				if (highest.size())
-				{
-					// so player must either trick with trump or let AI trick
-					highest.sort_by_value(false); // low->hi
-					DBG("highest sorted by value: " << highest << "\n");
-					WNG("Use " << highest[0] << " to prevent player getting 40");
-					return find(highest[0], _ai.cards);
-				}
+				// so player must either trick with trump or let AI trick
+				highest.sort_by_value(_ai.score < 33); // low->hi, if already "safe"
+				DBG("highest sorted by value: " << highest << "\n");
+				WNG("Use " << highest[0] << " to make player trick or getting 40");
+				return find(highest[0], _ai.cards);
 			}
 		}
 	}
@@ -1088,8 +1044,28 @@ void Engine::ai_move_closed_lead()
 	LOG("claim gain: " << gain << " ==> " << _ai.score + _ai.pending + gain << "\n");
 	if (_ai.score + _ai.pending + gain >= 66)
 	{
-		// that's a sure win
-		_move = find(claim[0], _ai.cards);
+		// that's a sure win, just follow the right sequence
+		claim.sort(_game.trump); // trumps first
+		if (claim.size())
+		{
+			if (claim[0].suite() != _game.trump && have_40().size())
+			{
+				m = ai_play_20_40();
+				if (m != NO_MOVE)
+					_move = m;
+			}
+			else
+			{
+				m = ai_play_20_40(claim[0]);
+				_move = m != NO_MOVE ? m : find(claim[0], _ai.cards);
+			}
+		}
+		else
+		{
+			m = ai_play_20_40();
+			if (m != NO_MOVE)
+				_move = m;
+		}
 		return;
 	}
 
@@ -1151,18 +1127,12 @@ void Engine::ai_move_closed_lead()
 					move = find(pull_then_claim[0], _ai.cards);
 				}
 			}
-			else
+			else if (claim.size())
 			{
-				Cards claim = cards_to_claim(gain);
-				LOG("cards gain: " << gain << " ==> " << _ai.score + _ai.pending + gain << "\n");
-				gain += _ai.pending;
-				if (_ai.score + gain >= 66 || (_ai.score < 33 && _ai.score + gain >= 33))
-				{
-					if (_game.cards.size())
-						claim.sort(_game.trump); // trumps first
-					DBG("claim: " << claim << "\n");
-					move = find(claim[0], _ai.cards);
-				}
+				if (_game.cards.size())
+					claim.sort(_game.trump); // trumps first
+				DBG("claim: " << claim << "\n");
+				move = find(claim[0], _ai.cards);
 			}
 		}
 	}
@@ -1231,8 +1201,11 @@ void Engine::ai_move_lead()
 
 	size_t m = ai_play_20_40();
 	if (m != NO_MOVE)
+	{
 		_move = m;
-
+		ai_test_close();
+		return;
+	}
 	if (ai_test_close())
 	{
 		if (_game.marriage == NO_MARRIAGE)

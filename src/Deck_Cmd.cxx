@@ -61,12 +61,18 @@ bool Deck::load_game(const std::string &name_)
 	_ai.cards.clear();
 	_ai.deck.clear();
 	_game.cards.clear();
+	_game.trump = NO_SUITE;
 	bool bad_file(false);
 	while (getline(ifs, line))
 	{
+		std::string orig_line = line;
     	line.erase(std::remove_if(line.begin(), line.end(), ::isspace), line.end());
     	if (line.empty()) continue; // all whitespace
-		else if (line[0] == '#' || line[0] == '/') continue; // comment
+		else if (line[0] == '#' || line[0] == '/') // comment
+		{
+			WNG(orig_line);
+			continue;
+		}
 		else if (line.starts_with("player_cards:")) _player.cards = line.substr(13);
 		else if (line.starts_with("player_20_40:")) _player.s20_40 = suites_from_string(line.substr(13));
 		else if (line.starts_with("player_card:"))
@@ -95,9 +101,16 @@ bool Deck::load_game(const std::string &name_)
 		else if (line.starts_with("move:")) _game.move = static_cast<Player>(atoi(line.substr(5).c_str()));
 		else { bad_file = true; break; }
 	}
+#if 0
 	if (_game.cards.empty()) // cards needs not be specfied, it is then computed from the other cards
 	{
 		_game.cards = Cards::fullcards() - _player.cards - _ai.cards - _player.deck - _ai.deck - _ai.card - _player.card;
+	}
+#endif
+	if (_game.trump == NO_SUITE && _game.cards.size())
+	{
+		// if cards are specified, trump can be determined from back card
+		_game.trump = _game.cards.back().suite();
 	}
 	// Check cards for completeness
 	Cards c = _player.cards + _player.deck + _ai.cards + _ai.deck + _game.cards;
@@ -107,6 +120,7 @@ bool Deck::load_game(const std::string &name_)
 		c += _ai.card;
 	if (bad_file ||
 	    c.size() != 20 || c.check() == false ||
+		 (_game.trump == NO_SUITE) ||
 		 (_game.move != PLAYER && _game.move != AI) ||
 		 (_game.closed != NOT && _game.closed != BY_PLAYER && _game.closed != BY_AI && _game.closed != AUTO) ||
 	    (_player.move_state == ON_TABLE && _game.move == PLAYER) ||
