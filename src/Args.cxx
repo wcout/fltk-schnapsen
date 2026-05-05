@@ -29,7 +29,7 @@ void list_cardbacks(std::ostringstream &os_, int id_ = 0)
 		if (dir_entry.is_regular_file())
 		{
 			if (id_ && id_ == id)
-				os_ << dir_entry.path().filename().c_str(); // NOTE: c_str() to get name unquoted
+				os_ << dir_entry.path().filename().string(); // NOTE: string() to get name unquoted
 			else if (!id_)
 				os_ << "[" << id << "]" << "\t" << dir_entry.path().filename() << "\n";
 		}
@@ -53,7 +53,7 @@ void list_cardsets(std::ostringstream &os_, int id_ = 0)
 		{
 			++id;
 			if (id_ && id_ == id)
-				os_ << dir_entry.path().filename().c_str(); // NOTE: c_str() to get name unquoted
+				os_ << dir_entry.path().filename().string(); // NOTE: string() to get name unquoted
 			else if (!id_)
 				os_ << "[" << id << "]"<< "\t" << dir_entry.path().filename() << "\n";
 		}
