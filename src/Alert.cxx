@@ -2,7 +2,6 @@
 #include "Util.h"
 
 #include <FL/Fl.H>
-#include <FL/Fl_Shared_Image.H>
 #include <FL/Fl_Anim_GIF_Image.H>
 #include <FL/Fl_Box.H>
 #include <FL/fl_draw.H>
@@ -41,9 +40,8 @@ public:
 	{
 		if (!name_ || !name_[0]) return *this;
 		Fl_GIF_Image::animate = true;
-		Fl_Shared_Image *i = Fl_Shared_Image::get(name_);
-		if (!i || !i->image()) return *this;
-		i->scale(w(), h(), 1, 1);
+		Fl_Shared_Image *i = Util::get_shared_image(name_, w(), h(), true);
+		if (i == nullptr) return *this;
 		i->color_average(FL_WHITE, 0.5);
 		Fl_Anim_GIF_Image *anim = dynamic_cast<Fl_Anim_GIF_Image *>((Fl_Image *)i->image());
 		if (anim)

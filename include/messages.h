@@ -47,7 +47,10 @@ enum class Message
 	DECK_BG,
 	ANIMATION,
 	TRUMP_SORT,
-	PLACE_CARD
+	PLACE_CARD,
+#ifdef USE_MINIAUDIO
+	VOLUME,
+#endif
 };
 
 using enum Message;
@@ -120,7 +123,10 @@ std::map<Message, std::string> messages_de = {
 #endif
 	{DECK_BG, "Tisch-Hintergrund auswählen:"},
 	{ANIMATION, "Animationsstufe: {}"},
-	{TRUMP_SORT, "Sortieren der Karten nach Trumpf: {}"}
+	{TRUMP_SORT, "Sortieren der Karten nach Trumpf: {}"},
+#ifdef USE_MINIAUDIO
+	{VOLUME, "Lautstärke: {}%"},
+#endif
 };
 
 std::map<Message, std::string> messages_en = {
@@ -188,7 +194,10 @@ std::map<Message, std::string> messages_en = {
 #endif
 	{DECK_BG, "Select table background:"},
 	{ANIMATION, "Animation level: {}"},
-	{TRUMP_SORT, "Sort cards by trump: {}"}
+	{TRUMP_SORT, "Sort cards by trump: {}"},
+#ifdef USE_MINIAUDIO
+	{VOLUME, "Volume: {}%"},
+#endif
 };
 
 std::map<Message, std::string> sound = {

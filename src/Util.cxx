@@ -60,6 +60,22 @@ const std::string& Util::home_dir()
 }
 
 /*static*/
+Fl_Shared_Image *Util::get_shared_image(const std::string &name_, int w_/* = 0*/, int h_/* = 0*/, bool proportional_/* = false*/)
+{
+	std::string name(name_);
+	if (name.find('/') == std::string::npos)
+			name = Util::rsc_dir() + name;
+	Fl_Shared_Image *img = Fl_Shared_Image::get(name.c_str());
+	if (img && w_ && h_)
+	{
+		img->scale(w_, h_, proportional_, 1);
+		if (img->refcount() > 1) // don't completely release - keep cached
+			img->release();
+	}
+	return img;
+}
+
+/*static*/
 std::string Util::rsc_dir()
 {
 	return home_dir() + "rsc/";
@@ -289,17 +305,12 @@ void Util::draw_string(const std::string &text_, int x_, int y_, bool shadow_/*=
 			if (end_image == std::string::npos) continue;
 			std::string image_name = line.substr(0, end_image);
 			image_name += ".svg";
-			if (image_name.find('/') == std::string::npos)
-				image_name = rsc_dir() + image_name;
-			Fl_Shared_Image *img = Fl_Shared_Image::get(image_name.c_str());
-			if (img)
+			Fl_Image *img = get_shared_image(image_name, fl_height() - fl_descent() / 2, fl_height() - fl_descent(), true);
+			if (img != nullptr)
 			{
-				img->scale(fl_height() - fl_descent() / 2, fl_height() - fl_descent() / 2, 1, 1);
 //				DBG("Symbol " << image_name << ": " << img->w() << "x" << img->h() << " fl_height=" << fl_height() << ", fl_descent=" << fl_descent() << "\n");
 				img->draw(x_ + dx, y_ - fl_height() + (fl_height() - img->h()) / 2 + fl_descent());
 				dx += img->w();
-				if (img->refcount() > 1) // don't completely release - keep cached
-					img->release();
 			}
 			line.erase(0, end_image + 1);
 		}
@@ -341,15 +352,10 @@ int Util::string_size(const std::string &text_, int &w_, int &h_)
 			if (end_image == std::string::npos) continue;
 			std::string image_name = line.substr(0, end_image);
 			image_name += ".svg";
-			if (image_name.find('/') == std::string::npos)
-				image_name = rsc_dir() + image_name;
-			Fl_Shared_Image *img = Fl_Shared_Image::get(image_name.c_str());
-			if (img)
+			Fl_Image *img = get_shared_image(image_name, fl_height() - fl_descent() / 2, fl_height() - fl_descent(), true);
+			if (img != nullptr)
 			{
-				img->scale(fl_height() - fl_descent() / 2, fl_height() - fl_descent() / 2, 1, 1);
 				w += img->w();
-				if (img->refcount() > 1) // don't completely release - keep cached
-					img->release();
 			}
 			line.erase(0, end_image + 1);
 		}
@@ -404,6 +410,7 @@ std::ostream& Util::logstream()
 }
 
 #ifdef STANDALONE
+#undef STANDALONE
 #include <FL/Fl_Double_Window.H>
 class TestWin : public Fl_Double_Window
 {

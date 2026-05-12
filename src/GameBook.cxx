@@ -198,10 +198,12 @@ void GameBook::draw(Rect r_)
 		// draw "bummerl"
 		char buf[40];
 		Y += H / 12;
-		snprintf(buf, sizeof(buf),"   %s       %s",
+		snprintf(buf, sizeof(buf),"%s  %s       %s",
 #ifdef USE_SVG_DIGITS
+			"^|spc|",
 			(ai_score >= MATCH_SCORE ? "^|bum|" : " "), (player_score >= MATCH_SCORE ? "^|bum|" : " "));
 #else
+			" ",
 			(ai_score >= MATCH_SCORE ? "●" : " "), (player_score >= MATCH_SCORE ? "●" : " "));
 #endif
 		fl_color(FL_BLACK);

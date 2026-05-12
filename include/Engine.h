@@ -85,6 +85,7 @@ public:
 	bool ai_test_close();
 	Cards highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suite_);
 	Cards highest_trumps_in_hand() { return highest_cards_of_suite_in_hand(_ai.cards, _game.trump); }
+	Cards highest_trumps_in_hand(const Cards &cards_) { return highest_cards_of_suite_in_hand(cards_, _game.trump); }
 	Cards highest_cards_in_hand(const Cards &cards_);
 	Cards highest_cards_in_hand() { return highest_cards_in_hand(_ai.cards); }
 	Cards suites_in_hand(CardSuite suite_, const Cards &cards_) const;
@@ -99,6 +100,7 @@ public:
 	Cards count_played_suite(CardSuite suite_) const;
 	int cards_in_play(CardSuite suite_) const;
 	int max_cards_player(CardSuite suite_) const;
+	int max_trumps(Player player_) const;
 	int max_trumps_player() const;
 	Cards legal_moves(const Cards &hand_, const Card &lead_) const;
 	Cards pull_trump_cards(Cards cards_, Cards from_) const;

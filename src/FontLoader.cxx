@@ -98,6 +98,9 @@ Fl_Font FontLoader::setupFont(bool success_, const char* fontName_, Fl_Font defa
 	}
 	LOG("Use font: '" << fontName << "'\n");
 	Fl_Font index = _index;
+	const char *default_font = Fl::get_font(FL_HELVETICA);
+	DBG("default font: '" << default_font << "'\n");
+	if (default_font[0] == ' ') fontName = " " + fontName;
 	Fl::set_font(index, fontName.c_str());
 	_index++;
 	return index;

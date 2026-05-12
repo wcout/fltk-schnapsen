@@ -9,7 +9,6 @@
 #include <FL/Fl_Button.H>
 #include <FL/Fl_SVG_Image.H>
 #include <FL/Fl_PNG_Image.H>
-#include <FL/Fl_Shared_Image.H>
 #include <FL/Fl_Tiled_Image.H>
 #include <FL/Fl_Input.H>
 #include <FL/Fl_File_Chooser.H>
@@ -108,7 +107,7 @@ public:
 class Audio
 {
 public:
-	Audio()
+	Audio() : _volume(100)
 	{
 		// Initialize the engine
 		if (ma_engine_init(NULL, &_engine) != MA_SUCCESS)
@@ -122,12 +121,20 @@ public:
 		// This function returns immediately.
 		ma_engine_play_sound(&_engine, filename_.c_str(), NULL);
 	}
+	void set_volume(int volume_)
+	{
+		// [0, 100] 0=mute, 100=max
+		_volume = volume_;
+		ma_engine_set_volume(&_engine, (double)volume_ / 100);
+	}
+	int volume() const { return _volume; }
 	~Audio()
 	{
 		ma_engine_stop(&_engine);
 	}
 private:
 	ma_engine _engine;
+	int _volume;
 };
 #endif
 
@@ -165,9 +172,9 @@ public:
 		std::string card_root = Util::home_dir() + cardDir + "/";
 		std::string cardback = Util::config("cardback");
 		_back.image("card_back", card_root + "back/" + ((cardback.empty() || cardback == "default") ? "Card_back_red.svg" : cardback));
-		_shadow.image("card_shadow", card_root + "Card_shadow.svg");
-		_outline.image("card_outline", card_root + "Card_outline.svg");
-		_empty.image("card_empty", card_root + "Card_empty.svg");
+		_shadow.image("card_shadow", Card::shadow_svg(), true);
+		_outline.image("card_outline", Card::outline_svg(), true);
+		_empty.image("card_empty", Card::empty_svg(), true);
 		_game.cards = Cards::fullcards();
 		assert(_game.cards.check());
 		_card_template = _game.cards[0];
@@ -190,6 +197,11 @@ public:
 		int xpos = Util::config_as_int("xpos");
 		int ypos = Util::config_as_int("ypos");
 		position(xpos, ypos);
+#ifdef USE_MINIAUDIO
+		std::string volume = Util::config("volume");
+		if (volume.size())
+			_audio.set_volume(std::atoi(volume.c_str()));
+#endif
 		std::string s = Util::config("card_scale");
 		if (s.size())
 		{
@@ -374,6 +386,23 @@ public:
 			_animation_level %= 3;
 			error_message(ANIMATION, true);
 		}
+#ifdef USE_MINIAUDIO
+		else if (Fl::event_key('v'))
+		{
+			int volume = _audio.volume();
+			if (Fl::event_ctrl())
+				volume -= 10;
+			else
+				volume += 10;
+			if (volume > 100)
+				volume = 100;
+			if (volume < 0)
+				volume = 0;
+			_audio.set_volume(volume);
+			error_message(VOLUME);
+			bell(NO_MESSAGE, false);
+		}
+#endif
 		else if (Fl::event_key('t'))
 		{
 			_game.trump_sort = !_game.trump_sort;
@@ -702,6 +731,24 @@ public:
 
 	void draw_deck_info(int x_, int y_, const Cards &deck_, int max_tricks_ = 8)
 	{
+		auto put_card = [&](const Card &c_, std::ostringstream &os_)
+		{
+			if (c_.is_red_suite())
+				os_ << "^r";
+			else
+				os_ << "^B";
+			os_ << face_abbrs[c_.face()];
+			std::string symbol_image = Util::cardset_dir() + Card::suite_symbol_image(c_.suite());
+			if (std::filesystem::exists(symbol_image + ".svg"))
+			{
+				os_ << "^|" << symbol_image << "|";
+			}
+			else
+			{
+				os_ << c_.suite_symbol();
+			}
+		};
+
 		fl_color(fl_lighter(fl_lighter(FL_YELLOW)));
 		Rect r(Rect(_CW, _CH).inset(_CW / 10));
 		fl_rectf(x_, y_, r.w, r.h);
@@ -716,20 +763,11 @@ public:
 			if (max_tricks_ < 0) break;
 			std::ostringstream os;
 			os << " ";
-			if (deck_[i].is_red_suite())
-				os << "^r";
-			else
-				os << "^B";
-			os << deck_[i];
-			os << "^G";
-			os << "|";
-			if (deck_[i + 1].is_red_suite())
-				os << "^r";
-			else
-				os << "^B";
-			os << deck_[i + 1];
+			put_card(deck_[i], os);
+			os << "^G|";
+			put_card(deck_[i + 1], os);
 			std::string s = os.str();
-			Util::draw_color_text(s, x_ + _CW / 10, y_ + _CW / 5 + (i / 2) * (fl_height() - fl_descent()));
+			Util::draw_string(s, x_ + _CW / 10, y_ + _CW / 5 + (i / 2) * (fl_height() - fl_descent()));
 		}
 	}
 
@@ -810,13 +848,11 @@ public:
 	void draw_table()
 	{
 		fl_rectf(0, 0, w(), h(), background_color());
-		Fl_Shared_Image *bg(Fl_Shared_Image::get(background_image().c_str()));
+		Fl_Image *bg = Util::get_shared_image(background_image());
 		if (bg && bg->w() && bg->h())
 		{
 			Fl_Tiled_Image tbg(bg, w(), h());
 			tbg.draw(0, 0, w(), h());
-			if (bg->refcount() > 1) // keep cached
-				bg->release();
 		}
 	}
 
@@ -838,7 +874,16 @@ public:
 					static const std::string ON("^|2705|");
 					static const std::string OFF("^|274c|");
 					m = std::vformat(m, std::make_format_args((_game.trump_sort ? ON : OFF)));
+					break;
 				}
+#ifdef USE_MINIAUDIO
+				case VOLUME:
+				{
+					int v = _audio.volume();
+					m = std::vformat(m, std::make_format_args(v));
+					break;
+				}
+#endif
 				default:
 					break;
 			}
@@ -1138,11 +1183,12 @@ public:
 					double d = card_stack_pos(i);
 					double x = (double)X - d;
 					double y = (double)Y - d;
+					bool speedup = !_back.image()->as_svg_image();
 					// Speedup shuffle/deal animation under Cairo:
-					// Cairo cached images (patterns) are slow, when image is very detailed
-					// as is the case with some card backs. So draw only top card with the card back,
-					// the lower cards only with a much faster "empty" image.
-					if (i + 1 == _game.cards.size() - 1/* || _animate_func == nullptr*/)
+					// Cairo cached images (patterns) are slow, when the image is very detailed,
+					// as is the case with some card backs. So draw only the top card with the
+					// card back, the lower cards with a much faster "empty" image.
+					if (i + 1 == _game.cards.size() - 1 || speedup == false/* || _animate_func == nullptr*/)
 						_back.image()->draw(floor(x), floor(y));
 					else
 						_empty.image()->draw(floor(x), floor(y));
@@ -1169,8 +1215,6 @@ public:
 
 			// Use clipping for the card shadow to go over side of pack
 			Rect r(pack_rect());
-//			fl_push_clip(r.x + r.w - card_stack_pos(_game.cards.size() - 1), r.y, r.w * 2, r.h);
-//			_shadow.rot90_image()->draw(X + _CW / 12, Y + _CW / 12);
 			fl_push_clip(r.x + r.w - SW, r.y, r.w * 2, r.h);
 			_shadow.rot90_image()->draw(X + SW, Y + SW);
 			fl_pop_clip();
@@ -1182,24 +1226,26 @@ public:
 	void draw_decks()
 	{
 		// show played pack
+		auto draw_deck_cards = [&](size_t size_, int x_, int y_)
+		{
+			bool speedup = !_back.image()->as_svg_image();
+			for (size_t i = 0; i < size_; i++)
+			{
+				if (i + 1 == size_ || speedup == false/* || _animate_func == nullptr*/)
+					_back.image()->draw(x_ - i * w() / 800, y_ - i * w() / 800);
+				else
+					_empty.image()->draw(x_ - i * w() / 800, y_ - i * w() / 800);
+			}
+		};
+
 		int X = deck_rect(PLAYER).x;
 		int Y = deck_rect(PLAYER).y;
-		for (size_t i = 0; i < _player.deck.size(); i++)
-		{
-			if (i + 1 == _player.deck.size()/* || _animate_func == nullptr*/)
-				_back.image()->draw(X - i * w() / 800, Y - i * w() / 800);
-			else
-				_empty.image()->draw(X - i * w() / 800, Y - i * w() / 800);
-		}
+		draw_deck_cards(_player.deck.size(), X, Y);
+
 		X = deck_rect(AI).x;
 		Y = deck_rect(AI).y;
-		for (size_t i = 0; i < _ai.deck.size(); i++)
-		{
-			if (i + 1 == _ai.deck.size()/* || _animate_func == nullptr*/)
-				_back.image()->draw(X - i * w() / 800, Y - i * w() / 800);
-			else
-				_empty.image()->draw(X - i * w() / 800, Y - i * w() / 800);
-		}
+		draw_deck_cards(_ai.deck.size(), X, Y);
+
 		if (_player.deck.size())
 		{
 			// click region for deck display ("tooltip")
@@ -1681,26 +1727,29 @@ public:
 			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
 		}
 
-		// TEST TEST
-		Suites res;
-		res = _engine.have_40(_player.cards);
-		if (res.size())
-			DBG("player cards contain 40!\n")
-		res = _engine.have_20(_player.cards);
-		if (res.size())
-			DBG("player cards contain " << res.size() << "x20!\n")
-		res = _engine.have_40(_ai.cards);
-		if (res.size())
-			DBG("AI cards contain 40!\n")
-		res = _engine.have_20(_ai.cards);
-		if (res.size())
-			DBG("AI cards contain " << res.size() << "x20!\n")
-		size_t i = _engine.find(Card(JACK, _game.cards.back().suite()), _player.cards);
-		if (i != NO_MOVE)
-			DBG("player cards can change Jack!\n")
-		i = _engine.find(Card(JACK, _game.cards.back().suite()), _ai.cards);
-		if (i != NO_MOVE)
-			DBG("AI cards can change Jack!\n")
+		if (::debug)
+		{
+			// TEST TEST
+			Suites res;
+			res = _engine.have_40(_player.cards);
+			if (res.size())
+				DBG("player cards contain 40!\n")
+			res = _engine.have_20(_player.cards);
+			if (res.size())
+				DBG("player cards contain " << res.size() << "x20!\n")
+			res = _engine.have_40(_ai.cards);
+			if (res.size())
+				DBG("AI cards contain 40!\n")
+			res = _engine.have_20(_ai.cards);
+			if (res.size())
+				DBG("AI cards contain " << res.size() << "x20!\n")
+			size_t i = _engine.find(Card(JACK, _game.cards.back().suite()), _player.cards);
+			if (i != NO_MOVE)
+				DBG("player cards can change Jack!\n")
+			i = _engine.find(Card(JACK, _game.cards.back().suite()), _ai.cards);
+			if (i != NO_MOVE)
+				DBG("AI cards can change Jack!\n")
+		}
 	}
 
 	void fillup_cards()
@@ -1777,6 +1826,9 @@ public:
 		Util::config("xpos", std::to_string(x()));
 		Util::config("ypos", std::to_string(y()));
 		Util::config("card_scale", std::to_string(_card_scale));
+#ifdef USE_MINIAUDIO
+		Util::config("volume", std::to_string(_audio.volume()));
+#endif
 		Util::save_config();
 	}
 
@@ -2117,11 +2169,13 @@ public:
 	{
 		cursor(FL_CURSOR_DEFAULT);
 		update_history();
-#if 0
+#if 1
 		// TODO: maybe use later, to offer a 'claim remaining tricks' feature
-		if (_engine.highest_cards_in_hand(_player.cards).size() == _player.cards.size())
+		if (_game.closed != NOT && _ai.move_state == NONE &&
+		    _engine.highest_cards_in_hand(_player.cards).size() == _player.cards.size() &&
+			 (int)_engine.highest_trumps_in_hand(_player.cards).size() >= _engine.max_trumps(AI))
 		{
-			WNG("You have all highest cards in your hand!\n");
+			WNG("You have a winner hand!");
 		}
 #endif
 		while (playing() && _player.move_state != ON_TABLE && _redeal == false)

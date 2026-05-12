@@ -47,17 +47,21 @@ Fl_RGB_Image *rotate_90_CCW(const Fl_RGB_Image &svg_)
 	return rotated_image;
 }
 
-CardImage& CardImage::image(const std::string &id_, const std::string &pathname_)
+CardImage& CardImage::image(const std::string &id_, const std::string &pathname_, bool data_/* = false*/)
 {
 	assert(_images.find(id_) == _images.end());
 	std::string pathname(pathname_);
-	Fl_RGB_Image *img = new Fl_SVG_Image(pathname.c_str());
+	Fl_RGB_Image *img = nullptr;
+	if (data_ == false)
+		img = new Fl_SVG_Image(pathname.c_str());
+	else
+		img = new Fl_SVG_Image(id_.c_str(), pathname_.c_str());
 	if ((!img || img->w() <= 0 || img->h() <= 0))
 	{
 		delete img;
 		img = nullptr;
 		// try as PNG image
-		if (pathname.size() > 4 && pathname.at(pathname.size() - 4) == '.')
+		if (data_ == false && pathname.size() > 4 && pathname.at(pathname.size() - 4) == '.')
 		{
 			pathname.erase(pathname.size() - 3);
 			pathname.append("png");

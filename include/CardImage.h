@@ -7,7 +7,7 @@ class Fl_RGB_Image;
 class CardImage
 {
 public:
-	CardImage& image(const std::string &id_, const std::string &pathname_);
+	CardImage& image(const std::string &id_, const std::string &pathname_, bool data_ = false);
 	Fl_RGB_Image *image(const std::string &id_, int w_ = 0, int h_ = 0) const;
 	Fl_RGB_Image *image() const;
 	Fl_RGB_Image *skewed_image(const std::string &id_);

@@ -469,6 +469,7 @@ bool Engine::ai_test_close()
 			maybe_score += highest.size() * 3; // at average expect win of a queen per trick
 			int trumps = (int)trumps_in_hand(_ai.cards).size();
 			int remain_trumps = max_trumps_player();
+			DBG("ai_test_close: trumps: " << trumps << ", remain_trumps: " << remain_trumps << "\n");
 			do_close = maybe_score >= 66 && remain_trumps <= trumps;
 		}
 		DBG("maybe_score: " << maybe_score << "\n")
@@ -616,9 +617,14 @@ int Engine::max_cards_player(CardSuite suite_) const
 	return cards_in_play(suite_) - suites_in_hand(suite_, _ai.cards).size();
 }
 
+int Engine::max_trumps(Player player_) const
+{
+	return cards_in_play(_game.trump) - suites_in_hand(_game.trump, (player_ == AI ? _player.cards : _ai.cards)).size();
+}
+
 int Engine::max_trumps_player() const
 {
-	return cards_in_play(_game.trump) - suites_in_hand(_game.trump, _ai.cards).size();
+	return max_trumps(PLAYER);
 }
 
 Cards Engine::hinder_20_40()

@@ -10,6 +10,7 @@ typedef std::unordered_map<std::string, std::string> string_map;
 #include "messages.h"
 
 #include <FL/Enumerations.H>
+class Fl_Shared_Image;
 const Fl_Color GRAY = fl_rgb_color(128, 128, 128);
 // NOTE: FL_GRAY takes value from FL_BACKGROUND, which is maybe changed by application
 
@@ -56,6 +57,8 @@ public:
 	static void draw_string(const std::string &text, int x_, int y_, bool shadow_ = false);
 	static int string_size(const std::string &text_, int &w_, int &h_);
 	static int string_width(const std::string &text_);
+
+	static Fl_Shared_Image *get_shared_image(const std::string &name_, int w_ = 0, int h_ = 0, bool proportional_ = false);
 
 	static std::ostream& logstream();
 };

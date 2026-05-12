@@ -1,6 +1,7 @@
 #include "Card.h"
 #include "debug.h"
 #include "Util.h"
+#include <format>
 
 using enum CardSuite;
 using enum CardFace;
@@ -83,6 +84,52 @@ std::string Card::suite_symbol_image(CardSuite suite_)
 	return suite_symbols_image[suite_];
 }
 
+static std::string make_svg(const std::string& svg_)
+{
+	std::ifstream R(Util::cardset_dir() + "R");
+	std::string r;
+	if (R.is_open() && !R.bad())
+	{
+		R >> r;
+	}
+	if (r.empty())
+	{
+		r = "4mm";
+	}
+	std::string s = std::vformat(svg_, std::make_format_args(r, r));
+	return s;
+}
+
+/*static*/
+std::string Card::shadow_svg()
+{
+	static std::string svg =
+		"<svg width=\"6cm\" height=\"9cm\">"
+		"<rect width=\"6cm\" height=\"9cm\" x=\"0\" y=\"0\" rx=\"{}\" ry=\"{}\" fill=\"black\" opacity=\"0.5\" />"
+		"</svg>";
+	return make_svg(svg);
+}
+
+/*static*/
+std::string Card::empty_svg()
+{
+	static std::string svg =
+		"<svg width=\"6cm\" height=\"9cm\">"
+		"<rect width=\"6cm\" height=\"9cm\" x=\"0\" y=\"0\" rx=\"{}\" ry=\"{}\" stroke-width=\"0.67\" stroke=\"black\" fill=\"white\" stroke-opacity=\"1\" fill-opacity=\"1\" />"
+		"</svg>";
+	return make_svg(svg);
+}
+
+/*static*/
+std::string Card::outline_svg()
+{
+	static std::string svg =
+		"<svg width=\"6cm\" height=\"9cm\">"
+		"<rect width=\"6cm\" height=\"9cm\" x=\"0\" y=\"0\" rx=\"{}\" ry=\"{}\" stroke-width=\"1\" stroke=\"black\" fill=\"white\" stroke-opacity=\"1\" fill-opacity=\"0\" stroke-dasharray=\"2,2\" />"
+		"</svg>";
+	return make_svg(svg);
+}
+
 bool Card::is_black_suite() const
 {
 	return _s == SPADE || _s == CLUB;
@@ -109,6 +156,7 @@ inline std::ostream &operator << (std::ostream &os_, const Card &c_)
 
 
 #ifdef STANDALONE
+#undef STANDALONE
 // Compile: fltk-config --use-images --compile src/Card.cxx -std=c++20 -Iinclude -DSTANDALONE
 #include "system.h"
 const char APPLICATION[] = "Card-Test";
@@ -123,7 +171,10 @@ using enum CardFace;
 int main()
 {
 	Card test(QUEEN, HEART);
+	std::cout << test << "\n";
 	std::cout << test.face_name() << "/" << test.suite_name() << ": " << test.name() << "\n";
 	std::cout << "value: " << test.value() << "\n";
+	std::cout << "symbol image: " << Card::suite_symbol_image(test.suite()) << "\n";
+	std::cout << Card::outline_svg() << "\n";
 }
 #endif

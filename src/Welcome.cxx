@@ -44,6 +44,7 @@ void Welcome::draw()
 	fl_draw_box(box(), 0, 0, w(), h(), color());
 	Rect r(*this, box());
 	fl_push_clip(r.x - x(), r.y - y(), r.w, r.h);
+	Fl_Image *border = Util::get_shared_image("border.svg", w(), h());
 	fl_font(FL_COURIER_BOLD, h() / 7);
 	for (int i = 0; i < 30; i++)
 	{
@@ -65,6 +66,10 @@ void Welcome::draw()
 	{
 		face = faces[random() % faces.size()];
 		suite = suites[random() % suites.size()];
+	}
+	if (border != nullptr)
+	{
+		border->draw(0, 0);
 	}
 	Card c(face, suite);
 	int W = w() / 2 - w() / 10;

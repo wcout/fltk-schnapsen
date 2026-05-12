@@ -48,6 +48,9 @@ public:
 	std::string suite_symbol() const;
 	static std::string suite_symbol(CardSuite suite_);
 	static std::string suite_symbol_image(CardSuite suite_);
+	static std::string shadow_svg();
+	static std::string empty_svg();
+	static std::string outline_svg();
 	bool is_black_suite() const;
 	bool is_red_suite() const { return !is_black_suite(); }
 	bool includes(int x_, int y_) const { return rect().includes(x_, y_); }

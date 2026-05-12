@@ -1,6 +1,7 @@
 #pragma once
 #include <utility> // std::pair()
 #include <FL/Fl_Widget.H>
+#include <FL/fl_draw.H>
 
 struct Rect
 {

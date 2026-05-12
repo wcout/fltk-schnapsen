@@ -42,6 +42,9 @@ bool Unittest::run()
 	assert(clubs[0] == Card(QUEEN, CLUB)); // lowest first!
 	assert(_engine.lowest_card_that_tricks(Card(JACK, CLUB), temp) == 4); // 4=QUEEN/CLUB
 	assert(_engine.highest_card_that_tricks(Card(JACK, CLUB), temp) == 0); // 0=ACE/SPADE (_game.trump=SPADE)
+	assert(_engine.have_20(temp)[0] == CLUB);
+	_game.trump = CLUB;
+	assert(_engine.have_40(temp)[0] == CLUB);
 	_game.trump = HEART;
 	assert(_engine.highest_card_that_tricks(Card(JACK, CLUB), temp) == 2); // 2=TEN/CLUB (_game.trump=HEART)
 	_game.trump = DIAMOND;
