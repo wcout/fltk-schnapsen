@@ -13,7 +13,8 @@ public:
 	static Fl_Font load(const char* filePath_, const char* fontName_, Fl_Font defaultFont_ = FL_HELVETICA);
 	// Load font from memory
 	static Fl_Font load(const unsigned char* data_, unsigned int len_, const char* fontName_, Fl_Font defaultFont_ = FL_HELVETICA);
-
+	// Add all fonts from directory to font list
+	static int load_dir(const char* dirPath_, const char *ext_ = ".ttf");
 public:
 	// Convert a filename to a font name
 	static std::string convertToFontName(const std::string &name_);

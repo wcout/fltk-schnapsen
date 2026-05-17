@@ -4,6 +4,7 @@
 #include "CardImage.h"
 #include <map>
 #include <string>
+#include <vector>
 
 enum class CardFace
 {
@@ -30,7 +31,8 @@ class Card
 public:
 	Card();
 	explicit Card(CardFace f_, CardSuite s_);
-	Card& load();
+	Card& load(bool force_ = false);
+	Card& reload() { return load(true); }
 	auto image(int w_ = 0, int h_ = 0) { load(); return _images.image(name(), w_, h_); }
 	auto rot90_image() { load(); return _images.rot90_image(name()); }
 	auto skewed_image() { load(); return _images.skewed_image(name()); }
@@ -51,12 +53,15 @@ public:
 	static std::string shadow_svg();
 	static std::string empty_svg();
 	static std::string outline_svg();
+	static std::vector<std::string> cardsets();
+	static std::vector<std::string> cardbacks();
 	bool is_black_suite() const;
 	bool is_red_suite() const { return !is_black_suite(); }
 	bool includes(int x_, int y_) const { return rect().includes(x_, y_); }
 	bool operator == (const Card c_);
 	virtual std::ostream &printOn(std::ostream &os_) const;
 	Card& set_pixel_size(int w_, int h_);
+	constexpr static std::string cardDir{"svg_cards"};
 private:
 	CardFace _f;
 	CardSuite _s;

@@ -1,3 +1,11 @@
+//
+// Part of "Schnapsen for 2" card game.
+//
+// (c) 2026 Christian Grabner
+//
+// Make some basic "unit tests".
+//
+
 #include "Unittest.h"
 #include "Engine.h"
 

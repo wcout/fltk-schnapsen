@@ -38,6 +38,7 @@ $(APPLICATION): $(APPLICATION).cxx include/system.h \
                                    include/FontLoader.h src/FontLoader.cxx \
                                    include/Alert.h src/Alert.cxx \
                                    include/Args.h src/Args.cxx \
+                                   include/Selector.h src/Selector.cxx \
                                    include/Unittest.h src/Unittest.cxx
 
 	$(FLTK)$(FLTK_CONFIG) --use-images --compile $(APPLICATION).cxx $(cxxflags)

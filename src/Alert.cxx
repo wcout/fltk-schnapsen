@@ -1,3 +1,11 @@
+//
+// Part of "Schnapsen for 2" card game.
+//
+// (c) 2026 Christian Grabner
+//
+// Manage Alert style popup optionally with animation.
+//
+
 #include "Alert.h"
 #include "Util.h"
 
@@ -119,11 +127,5 @@ Alert& Alert::center_on(const Rect& r_)
 
 void Alert::run()
 {
-	show();
-	wait_for_expose();
-	while (shown())
-	{
-		Fl::wait();
-	}
-	delete this;
+	Util::run(*this);
 }

@@ -1,5 +1,9 @@
 //
-// FLTK custom font loader
+// Part of "Schnapsen for 2" card game.
+//
+// (c) 2026 Christian Grabner
+//
+// FLTK custom font loader.
 //
 
 #include "FontLoader.h"
@@ -36,7 +40,6 @@ Fl_Font FontLoader::load(const char* filePath_, const char* fontName_, Fl_Font d
 #else
 	success = FcConfigAppFontAddFile(NULL, reinterpret_cast<const FcChar8*>(filePath_));
 #endif
-
 	return setupFont(success, fontName_, defaultFont_);
 }
 
@@ -74,8 +77,30 @@ Fl_Font FontLoader::load(const unsigned char* data_, unsigned int len_, const ch
 }
 
 //
+// Add all fonts from directory to font list
+//
+/*static*/
+int FontLoader::load_dir(const char* dir_path_, const char *ext_/* = ".ttf"*/)
+{
+	std::filesystem::path fonts(dir_path_);
+	int n = 0;
+	for (auto const &dir_entry : std::filesystem::directory_iterator(fonts))
+	{
+		if (dir_entry.is_regular_file() && dir_entry.path().extension().string() == ext_)
+		{
+			n += (int)load(dir_path_, dir_entry.path().filename().string().c_str(), (Fl_Font)-1);
+		}
+	}
+	DBG("FontLoader::load_dir(" << dir_path_ << "): added " << n << " fonts\n");
+	return n;
+}
+
+//
 // Map font to FLTK font index on success, or return defaultFont on error
 //
+
+static std::string fontName;
+
 /*static*/
 Fl_Font FontLoader::setupFont(bool success_, const char* fontName_, Fl_Font defaultFont_)
 {
@@ -84,24 +109,58 @@ Fl_Font FontLoader::setupFont(bool success_, const char* fontName_, Fl_Font defa
 		WNG("Failed to load custom font '" << fontName_ << "'");
 		return defaultFont_;
 	}
+	if (defaultFont_ == (Fl_Font) - 1)
+	{
+		DBG("added custom font " << fontName_ << "\n");
+		return (Fl_Font)success_;
+	}
+
 	// We have to use the font name as FLTK presents us
-	static std::string fontName;
 	fontName = fontName_;
 	int n = Fl::set_fonts();
+	DBG(n << " fonts in FLTK font table\n");
+	int use_font = -1;
+	DEV("---------\t");
 	for (int i = 0; i < n; i++)
 	{
 		std::string fn = Fl::get_font_name(i);
-		if (!fontName.starts_with(fn)) continue;
-		fontName = fn;
-		if (fn.starts_with(fontName_))
-			fontName = fn;
+		DEV(i << "\t" << fn << "\n");
 	}
-	LOG("Use font: '" << fontName << "'\n");
+	DEV("---------\n");
+
+	for (int i = FL_FREE_FONT; i < n; i++)
+	{
+		std::string fn = Fl::get_font_name(i);
+		DEV("\t[" << fontName << "].startsWith(" << fn << ")\n");
+		if (!fontName.starts_with(fn)) continue;
+		if (use_font < 0)
+		{
+			use_font = i;
+		}
+		DEV(i << ": test fontname '" << fn << "' against '" << fontName << "'\n");
+		if (fn.starts_with(fontName_))
+		{
+			use_font = i;
+			DEV("break with " << fn << "\n");
+			break;
+		}
+	}
+
 	Fl_Font index = _index;
-	const char *default_font = Fl::get_font(FL_HELVETICA);
-	DBG("default font: '" << default_font << "'\n");
-	if (default_font[0] == ' ') fontName = " " + fontName;
-	Fl::set_font(index, fontName.c_str());
+	if (use_font >=0 )
+	{
+		LOG("Use font #" << use_font << ": '" << Fl::get_font(use_font) << "'\n");
+		Fl::set_font(index, use_font);
+	}
+	else
+	{
+		// not found, try to set by name anyway
+		LOG("Set font: '" << fontName << "'\n");
+		const char *default_font = Fl::get_font(FL_HELVETICA);
+		DBG("default font: '" << default_font << "'\n");
+		if (default_font[0] == ' ') fontName = " " + fontName;
+		Fl::set_font(index, fontName.c_str());
+	}
 	_index++;
 	return index;
 }

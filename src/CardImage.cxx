@@ -1,3 +1,11 @@
+//
+// Part of "Schnapsen for 2" card game.
+//
+// (c) 2026 Christian Grabner
+//
+// Manage images for cards.
+//
+
 #include "CardImage.h"
 
 #include <FL/Fl_RGB_Image.H>
@@ -49,7 +57,26 @@ Fl_RGB_Image *rotate_90_CCW(const Fl_RGB_Image &svg_)
 
 CardImage& CardImage::image(const std::string &id_, const std::string &pathname_, bool data_/* = false*/)
 {
-	assert(_images.find(id_) == _images.end());
+	auto image = _images.find(id_);
+	{
+		if (image != _images.end())
+		{
+			delete image->second;
+			_images.erase(image);
+		}
+		image = _images.find(id_ + "_skewed");
+		if (image != _images.end())
+		{
+			delete image->second;
+			_images.erase(image);
+		}
+		image = _images.find(id_ + "_quer");
+		if (image != _images.end())
+		{
+			delete image->second;
+			_images.erase(image);
+		}
+	}
 	std::string pathname(pathname_);
 	Fl_RGB_Image *img = nullptr;
 	if (data_ == false)
@@ -160,4 +187,4 @@ CardImage& CardImage::set_pixel_size(int w_, int h_)
 
 /*static*/ int CardImage::_W = 0;
 /*static*/ int CardImage::_H = 0;
-/*static*/std::unordered_map<std::string, Fl_RGB_Image *> CardImage::_images;
+/*static*/ std::unordered_map<std::string, Fl_RGB_Image *> CardImage::_images;

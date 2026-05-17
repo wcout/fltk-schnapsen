@@ -1,3 +1,10 @@
+//
+// Part of "Schnapsen for 2" card game.
+//
+// (c) 2026 Christian Grabner
+//
+// Manage and display Gamebook.
+//
 #include "GameBook.h"
 #include "Util.h"
 #include "Rect.h"

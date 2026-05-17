@@ -1,7 +1,16 @@
+//
+// Part of "Schnapsen for 2" card game.
+//
+// (c) 2026 Christian Grabner
+//
+// All methods for a single Card object.
+//
+
 #include "Card.h"
 #include "debug.h"
 #include "Util.h"
 #include <format>
+#include <filesystem>
 
 using enum CardSuite;
 using enum CardFace;
@@ -26,9 +35,10 @@ Card::Card(CardFace f_, CardSuite s_) :
 	_rect(0, 0, 0, 0)
 {}
 
-Card& Card::load()
+Card& Card::load(bool force_/* = false*/)
 {
-	if (face() != NO_FACE && !_images.image(name()))
+	if (face() == NO_FACE) return *this;
+	if (force_ || !_images.image(name()))
 	{
 		std::string pathname = Util::cardset_dir() + filename();
 		DBG("load '" << pathname << "'\n");
@@ -86,7 +96,7 @@ std::string Card::suite_symbol_image(CardSuite suite_)
 
 static std::string make_svg(const std::string& svg_)
 {
-	std::ifstream R(Util::cardset_dir() + "R");
+	std::ifstream R(Util::cardset_dir() + "R", std::ios::binary);
 	std::string r;
 	if (R.is_open() && !R.bad())
 	{
@@ -154,6 +164,40 @@ inline std::ostream &operator << (std::ostream &os_, const Card &c_)
 	return c_.printOn(os_);
 }
 
+/*static*/
+std::vector<std::string> Card::cardsets()
+{
+	std::vector<std::string> res;
+	std::string svg_cards(Util::home_dir() + cardDir);
+	for (auto const &dir_entry : std::filesystem::directory_iterator(svg_cards))
+	{
+		std::filesystem::path card(dir_entry.path());
+		card /= Card(QUEEN, HEART).filename();
+		std::filesystem::path card_png(dir_entry.path());
+		card_png /= Card(QUEEN, HEART).filename(".png");
+		if (dir_entry.is_directory() &&
+			(std::filesystem::exists(card) || std::filesystem::exists(card_png)))
+		{
+			res.push_back(dir_entry.path().filename().string());
+		}
+	}
+	return res;
+}
+
+/*static*/
+std::vector<std::string> Card::cardbacks()
+{
+	std::vector<std::string> res;
+	std::filesystem::path back(Util::home_dir() + cardDir + "/back");
+	for (auto const &dir_entry : std::filesystem::directory_iterator(back))
+	{
+		if (dir_entry.is_regular_file())
+		{
+			res.push_back(dir_entry.path().filename().string());
+		}
+	}
+	return res;
+}
 
 #ifdef STANDALONE
 #undef STANDALONE

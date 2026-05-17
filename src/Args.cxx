@@ -1,12 +1,16 @@
 //
+// Part of "Schnapsen for 2" card game.
+//
+// (c) 2026 Christian Grabner
+//
 // Command line argument handling
 //
+
 #include "Args.h"
 
 #include "Card.h"
 #include "Util.h"
 
-#include <filesystem>
 #include <FL/fl_ask.H>
 
 using namespace Schnapsen;
@@ -19,44 +23,33 @@ namespace {
 
 void list_cardbacks(std::ostringstream &os_, int id_ = 0)
 {
-	std::filesystem::path back(Util::home_dir() + cardDir + "/back");
+	std::vector<std::string> cardbacks = Card::cardbacks();
 	if (!id_)
 		os_ << "\navailaible card backs (--cardback):\n";
 	int id = 0;
-	for (auto const &dir_entry : std::filesystem::directory_iterator(back))
+	for (auto const &cb : cardbacks)
 	{
 		++id;
-		if (dir_entry.is_regular_file())
-		{
-			if (id_ && id_ == id)
-				os_ << dir_entry.path().filename().string(); // NOTE: string() to get name unquoted
-			else if (!id_)
-				os_ << "[" << id << "]" << "\t" << dir_entry.path().filename() << "\n";
-		}
+		if (id_ && id_ == id)
+			os_ << cb;
+		else if (!id_)
+			os_ << "[" << id << "]" << "\t" << cb << "\n";
 	}
 }
 
 void list_cardsets(std::ostringstream &os_, int id_ = 0)
 {
-	std::string svg_cards(Util::home_dir() + cardDir);
+	std::vector<std::string> cardsets = Card::cardsets();
 	if (!id_)
 		os_ << "\navailaible cardsets (--cardset):\n";
 	int id = 0;
-	for (auto const &dir_entry : std::filesystem::directory_iterator(svg_cards))
+	for (auto const &cs : cardsets)
 	{
-		std::filesystem::path card(dir_entry.path());
-		card /= Card(QUEEN, HEART).filename();
-		std::filesystem::path card_png(dir_entry.path());
-		card_png /= Card(QUEEN, HEART).filename(".png");
-		if (dir_entry.is_directory() &&
-			(std::filesystem::exists(card) || std::filesystem::exists(card_png)))
-		{
-			++id;
-			if (id_ && id_ == id)
-				os_ << dir_entry.path().filename().string(); // NOTE: string() to get name unquoted
-			else if (!id_)
-				os_ << "[" << id << "]"<< "\t" << dir_entry.path().filename() << "\n";
-		}
+		++id;
+		if (id_ && id_ == id)
+			os_ << cs;
+		else if (!id_)
+			os_ << "[" << id << "]"<< "\t" << cs << "\n";
 	}
 }
 
@@ -113,6 +106,7 @@ bool process(const std::string &arg_, const std::string &value_)
 		{ "cards", "\t{cards-string}\tuse this cards to play (for debugging only)" },
 		{ "cardback", "{file}\t\tuse cardback image [svg]" },
 		{ "cardset", "{directory}\tuse cardset [name]" },
+		{ "font", "\t{fontfile-name}\tuse this custom font" },
 		{ "background", "{name/number}\tset background image or color [imagepath/[0-255]]" },
 		{ "loglevel", "{level}\t\tset loglevel [0-2]" },
 		{ "lang", "\t{id}\t\tset language [de,en]" }

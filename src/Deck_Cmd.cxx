@@ -1,8 +1,13 @@
 //
+// Part of "Schnapsen for 2" card game.
+//
+// (c) 2026 Christian Grabner
+//
 // This file is part of Deck.cxx, and is only there
 // to aid debugging during development without
 // cluttering Deck.cxx.
 //
+
 #include "debug.h"
 #include "Util.h"
 #include "Alert.h"
@@ -87,7 +92,7 @@ bool Deck::load_game(const std::string &name_)
 		else if (line.starts_with("ai_20_40:")) _ai.s20_40 = suites_from_string(line.substr(9));
 		else if (line.starts_with("ai_card:"))
 		{
-			_ai.card = Cards("|" + line.substr(12) + "|")[0];
+			_ai.card = Cards("|" + line.substr(8) + "|")[0];
 			_ai.move_state = ON_TABLE;
 		}
 		else if (line.starts_with("ai_deck:")) _ai.deck = line.substr(8);
@@ -258,12 +263,13 @@ void Deck::onCmd(const std::string &cmd_)
 				ofs << Card::suite_symbol(s) << "|";
 			ofs << "\n";
 		}
-		if (_ai.move_state == ON_TABLE)
-			ofs << "ai_card:" << _ai.card << "\n";
+		if (_player.move_state == ON_TABLE)
+			ofs << "player_card:" << _player.card << "\n";
 		ofs << "player_deck:" << _player.deck << "\n";
 		ofs << "player_score:" << _player.score << "\n";
 		ofs << "player_pending:" << _player.pending << "\n";
 		ofs << "ai_cards:" << _ai.cards << "\n";
+
 		if (_ai.s20_40.size())
 		{
 			ofs << "ai_20_40:|";
@@ -271,8 +277,6 @@ void Deck::onCmd(const std::string &cmd_)
 				ofs << Card::suite_symbol(s) << "|";
 			ofs << "\n";
 		}
-		if (_ai.move_state == ON_TABLE)
-			ofs << "ai_card:" << _ai.card << "\n";
 		if (_ai.move_state == ON_TABLE)
 			ofs << "ai_card:" << _ai.card << "\n";
 		ofs << "ai_deck:" << _ai.deck << "\n";

@@ -51,6 +51,10 @@ enum class Message
 #ifdef USE_MINIAUDIO
 	VOLUME,
 #endif
+	CLAIM,
+	SELECTION,
+	ACCEPT,
+	FONT_SEL
 };
 
 using enum Message;
@@ -127,6 +131,10 @@ std::map<Message, std::string> messages_de = {
 #ifdef USE_MINIAUDIO
 	{VOLUME, "Lautstärke: {}%"},
 #endif
+	{CLAIM, "Restliche Stiche sind mein!"},
+	{SELECTION, "Wähle den Kartenstil"},
+	{ACCEPT, "Enter/Space übernimmt Auswahl, Esc verwirft"},
+	{FONT_SEL, "Font Auswahl:"},
 };
 
 std::map<Message, std::string> messages_en = {
@@ -198,6 +206,10 @@ std::map<Message, std::string> messages_en = {
 #ifdef USE_MINIAUDIO
 	{VOLUME, "Volume: {}%"},
 #endif
+	{CLAIM, "Claim remaining tricks!"},
+	{SELECTION, "Select card style"},
+	{ACCEPT, "Enter/Space to accept selection, Esc to cancel"},
+	{FONT_SEL, "Font selection:"},
 };
 
 std::map<Message, std::string> sound = {

@@ -1,3 +1,10 @@
+//
+// Part of "Schnapsen for 2" card game.
+//
+// (c) 2026 Christian Grabner
+//
+// Manage a collection of cards.
+//
 #include "Cards.h"
 
 #include <sstream>

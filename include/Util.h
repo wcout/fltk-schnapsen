@@ -25,12 +25,15 @@ static const std::map<char, Fl_Color> text_colors = {
 	{ 'G', GRAY }
 };
 
+
+class Fl_Window;
+
 class Util
 {
 public:
 	static const std::string& home_dir();
 	static std::string rsc_dir();
-	static std::string cardset_dir();
+	static std::string cardset_dir(std::string name_ = "");
 	static string_map& config();
 	static string_map& stats();
 
@@ -61,4 +64,9 @@ public:
 	static Fl_Shared_Image *get_shared_image(const std::string &name_, int w_ = 0, int h_ = 0, bool proportional_ = false);
 
 	static std::ostream& logstream();
+
+	static std::string filename(const std::string &pathname_);
+	static std::string dirname(const std::string &pathname_, bool absolute_ = false);
+
+	static int run(Fl_Window &win_);
 };

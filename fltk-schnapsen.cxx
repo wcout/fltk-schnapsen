@@ -14,7 +14,7 @@
 #include "system.h"
 
 constexpr char APPLICATION[] = "fltk-schnapsen";
-constexpr char VERSION[] = "1.0.5";
+constexpr char VERSION[] = "1.0.6";
 
 #include "Deck.h"
 namespace Schnapsen
@@ -34,13 +34,12 @@ using namespace Schnapsen;
 #include "GameBook.cxx"
 #include "Engine.cxx"
 #include "Welcome.cxx"
+#include "Selector.cxx"
 #include "Alert.cxx"
 #include "Deck.cxx"
 #include "Deck_Cmd.cxx"
 #include "Args.cxx"
-#ifdef CUSTOM_FONT
-#include "src/FontLoader.cxx"
-#endif
+#include "FontLoader.cxx"
 
 int main(int argc_, char *argv_[])
 {
@@ -57,13 +56,6 @@ int main(int argc_, char *argv_[])
 	Util::load_config();
 	Util::load_stats();
 	LOG(Args::arg0 << " " << VERSION << " [" << Util::home_dir() << "]\n");
-
-#ifdef CUSTOM_FONT
-	static std::string fontName{FontLoader::convertToFontName(CUSTOM_FONT)}; // NOTE: this must be a static string!
-	std::string font_path = Util::rsc_dir() + CUSTOM_FONT;
-	CustomFont = FontLoader::load(font_path.c_str(), fontName.c_str());
-#endif
-
 	fl_message_title_default(Util::message(TITLE).c_str()); // redo ... maybe language changed
 	try
 	{

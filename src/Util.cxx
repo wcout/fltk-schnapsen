@@ -1,3 +1,11 @@
+//
+// Part of "Schnapsen for 2" card game.
+//
+// (c) 2026 Christian Grabner
+//
+// Various comfort methods needed for the game.
+//
+
 #ifdef STANDALONE
 #define APPLICATION "DrawTest"
 #endif
@@ -6,16 +14,17 @@
 #include <FL/filename.H>
 #include <FL/fl_draw.H>
 #include <FL/Fl_Shared_Image.H>
+#include <FL/Fl_Window.H>
 #include <FL/Fl.H>
+
+#include "Card.h"
 
 #include <fstream>
 #include <filesystem>
 #include <locale>
 #include <stdexcept>
 #include <cstdlib> // atoi(), getenv()
-
-
-const std::string &cardDir = "svg_cards";
+#include <cmath>
 
 // config values (from fltk-schnapsen.cfg)
 string_map config = {};
@@ -31,7 +40,7 @@ const std::string& Util::home_dir()
 	if (home.empty())
 	{
 		char home_path[FL_PATH_MAX];
-		if (std::filesystem::exists(cardDir))
+		if (std::filesystem::exists(Card::cardDir))
 		{
 			home = "./";
 			LOG("use local home dir: " << home << "\n");
@@ -46,7 +55,7 @@ const std::string& Util::home_dir()
 			home = home_path;
 			home += APPLICATION;
 			home += "/";
-			if (std::filesystem::exists(home + cardDir))
+			if (std::filesystem::exists(home + Card::cardDir))
 			{
 				LOG("use installed home dir: " << home << "\n");
 			}
@@ -63,8 +72,11 @@ const std::string& Util::home_dir()
 Fl_Shared_Image *Util::get_shared_image(const std::string &name_, int w_/* = 0*/, int h_/* = 0*/, bool proportional_/* = false*/)
 {
 	std::string name(name_);
-	if (name.find('/') == std::string::npos)
-			name = Util::rsc_dir() + name;
+	if (dirname(name).empty())
+	{
+		// use file from game 'rsc' dir, when no path is given
+		name = Util::rsc_dir() + name;
+	}
 	Fl_Shared_Image *img = Fl_Shared_Image::get(name.c_str());
 	if (img && w_ && h_)
 	{
@@ -82,13 +94,14 @@ std::string Util::rsc_dir()
 }
 
 /*static*/
-std::string Util::cardset_dir()
+std::string Util::cardset_dir(std::string name_/* = "*/)
 {
-	std::string dir = home_dir() + cardDir + "/";
-	std::string cardset = ::config["cardset"];
+	std::string dir = home_dir() + Card::cardDir + "/";
+	std::string cardset = name_.empty() ? ::config["cardset"] : name_;
 	if (cardset.empty() || cardset == "default")
 	{
 		cardset = "English_pattern";
+		config("cardset", cardset);
 	}
 	dir += cardset + "/";
 	return dir;
@@ -232,6 +245,7 @@ void Util::draw_color_text(const std::string &text_, int x_, int y_,
                            [[maybe_unused]]bool shadow_/* = false*/,
                            const std::map<char, Fl_Color> &colors_/* = text_colors*/)
 {
+	Fl_Color def_color = fl_color();
 	auto draw_text = [&](const char *text_, int x_, int y_) -> void
 	{
 #if defined(_WIN32) || defined(USE_IMAGE_TEXT)
@@ -239,7 +253,10 @@ void Util::draw_color_text(const std::string &text_, int x_, int y_,
 		{
 			// not suitable when emojis are in the text string!
 			static const bool text_shadow = atoi(::config["text-shadow"].c_str());
-			if (text_shadow)
+			uchar r, g, b;
+			Fl::get_color(def_color, r, g, b);
+			// no shadow with too dark colors (looks bad)
+			if (text_shadow && (r > 64 || g > 64 || b > 64))
 			{
 				// draws a text "shadow" by drawing text with offset first in GRAY
 				int delta = fl_height() / 30 + 1;
@@ -253,7 +270,6 @@ void Util::draw_color_text(const std::string &text_, int x_, int y_,
 		fl_draw(text_, x_, y_);
 	};
 	std::string text(text_);
-	Fl_Color def_color = fl_color();
 	while (text.size())
 	{
 		size_t pos = text.find('^');
@@ -282,6 +298,13 @@ void Util::draw_color_text(const std::string &text_, int x_, int y_,
 	}
 }
 
+static int is_mono_font()
+{
+	if (fl_width(' ') == fl_width('M'))
+		return ceil(fl_width(' '));
+	return 0;
+}
+
 /*static*/
 void Util::draw_string(const std::string &text_, int x_, int y_, bool shadow_/*= false*/)
 {
@@ -292,6 +315,7 @@ void Util::draw_string(const std::string &text_, int x_, int y_, bool shadow_/*=
 	{
 		size_t image_pos;
 		int dx = 0;
+		int mono_width = is_mono_font();
 		while ((image_pos = line.find("^|")) != std::string::npos)
 		{
 			std::string sub = line.substr(0, image_pos);
@@ -310,7 +334,13 @@ void Util::draw_string(const std::string &text_, int x_, int y_, bool shadow_/*=
 			{
 //				DBG("Symbol " << image_name << ": " << img->w() << "x" << img->h() << " fl_height=" << fl_height() << ", fl_descent=" << fl_descent() << "\n");
 				img->draw(x_ + dx, y_ - fl_height() + (fl_height() - img->h()) / 2 + fl_descent());
-				dx += img->w();
+				int w = img->w();
+				if (mono_width)
+				{
+					w += mono_width - 1;
+					w = (w / mono_width) * mono_width;
+				}
+				dx += w;
 			}
 			line.erase(0, end_image + 1);
 		}
@@ -343,6 +373,7 @@ int Util::string_size(const std::string &text_, int &w_, int &h_)
 	{
 		size_t image_pos;
 		int w = 0;
+		int mono_width = is_mono_font();
 		std::string text;
 		while ((image_pos = line.find("^|")) != std::string::npos)
 		{
@@ -355,7 +386,13 @@ int Util::string_size(const std::string &text_, int &w_, int &h_)
 			Fl_Image *img = get_shared_image(image_name, fl_height() - fl_descent() / 2, fl_height() - fl_descent(), true);
 			if (img != nullptr)
 			{
-				w += img->w();
+				int dx = img->w();
+				if (mono_width)
+				{
+					dx += mono_width - 1;
+					dx = (dx / mono_width) * mono_width;
+				}
+				w += dx;
 			}
 			line.erase(0, end_image + 1);
 		}
@@ -409,6 +446,43 @@ std::ostream& Util::logstream()
 	return ofs;
 }
 
+/*static*/
+std::string Util::filename(const std::string &pathname_)
+{
+	const auto f = std::filesystem::path{ pathname_ }.filename().string();
+	return f;
+}
+
+/*static*/
+std::string Util::dirname(const std::string &pathname_, bool absolute_/* = false*/)
+{
+	auto d = std::filesystem::path{ pathname_ }.parent_path();
+	if (absolute_)
+	{
+		std::error_code ec;
+		d = std::filesystem::absolute(d);
+		auto dc = std::filesystem::canonical(d, ec);
+		if (!ec)
+		{
+			d = dc;
+		}
+	}
+	return d.string();
+}
+
+/*static*/
+int Util::run(Fl_Window &win_)
+{
+	win_.show();
+	win_.wait_for_expose();
+	while (win_.shown())
+	{
+		Fl::wait();
+	}
+	delete &win_;
+	return 0;
+}
+
 #ifdef STANDALONE
 #undef STANDALONE
 #include <FL/Fl_Double_Window.H>
@@ -432,6 +506,13 @@ public:
 int main()
 {
 	fl_register_images();
+	std::cout << "filename: " << Util::filename("/usr/local/bin/fluid") << "\n";
+	std::cout << "filename: " << Util::filename("./fluid") << "\n";
+	std::cout << "filename: " << Util::filename("/usr/local/bin/") << "\n";
+	std::cout << "dirname : " << Util::dirname("/usr/local/bin/fluid") << "\n";
+	std::cout << "dirname : " << Util::dirname("./fluid") << "\n";
+	std::cout << "dirname : " << Util::dirname("svg_cards/back/back.svg") << "\n";
+	std::cout << "dirname : " << Util::dirname("./svg_cards/back/back.svg", true) << "\n";
 	TestWin win(800, 600);
 	win.show();
 	return Fl::run();

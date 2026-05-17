@@ -1,8 +1,17 @@
+//
+// Part of "Schnapsen for 2" card game.
+//
+// (c) 2026 Christian Grabner
+//
+// Manage the FLTK UI and the game.
+//
+
 #include "Deck.h"
 #include "Engine.h"
 
 #include "Util.h"
 #include "Alert.h"
+#include "FontLoader.h"
 
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Box.H>
@@ -151,7 +160,9 @@ public:
 		_CH(1.5 * w()),
 		_cmd_input(nullptr),
 		_redeal_button(nullptr),
+		_winning_button(nullptr),
 		_welcome(nullptr),
+		_selector(nullptr),
 		_grayout(false),
 		_animate_xy(std::make_pair(-1, -1)),
 		_animate_func(nullptr),
@@ -162,6 +173,10 @@ public:
 		_restart(false),
 		_card_scale(1.0)
 	{
+		// NOTE: FLTK (1.4) currently does not allow to update the internal font list after
+		// initial the Fl::set_fonts(). Therefore all maybe used fonts must be loaded at once.
+		FontLoader::load_dir(Util::rsc_dir().c_str());
+		load_font();
 		_game.trump_sort = Util::config_as_int("trump-sort");
 		_player.games_won = Util::stats_as_int("player_games_won");
 		_ai.games_won = Util::stats_as_int("ai_games_won");
@@ -169,9 +184,6 @@ public:
 		_ai.matches_won = Util::stats_as_int("ai_matches_won");
 		copy_label(Util::message(TITLE).c_str());
 		fl_register_images();
-		std::string card_root = Util::home_dir() + cardDir + "/";
-		std::string cardback = Util::config("cardback");
-		_back.image("card_back", card_root + "back/" + ((cardback.empty() || cardback == "default") ? "Card_back_red.svg" : cardback));
 		_shadow.image("card_shadow", Card::shadow_svg(), true);
 		_outline.image("card_outline", Card::outline_svg(), true);
 		_empty.image("card_empty", Card::empty_svg(), true);
@@ -186,8 +198,13 @@ public:
 		_redeal_button = new Button(w() - 100, h() - 40, 100, 40, Util::message(REDEAL).c_str());
 		_redeal_button->color(FL_YELLOW);
 		_redeal_button->selection_color(fl_darker(FL_YELLOW));
-		_redeal_button->visible_focus(0);
 		_redeal_button->hide();
+		_winning_button = new Button(w() / 2 - 100, h() - 16, 200, 16, Util::message(CLAIM).c_str());
+		_winning_button->box(FL_RFLAT_BOX);
+		_winning_button->down_box(FL_ROUNDED_BOX);
+		_winning_button->color(0xffe4e100);
+		_winning_button->selection_color(0xbc8f8f00);
+		_winning_button->hide();
 		resizable(this);
 		size_range(400, 300/*, 0, 0, 0, 0, 1*/);
 		int width = Util::config_as_int("width");
@@ -213,12 +230,17 @@ public:
 		{
 			static_cast<Deck *>(wgt_->window())->redeal();
 		});
+		_winning_button->callback([](Fl_Widget *wgt_, void *)
+		{
+			static_cast<Deck *>(wgt_->window())->winning_claim();
+		});
 		if (Util::config("fullscreen") == "1")
 		{
 			toggle_fullscreen();
 		}
 		LOG("strictness: " << _strictness << ", animation_level: " << _animation_level << "\n");
 		_game.book.history(Util::stats("gamebook"));
+		apply_selections();
 	}
 
 	void update() override
@@ -440,6 +462,10 @@ public:
 		{
 			delayed_call(&Deck::welcome);
 		}
+		else if (Fl::event_key(FL_F + 8) && idle())
+		{
+			delayed_call(&Deck::selector);
+		}
 		else if (Fl::event_key(FL_F + 12) && ::debug) // just for testing -> cmd
 		{
 			toggle_cmd_input();
@@ -468,11 +494,54 @@ public:
 			_grayout = true;
 			const char *bg_tile = Util::config("background").c_str();
 			bg_tile = fl_file_chooser(Util::message(DECK_BG).c_str(), "*.{png,gif,jpg,svg}",
-				                          (std::string(bg_tile) != "NONE" ? bg_tile : Util::rsc_dir().c_str()));
+			                          (std::string(bg_tile) != "NONE" ? bg_tile : Util::rsc_dir().c_str()));
 			_grayout = false;
 			if (bg_tile)
 			{
 				Util::config("background", bg_tile);
+			}
+		}
+		redraw();
+	}
+
+	void load_font()
+	{
+		std::string custom_font = Util::config("font");
+		if (custom_font.size())
+		{
+			static std::string fontName;
+			fontName = FontLoader::convertToFontName(Util::filename(custom_font));
+			std::string dir = Util::dirname(custom_font);
+			std::string font_path = dir.size() ? custom_font : Util::rsc_dir() + custom_font;
+			CustomFont = FontLoader::load(font_path.c_str(), fontName.c_str());
+			DBG("CustomFont: #" << CustomFont << "\n");
+			redraw();
+		}
+	}
+
+	void select_font()
+	{
+		if (Fl::event_alt())
+		{
+			// clear font
+			Util::config("font", "");
+			CustomFont = FL_HELVETICA;
+			redraw();
+		}
+		else
+		{
+			// select font file
+			_grayout = true;
+			const char *font = Util::config("font").c_str();
+			std::string dir = Util::dirname(font);
+			std::string font_path = dir.size() ? font : Util::rsc_dir() + font;
+			font = fl_file_chooser(Util::message(FONT_SEL).c_str(), "*.{ttf}",
+			                       font_path.c_str());
+			_grayout = false;
+			if (font)
+			{
+				Util::config("font", font);
+				load_font();
 			}
 		}
 		redraw();
@@ -583,9 +652,16 @@ public:
 				return;
 			}
 		}
-		if (idle() && cards_area_rect().includes(x_, y_) && Fl::event_button() == FL_RIGHT_MOUSE)
+		if (idle()/* && Fl::event_button() == FL_RIGHT_MOUSE*/)
 		{
-			select_background();
+			if (cards_area_rect().includes(x_, y_))
+			{
+				select_background();
+			}
+			if (message_rect(PLAYER).includes(x_, y_))
+			{
+				select_font();
+			}
 		}
 	}
 
@@ -1453,6 +1529,9 @@ public:
 		_CW = W;
 		_CH = H;
 		_card_template.set_pixel_size(_CW, _CH);
+		Rect r(cards_rect(PLAYER));
+		W = w() / 20 * (_player.cards.size() - 1) + _CW;
+		_winning_button->resize(r.x, r.y + r.h, W, h() - (r.y + r.h));
 
 		if (check_sleep(scale_change)) return;
 
@@ -1532,9 +1611,38 @@ public:
 		_welcome->position(x() + (w() - _welcome->w()) / 2, y() + (h() - _welcome->h()) / 2);
 		_welcome->stats(make_stats());
 		bell(WELCOME);
-		_welcome->show();
-		_welcome->wait_for_expose();
-		_welcome->run();
+		Util::run(*_welcome);
+		redraw();
+	}
+
+	void apply_selections()
+	{
+		std::string card_root = Util::home_dir() + Card::cardDir + "/";
+		std::string cardback = Util::config("cardback");
+		if (cardback.empty() || cardback == "default")
+		{
+			cardback = "Card_back_red.svg";
+			Util::config("cardback", cardback);
+		}
+		_back.image("card_back", card_root + "back/" + cardback);
+		for (auto &c : _game.cards) c.reload();
+		for (auto &c : _player.cards) c.reload();
+		for (auto &c : _ai.cards) c.reload();
+		for (auto &c : _player.deck) c.reload();
+		for (auto &c : _ai.deck) c.reload();
+	}
+
+	void selector()
+	{
+		std::string cardset = Util::config("cardset");
+		std::string cardback = Util::config("cardback");
+		_selector = new Selector(w() / 2, h() / 4 * 3);
+		_selector->position(x() + (w() - _selector->w()) / 2, y() + (h() - _selector->h()) / 2);
+		Util::run(*_selector);
+		if (cardset != Util::config("cardset") || cardback != Util::config("cardback"))
+		{
+			apply_selections();
+		}
 		redraw();
 	}
 
@@ -1955,6 +2063,7 @@ public:
 		_engine.init();
 		cursor(FL_CURSOR_DEFAULT);
 		_redeal ? _redeal_button->show() : _redeal_button->hide();
+		_winning_button->hide();
 		update();
 	}
 
@@ -2169,16 +2278,19 @@ public:
 	{
 		cursor(FL_CURSOR_DEFAULT);
 		update_history();
-#if 1
-		// TODO: maybe use later, to offer a 'claim remaining tricks' feature
-		if (_game.closed != NOT && _ai.move_state == NONE &&
+		//  Try to offer a 'claim remaining tricks' button
+		if (_game.closed != NOT &&  _player.cards.size() >= 2 && _ai.move_state == NONE &&
 		    _engine.highest_cards_in_hand(_player.cards).size() == _player.cards.size() &&
 			 (int)_engine.highest_trumps_in_hand(_player.cards).size() >= _engine.max_trumps(AI))
 		{
 			WNG("You have a winner hand!");
+			_winning_button->show();
 		}
-#endif
-		while (playing() && _player.move_state != ON_TABLE && _redeal == false)
+		else
+		{
+			_winning_button->hide();
+		}
+		while (playing() && _player.move_state != ON_TABLE && _redeal == false && _player.score < 66)
 		{
 			wait(0.);
 		}
@@ -2191,6 +2303,11 @@ public:
 	{
 		LOG("***redeal***\n");
 		_redeal = true;
+	}
+
+	void winning_claim()
+	{
+		_player.score = 66;
 	}
 
 	bool playing() override
@@ -2366,7 +2483,9 @@ private:
 	int _CH;					// card pixel height
 	Cmd_Input *_cmd_input;
 	Button *_redeal_button;
+	Button *_winning_button;
 	Welcome *_welcome;
+	Selector *_selector;
 	bool _grayout;
 #ifdef USE_MINIAUDIO
 	Audio _audio;
