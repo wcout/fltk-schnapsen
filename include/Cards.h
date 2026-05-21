@@ -5,6 +5,8 @@
 #include <iostream>
 #include <optional>
 
+#include "Card.h"
+
 typedef std::deque<Card> Cards_;
 typedef std::deque<CardSuite> Suites;
 
@@ -41,6 +43,6 @@ public:
 	Cards& sort(const CardSuite trump_);
 	Cards& sort_by_value(bool high_to_low = true);
 	int value() const;
-	static Cards fullcards(CardSuite suite_ = ANY_SUITE);
+	static Cards fullcards(CardSuite suite_ = CardSuite::ANY_SUITE);
 	virtual std::ostream &printOn(std::ostream &os_) const;
 };

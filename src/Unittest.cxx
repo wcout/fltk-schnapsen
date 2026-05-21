@@ -6,8 +6,15 @@
 // Make some basic "unit tests".
 //
 
+#ifdef STANDALONE
+constexpr char APPLICATION[] = "Unittest";
+#include "debug.h"
+#endif
+
 #include "Unittest.h"
 #include "Engine.h"
+#include "Cards.h"
+#include "Card.h"
 
 #include <cassert>
 
@@ -16,6 +23,9 @@ using enum CardState;
 using enum Message;
 using enum Closed;
 using enum Marriage;
+
+using enum CardSuite;
+using enum CardFace;
 
 bool Unittest::run()
 {
@@ -160,3 +170,25 @@ bool Unittest::run()
 	LOG("Unittests run successfully.\n");
 	return true;
 }
+
+#ifdef STANDALONE
+#undef STANDALONE
+#include "Util.cxx"
+#include "Card.cxx"
+#include "CardImage.cxx"
+#include "Cards.cxx"
+#include "Engine.cxx"
+#include "UI.h"
+int main()
+{
+	PlayerData player;
+	PlayerData ai;
+	GameData game;
+	game.cards = Cards::fullcards();
+	UI ui;
+	Engine engine(game, player, ai, ui);
+	Unittest ut(game, player, ai, engine);
+	ut.run();
+	OUT(APPLICATION << ": SUCCESS\n");
+}
+#endif

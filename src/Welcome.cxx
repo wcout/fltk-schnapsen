@@ -8,6 +8,7 @@
 
 #include "Welcome.h"
 #include "Util.h"
+#include "Card.h"
 
 #include <FL/Fl.H>
 #include <FL/fl_draw.H>

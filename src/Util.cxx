@@ -7,7 +7,7 @@
 //
 
 #ifdef STANDALONE
-#define APPLICATION "DrawTest"
+constexpr char APPLICATION[] = "DrawTest";
 #endif
 #include "debug.h"
 #include "Util.h"

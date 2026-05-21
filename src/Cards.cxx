@@ -5,6 +5,7 @@
 //
 // Manage a collection of cards.
 //
+
 #include "Cards.h"
 
 #include <sstream>

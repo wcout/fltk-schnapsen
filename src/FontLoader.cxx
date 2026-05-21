@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <unistd.h>
 #endif
+#include <filesystem>
 
 // First index for custom fonts
 /*static*/
@@ -30,16 +31,19 @@ Fl_Font FontLoader::_index = FL_FREE_FONT;
 Fl_Font FontLoader::load(const char* filePath_, const char* fontName_, Fl_Font defaultFont_/* = FL_HELVETICA*/)
 {
 	bool success = false;
-	LOG("Load font '" << fontName_ << "' from file " << filePath_ << "\n");
+	if (std::filesystem::exists(filePath_))
+	{
+		LOG("Load font '" << fontName_ << "' from file " << filePath_ << "\n");
 #ifdef _WIN32
-	success = (AddFontResourceEx(filePath_, FR_PRIVATE, 0) != 0);
+		success = (AddFontResourceEx(filePath_, FR_PRIVATE, 0) != 0);
 #elif __APPLE__
-	CFURLRef url = CFURLCreateFromFileSystemRepresentation(NULL, reinterpret_cast<const UInt8*>(filePath_), strlen(filePath_), false);
-	success = CTFontManagerRegisterFontsForURL(url, kCTFontManagerScopeProcess, NULL);
-	if (url) CFRelease(url);
+		CFURLRef url = CFURLCreateFromFileSystemRepresentation(NULL, reinterpret_cast<const UInt8*>(filePath_), strlen(filePath_), false);
+		success = CTFontManagerRegisterFontsForURL(url, kCTFontManagerScopeProcess, NULL);
+		if (url) CFRelease(url);
 #else
-	success = FcConfigAppFontAddFile(NULL, reinterpret_cast<const FcChar8*>(filePath_));
+		success = FcConfigAppFontAddFile(NULL, reinterpret_cast<const FcChar8*>(filePath_));
 #endif
+	}
 	return setupFont(success, fontName_, defaultFont_);
 }
 
@@ -106,10 +110,11 @@ Fl_Font FontLoader::setupFont(bool success_, const char* fontName_, Fl_Font defa
 {
 	if (!success_)
 	{
-		WNG("Failed to load custom font '" << fontName_ << "'");
-		return defaultFont_;
+//		WNG("Failed to load custom font '" << fontName_ << "'");
+//		return defaultFont_;
+		// continue in normal font setting...
 	}
-	if (defaultFont_ == (Fl_Font) - 1)
+	if (defaultFont_ == (Fl_Font)-1)
 	{
 		DBG("added custom font " << fontName_ << "\n");
 		return (Fl_Font)success_;
@@ -154,12 +159,16 @@ Fl_Font FontLoader::setupFont(bool success_, const char* fontName_, Fl_Font defa
 	}
 	else
 	{
+		WNG("Failed to set font '" << fontName << "'");
+		return defaultFont_;
+#if 0
 		// not found, try to set by name anyway
 		LOG("Set font: '" << fontName << "'\n");
 		const char *default_font = Fl::get_font(FL_HELVETICA);
 		DBG("default font: '" << default_font << "'\n");
 		if (default_font[0] == ' ') fontName = " " + fontName;
 		Fl::set_font(index, fontName.c_str());
+#endif
 	}
 	_index++;
 	return index;

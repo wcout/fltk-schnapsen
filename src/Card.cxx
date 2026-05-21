@@ -203,7 +203,7 @@ std::vector<std::string> Card::cardbacks()
 #undef STANDALONE
 // Compile: fltk-config --use-images --compile src/Card.cxx -std=c++20 -Iinclude -DSTANDALONE
 #include "system.h"
-const char APPLICATION[] = "Card-Test";
+constexpr char APPLICATION[] = "Card-Test";
 #include <iostream>
 #include "CardImage.cxx"
 #include "Util.cxx"

@@ -7,6 +7,7 @@
 //
 
 #include "Engine.h"
+#include "Unittest.h"
 
 #include <ranges>
 
@@ -16,7 +17,6 @@ using enum Message;
 using enum Closed;
 using enum Marriage;
 
-#include "Unittest.cxx"
 bool Engine::unit_tests()
 {
 	Unittest ut(_game, _player, _ai, *this);

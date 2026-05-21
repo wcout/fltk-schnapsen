@@ -6,15 +6,24 @@
 // Allow to select card style and background style.
 //
 
-#include "Selector.h"
-#include "Card.h"
-#include "Util.h"
+#ifdef STANDALONE
+constexpr char APPLICATION[] = "Selector";
+#include <FL/Enumerations.H>
+Fl_Font CustomFont = FL_HELVETICA;
+#endif
+#include "debug.h"
 #include "Rect.h"
+#include "Card.h"
+#include "Selector.h"
+#include "Util.h"
 #include "CardImage.h"
 
 #include <FL/Fl.H>
 #include <FL/fl_draw.H>
 #include "Util.h"
+
+using enum CardSuite;
+using enum CardFace;
 
 static const std::vector<CardSuite> suites = { HEART, SPADE, DIAMOND, CLUB };
 static const std::vector<CardFace> faces = { KING, QUEEN, JACK, TEN, ACE };
@@ -161,3 +170,16 @@ void Selector::draw()
 	Util::draw_string(accept, (w() - Util::string_width(accept)) / 2, h() - 4 - fl_height() / 2);
 	fl_pop_clip();
 }
+
+#ifdef STANDALONE
+#undef STANDALONE
+#include "CardImage.cxx"
+#include "Card.cxx"
+#include "Util.cxx"
+int main()
+{
+	Selector *s = new Selector(800, 800);
+	s->border(1);
+	Util::run(*s);
+}
+#endif

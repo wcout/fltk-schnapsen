@@ -52,6 +52,7 @@ using enum CardState;
 using enum Message;
 using enum Closed;
 using enum Marriage;
+using enum Result;
 
 struct GameState
 {
@@ -161,6 +162,7 @@ public:
 		_cmd_input(nullptr),
 		_redeal_button(nullptr),
 		_winning_button(nullptr),
+		_winning_claim(false),
 		_welcome(nullptr),
 		_selector(nullptr),
 		_grayout(false),
@@ -2064,6 +2066,7 @@ public:
 		cursor(FL_CURSOR_DEFAULT);
 		_redeal ? _redeal_button->show() : _redeal_button->hide();
 		_winning_button->hide();
+		_winning_claim = false;
 		update();
 	}
 
@@ -2133,7 +2136,7 @@ public:
 
 	bool ai_wins(const std::string &log_, Message player_message_ = NO_MESSAGE)
 	{
-		LOG(log_);
+		LOG(log_ + "\n");
 		ai_message(AI_GAME, true);
 		player_message(player_message_);
 		_ai.games_won++;
@@ -2145,7 +2148,7 @@ public:
 
 	bool player_wins(const std::string &log_, Message ai_message_ = NO_MESSAGE)
 	{
-		LOG(log_);
+		LOG(log_ + "\n");
 		player_message(YOUR_GAME, true);
 		ai_message(ai_message_);
 		_player.games_won++;
@@ -2184,9 +2187,8 @@ public:
 			flicker();
 	}
 
-	bool check_end()
+	Result test_end()
 	{
-		debug();
 		auto no_cards_in_play = [&]() -> bool
 		{
 			return _player.cards.empty() && _ai.cards.empty() && _player.move_state == NONE && _ai.move_state == NONE;
@@ -2196,22 +2198,22 @@ public:
 		{
 			if (_game.move == PLAYER && _player.score >= 66)
 			{
-				return player_wins("Player wins!\n");
+				return PLAYER_WINS_BY_SCORE;
 			}
 			else if (_game.move == AI && _ai.score >= 66)
 			{
-				return ai_wins("AI wins!\n");
+				return AI_WINS_BY_SCORE;
 			}
 			else if (no_cards_in_play())
 			{
 				if (_game.move == AI)
 				{
-					return ai_wins("AI wins by last trick!\n");
+					return AI_WINS_BY_LAST_TRICK;
 				}
 				else
 				{
 					// _game.move = PLAYER
-					return player_wins("Player wins by last trick!\n");
+					return PLAYER_WINS_BY_LAST_TRICK;
 				}
 			}
 		}
@@ -2220,25 +2222,45 @@ public:
 			// closed
 			if (_game.closed == BY_PLAYER && _game.move == PLAYER && _player.score >= 66)
 			{
-				return player_wins("Player wins closed game!\n");
+				return PLAYER_WINS_CLOSED_GAME;
 			}
 			else if (_game.closed == BY_AI && _game.move == AI && _ai.score >= 66)
 			{
-				return ai_wins("AI wins closed game!\n");
+				return AI_WINS_CLOSED_GAME;
 			}
 			else if (no_cards_in_play())
 			{
 				// closed and last trick done
 				if (_game.closed == BY_PLAYER)
 				{
-					return ai_wins("AI wins because player closed and has not enough!\n", YOU_NOT_ENOUGH);
+					return AI_WINS_PLAYER_CLOSED_NOT_ENOUGH;
 				}
 				else
 				{
 					// _game.closed = BY_AI
-					return player_wins("Player wins because AI closed and has not enough!\n", AI_NOT_ENOUGH);
+					return PLAYER_WINS_AI_CLOSED_NOT_ENOUGH;
 				}
 			}
+		}
+		return NO_WIN;
+	}
+
+	bool check_end()
+	{
+		debug();
+		Result res = test_end();
+		switch (res)
+		{
+			case PLAYER_WINS_BY_SCORE:             return player_wins("Player wins!");
+			case PLAYER_WINS_BY_LAST_TRICK:        return player_wins("Player wins by last trick!");
+			case PLAYER_WINS_CLOSED_GAME:          return player_wins("Player wins closed game!");
+			case PLAYER_WINS_AI_CLOSED_NOT_ENOUGH: return player_wins("Player wins because AI closed and has not enough!", AI_NOT_ENOUGH);
+
+			case AI_WINS_BY_SCORE:                 return ai_wins("AI wins!");
+			case AI_WINS_BY_LAST_TRICK:            return ai_wins("AI wins by last trick!");
+			case AI_WINS_CLOSED_GAME:              return ai_wins("AI wins closed game!");
+			case AI_WINS_PLAYER_CLOSED_NOT_ENOUGH: return ai_wins("AI wins because player closed and has not enough!", YOU_NOT_ENOUGH);
+			default: break;
 		}
 		return false;
 	}
@@ -2290,7 +2312,7 @@ public:
 		{
 			_winning_button->hide();
 		}
-		while (playing() && _player.move_state != ON_TABLE && _redeal == false && _player.score < 66)
+		while (playing() && _player.move_state != ON_TABLE && _redeal == false && _winning_claim == false)
 		{
 			wait(0.);
 		}
@@ -2308,6 +2330,7 @@ public:
 	void winning_claim()
 	{
 		_player.score = 66;
+		_winning_claim = true;
 	}
 
 	bool playing() override
@@ -2484,6 +2507,7 @@ private:
 	Cmd_Input *_cmd_input;
 	Button *_redeal_button;
 	Button *_winning_button;
+	bool _winning_claim;
 	Welcome *_welcome;
 	Selector *_selector;
 	bool _grayout;
