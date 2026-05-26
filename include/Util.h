@@ -33,6 +33,8 @@ class Util
 public:
 	static const std::string& home_dir();
 	static std::string rsc_dir();
+	static std::string cfg_file();
+	static std::string sta_file();
 	static std::string cardset_dir(std::string name_ = "");
 	static string_map& config();
 	static string_map& stats();
@@ -69,4 +71,5 @@ public:
 	static std::string dirname(const std::string &pathname_, bool absolute_ = false);
 
 	static int run(Fl_Window &win_);
+	static std::string_view trim(std::string_view str_);
 };

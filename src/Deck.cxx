@@ -12,6 +12,7 @@
 #include "Util.h"
 #include "Alert.h"
 #include "FontLoader.h"
+#include "AnimText.h"
 
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Box.H>
@@ -53,15 +54,6 @@ using enum Message;
 using enum Closed;
 using enum Marriage;
 using enum Result;
-
-struct GameState
-{
-	GameState(PlayerData &player_, PlayerData &ai_, GameData &game_) :
-		player(player_), ai(ai_), game(game_) {}
-	PlayerData player;
-	PlayerData ai;
-	GameData   game;
-};
 
 //
 // UI dependent (drawing/event handling) stuff
@@ -151,6 +143,29 @@ private:
 
 class Deck : public Fl_Double_Window, public UI
 {
+private:
+	struct CardAnimParams
+	{
+		CardAnimParams(DeckMemberFn func_ = nullptr) :
+			func(func_), cards(1), steps(5) {}
+		DeckMemberFn func;
+		size_t cards;
+		int steps;
+		int src_X;
+		int src_Y;
+		int dest_X;
+		int dest_Y;
+		int X;
+		int Y;
+	};
+	struct GameState
+	{
+		GameState(PlayerData &player_, PlayerData &ai_, GameData &game_) :
+			player(player_), ai(ai_), game(game_) {}
+		PlayerData player;
+		PlayerData ai;
+		GameData   game;
+	};
 public:
 	Deck() : Fl_Double_Window(800, 600),
 		_engine(_game, _player, _ai, *this),
@@ -166,14 +181,14 @@ public:
 		_welcome(nullptr),
 		_selector(nullptr),
 		_grayout(false),
-		_animate_xy(std::make_pair(-1, -1)),
-		_animate_func(nullptr),
 		_strictness(Util::config_as_int("strict")),
-		_animation_level(Util::config("animate").empty() ? 1 : Util::config_as_int("animate")),
+		_animation_level(Util::config("animate").empty() ? 2 : Util::config_as_int("animate")),
 		_show_ai_cards(false),
 		_closing(0),
 		_restart(false),
-		_card_scale(1.0)
+		_card_scale(1.0),
+		_player_anim_text(nullptr),
+		_ai_anim_text(nullptr)
 	{
 		// NOTE: FLTK (1.4) currently does not allow to update the internal font list after
 		// initial the Fl::set_fonts(). Therefore all maybe used fonts must be loaded at once.
@@ -394,9 +409,32 @@ public:
 		}
 	}
 
+	void change_card_scale(bool up_)
+	{
+		if (up_)
+		{
+			_card_scale += 0.05;
+			if (_card_scale > 1.5)
+			{
+				_card_scale = 1.5;
+				bell();
+			}
+		}
+		else
+		{
+			_card_scale -= 0.05;
+			if (_card_scale < 1)
+			{
+				_card_scale = 1;
+				bell();
+			}
+		}
+		redraw();
+	}
+
 	bool handle_key()
 	{
-		if (Fl::event_key('q') && !_disabled) // just for testing -> redeal
+		if (Fl::event_key('q') && !_disabled && ::debug) // just for testing -> redeal
 		{
 			redeal();
 		}
@@ -435,25 +473,13 @@ public:
 			_engine.sort_cards(_player.cards);
 			_engine.sort_cards(_ai.cards);
 		}
-		else if (Fl::event_key('+'))
+		else if (Fl::event_key('+') || Fl::event_dy() > 10)
 		{
-			_card_scale += 0.05;
-			if (_card_scale > 1.5)
-			{
-				_card_scale = 1.5;
-				bell();
-			}
-			redraw();
+			change_card_scale(true);
 		}
-		else if (Fl::event_key('-'))
+		else if (Fl::event_key('-') || Fl::event_dy() < -10)
 		{
-			_card_scale -= 0.05;
-			if (_card_scale < 1)
-			{
-				_card_scale = 1;
-				bell();
-			}
-			redraw();
+			change_card_scale(false);
 		}
 		else if (Fl::event_key('0'))
 		{
@@ -684,7 +710,7 @@ public:
 			std::chrono::time_point<std::chrono::system_clock> end =
 				std::chrono::system_clock::now();
 			std::chrono::duration<double> diff = end - start;
-			if (diff.count() < 1. / 20) return ret;
+			if (diff.count() < 1./20) return ret;
 			start = end;
 			handle_move();
 		}
@@ -705,6 +731,10 @@ public:
 			_game.move == AI ? _ai.last_drawn = Card() : _player.last_drawn = Card();
 			handle_click(Fl::event_x(), Fl::event_y());
 			return 1;
+		}
+		else if (e_ == FL_MOUSEWHEEL)
+		{
+			change_card_scale(Fl::event_dy() > 0);
 		}
 		return ret;
 	}
@@ -983,6 +1013,8 @@ public:
 			std::string player_message = Util::message(_player.message);
 			fl_font(CustomFont, w() / (player_message.back() == '!' ? 24 : 34));
 			fl_color(FL_RED);
+			if (_player_anim_text)
+				player_message =_player_anim_text->text();
 			Util::draw_string(player_message, message_rect(PLAYER).center().x - Util::string_width(player_message) / 2, message_rect(PLAYER).baseline(), true);
 		}
 		if (_ai.message != NO_MESSAGE)
@@ -993,6 +1025,8 @@ public:
 			if (pos != std::string::npos)
 				ai_message.erase(pos, 2);
 			fl_color(FL_RED);
+			if (_ai_anim_text)
+				ai_message = _ai_anim_text->text();
 			Util::draw_string(ai_message, message_rect(AI).center().x - Util::string_width(ai_message) / 2, message_rect(AI).baseline(), true);
 		}
 		if (_error_message != NO_MESSAGE)
@@ -1053,7 +1087,7 @@ public:
 		{
 			int X = cards_rect(AI).x + i * w() / 20;
 			int Y = cards_rect(AI).y;
-			if (::debug > 1 && _show_ai_cards)
+			if ((::debug > 1 && _show_ai_cards) || (::debug == 0 && _ai.display_score))
 			{
 				_ai.cards[i].skewed_image()->draw(X, Y);
 			}
@@ -1096,50 +1130,53 @@ public:
 		}, this);
 	}
 
-	void do_animate(DeckMemberFn animate_func_,
-	                int src_X_, int src_Y_, int dest_X_, int dest_Y_, int steps_ = 5)
+	void do_animate(bool delete_ = true)
 	{
-		_animate_func = animate_func_;
+		assert(_anim_params.func != nullptr);
+		int dx = _anim_params.dest_X - _anim_params.src_X;
+		int dy = _anim_params.dest_Y - _anim_params.src_Y;
 
-		int dx = dest_X_ - src_X_;
-		int dy = dest_Y_ - src_Y_;
-
-		for (int i = 0; i < steps_; i++)
+		for (int i = 0; i < _anim_params.steps; i++)
 		{
-			int X = src_X_ + (floor)(((double)dx / steps_) * i);
-			int Y = src_Y_ + (floor)(((double)dy / steps_) * i);
-			_animate_xy = std::make_pair(X, Y);
-			wait(1. / 50);
+			_anim_params.X = _anim_params.src_X + (floor)(((double)dx / _anim_params.steps) * i);
+			_anim_params.Y = _anim_params.src_Y + (floor)(((double)dy / _anim_params.steps) * i);
+			wait(1./50);
 			redraw();
 		}
-		_animate_func = nullptr;
+		if (delete_)
+			_anim_params.func = nullptr;
 	}
 
 	void animate_move() override
 	{
 		if (_animation_level == 0) return;
 
-//		int src_X = cards_rect(_game.move).center().x;
-		int src_X = cards_rect(_game.move).x + _CW / 2;
-		int src_Y = cards_rect(_game.move).center().y;
+		_anim_params = { &Deck::draw_animated_move };
+		_anim_params.src_X = cards_rect(_game.move).x + _CW / 2;
+		_anim_params.src_Y = cards_rect(_game.move).center().y;
 
-		int dest_X = move_rect(_game.move).center().x;
-		int dest_Y = move_rect(_game.move).center().y;
+		_anim_params.dest_X = move_rect(_game.move).center().x;
+		_anim_params.dest_Y = move_rect(_game.move).center().y;
 
-		do_animate(&Deck::draw_animated_move, src_X, src_Y, dest_X, dest_Y);
+		do_animate();
 	}
 
-	void animate_deal(Player player_) override
+	void animate_deal(Player player_, size_t cards_ = 1) override
 	{
 		if (_animation_level < 2) return;
 
-		int src_X = pack_rect().center().x;
-		int src_Y = pack_rect().center().y;
+		_anim_params = { &Deck::draw_animated_trick };
+		_anim_params.src_X = pack_rect().center().x;
+		_anim_params.src_Y = pack_rect().center().y;
 
-		int dest_X = cards_rect(player_).center().x;
-		int dest_Y = cards_rect(player_).center().y;
+		_anim_params.dest_X = cards_rect(player_).center().x;
+		_anim_params.dest_Y = cards_rect(player_).center().y;
 
-		do_animate(&Deck::draw_animated_trick, src_X, src_Y, dest_X, dest_Y);
+		_anim_params.cards = cards_;
+		if (cards_ > 1)
+			_anim_params.steps = 10;
+
+		do_animate();
 	}
 
 	void animate_fillup(Player player_)
@@ -1154,11 +1191,13 @@ public:
 		Cards save = _game.cards;
 		_game.cards.clear();
 
-		int src_X = pack_rect().x;
-		int src_Y = pack_rect().y;
+		_anim_params = { &Deck::draw_animated_trick };
 
-		int dest_X = pack_rect().center().x;
-		int dest_Y = pack_rect().center().y;
+		_anim_params.src_X = pack_rect().x;
+		_anim_params.src_Y = pack_rect().y;
+
+		_anim_params.dest_X = pack_rect().center().x;
+		_anim_params.dest_Y = pack_rect().center().y;
 
 		static constexpr int step = 3;
 
@@ -1169,56 +1208,59 @@ public:
 				if (i + c < save.size())
 					_game.cards.push_back(save[i + c]);
 			}
-			do_animate(&Deck::draw_animated_trick, src_X, src_Y, dest_X, dest_Y);
+			do_animate(false);
 		}
 		assert(_game.cards == save);
 		_game.cards = save;
+		_anim_params.func = nullptr;
 	}
 
 	void animate_trick() override
 	{
 		if (_animation_level == 0) return;
 
-		int src_X = move_rect(_game.move).center().x;
-		int src_Y = move_rect(_game.move).center().y;
+		_anim_params = { &Deck::draw_animated_trick };
+		_anim_params.src_X = move_rect(_game.move).center().x;
+		_anim_params.src_Y = move_rect(_game.move).center().y;
 
-		int dest_X = deck_rect(_game.move).center().x;
-		int dest_Y = deck_rect(_game.move).center().y;
+		_anim_params.dest_X = deck_rect(_game.move).center().x;
+		_anim_params.dest_Y = deck_rect(_game.move).center().y;
 
-		do_animate(&Deck::draw_animated_trick, src_X, src_Y, dest_X, dest_Y);
+		do_animate();
 	}
 
 	void animate_change(bool from_hand_ = false) override
 	{
 		if (_animation_level == 0) return;
 
-		int src_X = change_rect().center().x;
-		int src_Y = change_rect().center().y;
+		_anim_params = { &Deck::draw_animated_change };
+		_anim_params.src_X = change_rect().center().x;
+		_anim_params.src_Y = change_rect().center().y;
 
-		int dest_X = cards_rect(_game.move).center().x;
-		int dest_Y = cards_rect(_game.move).center().y;
+		_anim_params.dest_X = cards_rect(_game.move).center().x;
+		_anim_params.dest_Y = cards_rect(_game.move).center().y;
 
 		if (from_hand_)
 		{
-			std::swap(src_X, dest_X);
-			std::swap(src_Y, dest_Y);
+			std::swap(_anim_params.src_X, _anim_params.dest_X);
+			std::swap(_anim_params.src_Y, _anim_params.dest_Y);
 		}
-		do_animate(&Deck::draw_animated_change, src_X, src_Y, dest_X, dest_Y, 10);
+		_anim_params.steps = 10;
+		do_animate();
 	}
 
 	void animate_close() override
 	{
 		if (_animation_level == 0) return;
 
-		_animate_func = &Deck::draw_closing;
+		_anim_params = { &Deck::draw_closing };
 
 		for (_closing = 1; _closing <= 4; _closing++)
 		{
 			redraw();
-			wait(1. / 30);
+			wait(1./30);
 		}
-
-		_animate_func = nullptr;
+		_anim_params.func = nullptr;
 		_closing = 0;
 	}
 
@@ -1424,16 +1466,19 @@ public:
 
 	void draw_animated_trick()
 	{
-		int X = _animate_xy.first - _CW / 2;
-		int Y = _animate_xy.second - _CH / 2;
-		_shadow.image()->draw(X + _CW / 12, Y + _CW / 12);
-		_back.image()->draw(X, Y);
+		int X = _anim_params.X - _CW / 2;
+		int Y = _anim_params.Y - _CH / 2;
+		for (size_t i = 0; i < _anim_params.cards; i++)
+		{
+			_shadow.image()->draw(X + _CW / 12 + i * (_CW / 4), Y + _CW / 12);
+			_back.image()->draw(X + i * (_CW / 4), Y);
+		}
 	}
 
 	void draw_animated_move()
 	{
-		int X = _animate_xy.first - _CW / 2;
-		int Y = _animate_xy.second - _CH / 2;
+		int X = _anim_params.X - _CW / 2;
+		int Y = _anim_params.Y - _CH / 2;
 		_shadow.image()->draw(X + _CW / 12, Y + _CW / 12);
 		_game.move == AI ? _ai.card.image()->draw(X, Y) : _player.card.image()->draw(X, Y);
 	}
@@ -1548,8 +1593,8 @@ public:
 		draw_decks();
 		draw_move();
 		draw_scores();
-		if (_animate_func)
-			std::invoke(_animate_func, this);
+		if (_anim_params.func)
+			std::invoke(_anim_params.func, this);
 		if (_player.deck_info)
 			draw_player_deck_info(Fl::event_x(), Fl::event_y());
 		if (_ai.deck_info)
@@ -1609,7 +1654,7 @@ public:
 
 	void welcome()
 	{
-		_welcome = new Welcome(w() / 2, h() / 4 * 3);
+		_welcome = new Welcome(w() / 2, h() / 4 * 3, _game.cards.size() != 20);
 		_welcome->position(x() + (w() - _welcome->w()) / 2, y() + (h() - _welcome->h()) / 2);
 		_welcome->stats(make_stats());
 		bell(WELCOME);
@@ -1797,21 +1842,23 @@ public:
 	{
 		LOG("dealer is " << (_game.move == PLAYER ? "AI" : "PLAYER") << "\n");
 		// 3 cards to player
-		for (int i = 0; i < 3; i++)
+		for (size_t i = 0; i < 3; i++)
 		{
 			Card c = _game.cards.front();
 			_game.cards.pop_front();
-			animate_deal(_game.move == PLAYER ? PLAYER : AI);
 			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
 		}
+		animate_deal(_game.move == PLAYER ? PLAYER : AI, 3);
+
 		// 3 cards to ai
-		for (int i = 0; i < 3; i++)
+		for (size_t i = 0; i < 3; i++)
 		{
 			Card c = _game.cards.front();
 			_game.cards.pop_front();
-			animate_deal(_game.move == PLAYER ? AI : PLAYER);
 			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
 		}
+		animate_deal(_game.move == PLAYER ? AI : PLAYER, 3);
+
 		// trump card
 		Card trump = _game.cards.front();
 		_game.cards.pop_front();
@@ -1821,21 +1868,22 @@ public:
 		redraw();
 
 		// 2 cards to player
-		for (int i = 0; i < 2; i++)
+		for (size_t i = 0; i < 2; i++)
 		{
 			Card c = _game.cards.front();
 			_game.cards.pop_front();
-			animate_deal(_game.move == PLAYER ? PLAYER : AI);
 			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
 		}
+		animate_deal(_game.move == PLAYER ? PLAYER : AI, 2);
+
 		// 2 cards to ai
-		for (int i = 0; i < 2; i++)
+		for (size_t i = 0; i < 2; i++)
 		{
 			Card c = _game.cards.front();
 			_game.cards.pop_front();
-			animate_deal(_game.move == PLAYER ? AI : PLAYER);
 			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
 		}
+		animate_deal(_game.move == PLAYER ? AI : PLAYER, 2);
 
 		if (::debug)
 		{
@@ -1911,9 +1959,10 @@ public:
 	void show_win_msg() override
 	{
 		cursor(FL_CURSOR_DEFAULT);
-		std::string m(Util::message(YOU_WIN));
+		int ascore = _game.book.ai_score();
+		std::string m(Util::message(ascore ? YOU_WIN : YOU_WINX));
 		Alert &alert = *new Alert(m.c_str(), Util::message(TITLE).c_str());
-		alert.set_bg_image((Util::rsc_dir() + "1f3c6.gif").c_str())
+		alert.set_bg_image((Util::rsc_dir() + (ascore ? "1f3c6.gif" : "1f4af.gif")).c_str())
 		     .center_on(Rect(*this))
 		     .run();
 	}
@@ -1921,9 +1970,10 @@ public:
 	void show_lost_msg() override
 	{
 		cursor(FL_CURSOR_DEFAULT);
-		std::string m(Util::message(YOU_LOST));
+		int pscore = _game.book.player_score();
+		std::string m(Util::message(pscore ? YOU_LOST : YOU_LOSTX));
 		Alert &alert = *new Alert(m.c_str(), Util::message(TITLE).c_str());
-		alert.set_bg_image((Util::rsc_dir() + "1f61e.gif").c_str())
+		alert.set_bg_image((Util::rsc_dir() + (pscore ? "1f61e.gif" : "1fae3.gif")).c_str())
 		     .center_on(Rect(*this))
 		     .run();
 	}
@@ -2113,6 +2163,12 @@ public:
 		_ai.message = m_;
 		std::string m(Util::message(m_));
 		DBG("ai_message(" << m << ")\n")
+		delete _ai_anim_text;
+		_ai_anim_text = nullptr;
+		if (_animation_level > 1)
+		{
+			_ai_anim_text = new AnimText(m, *this);
+		}
 		update();
 	}
 
@@ -2122,6 +2178,12 @@ public:
 		_player.message = m_;
 		std::string m(Util::message(m_));
 		DBG("player_message(" << m << ")\n")
+		delete _player_anim_text;
+		_player_anim_text = nullptr;
+		if (_animation_level > 1)
+		{
+			_player_anim_text = new AnimText(m, *this);
+		}
 		update();
 	}
 
@@ -2298,14 +2360,25 @@ public:
 
 	void player_move() override
 	{
+		auto estimated_ai_cards_value = [&]() -> int
+		{
+			Cards a = _ai.cards + _game.cards; // all cards AI can have
+			a.sort_by_value(false); // sort low->high
+			int value = 0; // calc. value of lowest cards (only for the number of cards AI is holding)
+			for (size_t i = 0; i < _ai.cards.size(); i++)
+				value += a[i].value();
+			return value;
+		};
+
 		cursor(FL_CURSOR_DEFAULT);
 		update_history();
 		//  Try to offer a 'claim remaining tricks' button
 		if (_game.closed != NOT &&  _player.cards.size() >= 2 && _ai.move_state == NONE &&
 		    _engine.highest_cards_in_hand(_player.cards).size() == _player.cards.size() &&
-			 (int)_engine.highest_trumps_in_hand(_player.cards).size() >= _engine.max_trumps(AI))
+			 (int)_engine.highest_trumps_in_hand(_player.cards).size() >= _engine.max_trumps(AI) &&
+			_player.cards.value() + estimated_ai_cards_value() + _player.pending + _player.score >= 66)
 		{
-			WNG("You have a winner hand!");
+			LOG("You have a winner hand!\n");
 			_winning_button->show();
 		}
 		else
@@ -2437,7 +2510,8 @@ public:
 			Fl::wait();
 			return;
 		}
-		if (Util::config("fast") == "1" && s_ >= 1.0)
+		std::string fast = Util::config("fast");
+		if ((fast.empty() || fast == "1") && s_ >= 1.0)
 		{
 			s_ /= 2;
 		}
@@ -2446,7 +2520,7 @@ public:
 			DBG("wait(" << s_ << ")\n");
 		}
 		_disabled = true;
-		double min_wait = s_ > 1. / 50 ? 1. / 50 : s_;
+		double min_wait = s_ > 1./50 ? 1./50 : s_;
 		std::chrono::time_point<std::chrono::system_clock> start =
 			std::chrono::system_clock::now();
 		while (playing() && _disabled)
@@ -2515,8 +2589,7 @@ private:
 	Audio _audio;
 #endif
 	std::string _cmd;
-	std::pair<int, int> _animate_xy;
-	DeckMemberFn _animate_func;
+	CardAnimParams _anim_params;
 	int _strictness;
 	int _animation_level;
 	bool _show_ai_cards;
@@ -2524,4 +2597,6 @@ private:
 	bool _restart;
 	std::vector<GameState> _history;
 	double _card_scale;
+	AnimText *_player_anim_text;
+	AnimText *_ai_anim_text;
 };

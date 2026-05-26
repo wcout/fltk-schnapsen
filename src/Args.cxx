@@ -58,8 +58,8 @@ std::string make_help(const string_map &la_, const string_map &sa_, bool list_ =
 	std::ostringstream os;
 	if (list_ == false)
 	{
-		os << APPLICATION << " " << VERSION << "\n\n";
 		os << "Usage:\n";
+		os << "  " << APPLICATION << " [--OPTION arg] [-SWITCH] [SCG_FILE]\n\n";
 		for (const auto &[option, description] : la_)
 		{
 			os << "--" << option << "\t" << description << "\n";
@@ -74,7 +74,7 @@ std::string make_help(const string_map &la_, const string_map &sa_, bool list_ =
 	{
 		list_cardsets(os);
 		list_cardbacks(os);
-		os << "\nSpecify name or [id] in command line";
+		os << "\nSpecify name or [id] in command line\n";
 	}
 	return os.str();
 }
@@ -118,7 +118,7 @@ bool process(const std::string &arg_, const std::string &value_)
 		{ "v", "display version" },
 		{ "R", "random first move" },
 		{ "S", "draw text with shadow" },
-		{ "s", "faster response" },
+		{ "s", "slower response (more time to read messages)" },
 		{ "r", "start with AI move" },
 		{ "t", "sort trumps to begin" },
 		{ "w", "show welcome screen" },
@@ -181,7 +181,7 @@ bool process(const std::string &arg_, const std::string &value_)
 				first_to_move = AI;
 				break;
 			case 's':
-				Util::config("fast", "1");
+				Util::config("fast", "0"); // = slow mode
 				break;
 			case 't':
 				Util::config("trump-sort", "1");
@@ -191,7 +191,8 @@ bool process(const std::string &arg_, const std::string &value_)
 				break;
 			case 'h':
 				OUT(make_help(long_args, short_args));
-				OUT(make_help(long_args, short_args, true));
+				if (check_short_arg(arg_, short_args) > 1)
+					OUT(make_help(long_args, short_args, true));
 				return false;
 			case 'l':
 				fl_message_font_ = FL_COURIER;
@@ -199,6 +200,14 @@ bool process(const std::string &arg_, const std::string &value_)
 				return false;
 			case 'v':
 				OUT(APPLICATION << " " << VERSION << "\n");
+				if (check_short_arg(arg_, short_args) > 1)
+				{
+					OUT("Built with FLTK " << Fl::version() << "\n");
+					OUT("Home dir   : " << Util::home_dir() << "\n");
+					OUT("Resources  : " << Util::rsc_dir() << "\n");
+					OUT("Config file: " << Util::cfg_file() << "\n");
+					OUT("Stat. file : " << Util::sta_file() << "\n");
+				}
 				return false;
 			case 'R':
 				first_to_move = random() % 2 ? PLAYER : AI;
@@ -213,7 +222,7 @@ bool process(const std::string &arg_, const std::string &value_)
 	else
 	{
 		fl_message_font_ = FL_COURIER;
-		fl_alert("Invalid argument '%s'!\n\n%s", arg_.c_str(), make_help(long_args, short_args).c_str());
+		fl_alert("Invalid or incomplete argument '%s'!\n\n%s", arg_.c_str(), make_help(long_args, short_args).c_str());
 		return false;
 	}
 	return true;
@@ -228,6 +237,10 @@ bool Args::parse(int argc_, char *argv_[])
 	for (int i = 1; i < argc_; i++)
 	{
 		std::string arg = argv_[i];
+		// FIXME: "cludge" to make --version/help work - should have been designed better...
+		if (arg == "--version") arg = "-v";
+		if (arg == "--help") arg = "-h";
+
 		std::string value;
 		if (arg.starts_with("--"))
 		{

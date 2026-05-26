@@ -1,4 +1,3 @@
-//
 // Part of "Schnapsen for 2" card game.
 //
 // (c) 2026 Christian Grabner
@@ -75,7 +74,7 @@ bool Deck::load_game(const std::string &name_)
     	if (line.empty()) continue; // all whitespace
 		else if (line[0] == '#' || line[0] == '/') // comment
 		{
-			WNG(orig_line);
+			IMP(orig_line);
 			continue;
 		}
 		else if (line.starts_with("player_cards:")) _player.cards = line.substr(13);
@@ -242,7 +241,7 @@ void Deck::onCmd(const std::string &cmd_)
 	}
 	else if (cmd_ == "back")
 	{
-		WNG("history size: " << _history.size());
+		LOG("history size: " << _history.size() << "\n");
 		if (back_history()) bell();
 		return;
 	}

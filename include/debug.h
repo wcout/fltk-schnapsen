@@ -17,3 +17,4 @@ constexpr auto RESET_ATTR = "\033[0m";
 #define DBG(x) { if (Util::logstream().good()) Util::logstream() << x; if (Util::config_as_int("loglevel") > 1) std::cout << DBG_PREFIX << x << RESET_ATTR; }
 #define DEV(x) { if (Util::config_as_int("loglevel") > 2) { Util::logstream().good() && Util::logstream() << x; std::cout << DBG_PREFIX << x << RESET_ATTR; } }
 #define WNG(x) { if (Util::logstream().good()) Util::logstream() << "!" << x << "\n"; std::cerr << WNG_PREFIX << x << RESET_ATTR << "\n"; }
+#define IMP(x) { if (Schnapsen::debug) { WNG(x) } }

@@ -9,3 +9,4 @@ cp -v *.mp3 ~/.$APPLICATION/rsc/.
 cp -v *.svg ~/.$APPLICATION/rsc/.
 cp -v *.gif ~/.$APPLICATION/rsc/.
 cp -v *.ttf ~/.$APPLICATION/rsc/.
+cp -v *sayings*.txt ~/.$APPLICATION/rsc/.

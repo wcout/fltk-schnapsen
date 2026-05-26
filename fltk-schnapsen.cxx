@@ -14,7 +14,7 @@
 #include "system.h"
 
 constexpr char APPLICATION[] = "fltk-schnapsen";
-constexpr char VERSION[] = "1.0.7";
+constexpr char VERSION[] = "1.0.8";
 
 #include "Deck.h"
 namespace Schnapsen
@@ -41,6 +41,7 @@ using namespace Schnapsen;
 #include "Deck_Cmd.cxx"
 #include "Args.cxx"
 #include "FontLoader.cxx"
+#include "AnimText.cxx"
 
 int main(int argc_, char *argv_[])
 {
@@ -61,6 +62,7 @@ int main(int argc_, char *argv_[])
 	try
 	{
 		Deck deck;
+		deck.xclass(APPLICATION); // otherwise Wayland/Gnome displays an 'FLTK' icon in sidebar
 		deck.show();
 		deck.wait_for_expose();
 		if (Fl::screen_scale(deck.screen_num()) != 1)

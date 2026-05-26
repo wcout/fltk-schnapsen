@@ -88,7 +88,7 @@ size_t Engine::best_trick_card_or_no_move(const Card &c_, Cards &tricks_) const
 			int score = _player.score + _player.pending + c.value() + c_.value();
 			if (score < 66)
 			{
-				WNG("Don't waste trump " << c << " on low card " << _player.card);
+				IMP("Don't waste trump " << c << " on low card " << _player.card);
 				return NO_MOVE;
 			}
 		}
@@ -304,8 +304,8 @@ bool Engine::test_change(PlayerData &player_, bool change_/*=false*/)
 	sort_cards(player_.cards);
 	player_.changed = c;
 
-	_ui.message(CHANGED);
-	_ui.update();
+//	_ui.message(CHANGED);
+//	_ui.update();
 
 	if (_game.move == AI)
 		_ui.wait(1.5);
@@ -339,7 +339,7 @@ size_t Engine::ai_play_20_40()
 			Cards highest_trumps = trumps_in_hand(highest);
 			if (highest_trumps.size() && highest_trumps[0].value() >= 10)
 			{
-				WNG("***try pull trump before playing 40!\n");
+				IMP("***try pull trump before playing 40!\n");
 				move = find(highest_trumps[0], _ai.cards);
 				return move;
 			}
@@ -497,7 +497,7 @@ Cards Engine::assumed_player_cards() const
 	Cards player_cards = Cards::fullcards() - _player.deck - _ai.deck - _ai.cards;
 	if (_game.cards.size())
 		player_cards -= _game.cards.back(); // open trump is certainly not in player cards
-	WNG("exclude_cards: " << _exclude_cards);
+	IMP("exclude_cards: " << _exclude_cards);
 	player_cards -= _exclude_cards;
 	if (_player.move_state == ON_TABLE)
 		player_cards -= _player.card;
@@ -639,7 +639,7 @@ Cards Engine::hinder_20_40()
 {
 	if (_game.closed == NOT)
 	{
-		WNG("hinder_20_40 should be used only in end game!");
+		IMP("hinder_20_40 should be used only in end game!");
 	}
 	// Use only in normal endgame:
 	// check if player holds 20 or 40
@@ -917,7 +917,7 @@ size_t Engine::ai_play_for_closed_lead()
 				DBG("player gain: " << player_gain << " ==> " << player_score << "\n");
 				if (player_score >= 66)
 				{
-					WNG("We must trick, otherwise player wins for sure");
+					IMP("We must trick, otherwise player wins for sure");
 					return move;
 				}
 			}
@@ -958,14 +958,14 @@ size_t Engine::ai_play_for_closed_lead()
 		DBG("player_gain: " << player_gain << "\n");
 		if (check_40(player_cards) || player_gain + _player.pending + _player.score >= 55)
 		{
-			WNG("player might win or have 40 if he wins this trick!");
+			IMP("player might win or have 40 if he wins this trick!");
 			Cards highest = highest_cards_in_hand(_ai.cards);
 			if (highest.size())
 			{
 				// so player must either trick with trump or let AI trick
 				highest.sort_by_value(_ai.score < 33); // low->hi, if already "safe"
 				DBG("highest sorted by value: " << highest << "\n");
-				WNG("Use " << highest[0] << " to make player trick or getting 40");
+				IMP("Use " << highest[0] << " to make player trick or getting 40");
 				return find(highest[0], _ai.cards);
 			}
 		}
@@ -1112,7 +1112,7 @@ void Engine::ai_move_closed_lead()
 		{
 			move = find(hinder[0], _ai.cards);
 			assert(move != NO_MOVE);
-			WNG("hinder 20/40 with " << _ai.cards[move] << " from " << hinder);
+			IMP("hinder 20/40 with " << _ai.cards[move] << " from " << hinder);
 		}
 		else if (!(_ai.cards.size() == 2 && move != NO_MOVE)) // play for last move!
 		{
@@ -1236,7 +1236,7 @@ void Engine::ai_move_lead()
 		if (highest.size() && highest[0].value() <= 3) // only cards up to king
 		{
 			_move = find(highest[0], _ai.cards);
-			WNG("play card of suite player has no higher of: " << highest[0] << "\n");
+			IMP("play card of suite player has no higher of: " << highest[0] << "\n");
 		}
 	}
 }
@@ -1257,7 +1257,7 @@ void Engine::ai_move_follow()
 		size_t m = ai_play_for_closed_lead();
 		if (m != NO_MOVE)
 		{
-			WNG("ai_play_for_closed_lead suggested " << _ai.cards[m]);
+			IMP("ai_play_for_closed_lead suggested " << _ai.cards[m]);
 			_move = m;
 			return;
 		}
@@ -1294,7 +1294,7 @@ void Engine::ai_move_follow()
 				int player_score = _player.score + _player.pending + _ai.cards[_move].value() + _player.card.value();
 				if (player_score >= 46 || ai_score >= 46 || (s40.empty() && _ai.score < 33 && ai_score >= 33))
 				{
-					WNG("Nevertheless trick, rather than giving away " << _ai.cards[_move]);
+					IMP("Nevertheless trick, rather than giving away " << _ai.cards[_move]);
 					_move = move;
 				}
 			}

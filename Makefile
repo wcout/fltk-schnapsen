@@ -17,11 +17,6 @@ endif
 # to enable fancy gamebook score digits
 cxxflags += -DUSE_SVG_DIGITS
 
-# to enable custom font (must be placed in 'rsc' dir)
-#cxxflags += -DCUSTOM_FONT=\"Mystery_Quest-Regular.ttf\"
-#cxxflags += -DCUSTOM_FONT=\"DynaPuff-Regular.ttf\"
-
-
 $(APPLICATION): $(APPLICATION).cxx include/system.h \
                                    include/debug.h \
                                    include/messages.h \
@@ -39,10 +34,12 @@ $(APPLICATION): $(APPLICATION).cxx include/system.h \
                                    include/Alert.h src/Alert.cxx \
                                    include/Args.h src/Args.cxx \
                                    include/Selector.h src/Selector.cxx \
+                                   include/AnimText.h src/AnimText.cxx \
                                    include/Unittest.h src/Unittest.cxx
 
 	$(FLTK)$(FLTK_CONFIG) --use-images --compile $(APPLICATION).cxx $(cxxflags)
 #	g++ -o $(APPLICATION) -fsanitize=address `$(FLTK)$(FLTK_CONFIG) --use-images --cxxflags` $(cxxflags) $(APPLICATION).cxx `$(FLTK)$(FLTK_CONFIG) --use-images --ldflags` -static-libasan
+#	g++ -o $(APPLICATION) `$(FLTK)$(FLTK_CONFIG) --use-images --cxxflags` $(cxxflags) $(APPLICATION).cxx `$(FLTK)$(FLTK_CONFIG) --use-images --ldflags` -lfontconfig
 
 clean:
 	rm $(APPLICATION)

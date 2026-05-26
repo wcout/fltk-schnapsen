@@ -28,6 +28,8 @@ enum class Message
 	GB_HEADLINE,
 	YOU_WIN,
 	YOU_LOST,
+	YOU_WINX,
+	YOU_LOSTX,
 	INVALID_SUITE,
 	MUST_TRICK_WITH_SUITE,
 	MUST_TRICK_WITH_TRUMP,
@@ -109,6 +111,24 @@ std::map<Message, std::string> messages_de = {
 	          "^B♣^.                                  ^r♥^.\n"
 	          "^r♦^.                                  ^B♣^.\n"
 	          "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^."},
+	{YOU_WINX, "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^.\n"
+	           "^r♥^.                                  ^B♠^.\n"
+	           "^B♣^.       Ach du meine Güte!         ^r♥^.\n"
+	           "^r♦^.                                  ^B♣^.\n"
+	           "^B♠^.                                  ^r♦^.\n"
+	           "^r♥^.   Du hast mir einen Schneider    ^B♠^.\n"
+	           "^B♣^.           verpasst!              ^r♥^.\n"
+	           "^r♦^.                                  ^B♣^.\n"
+	           "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^."},
+	{YOU_LOSTX,"^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^.\n"
+	           "^r♥^.                                  ^B♠^.\n"
+	           "^B♣^.   Ich traue es mir fast nicht    ^r♥^.\n"
+	           "^r♦^.            zu sagen:             ^B♣^.\n"
+	           "^B♠^.                                  ^r♦^.\n"
+	           "^r♥^.  Du hast leider den Schneider    ^B♠^.\n"
+	           "^B♣^.           abbekommen!            ^r♥^.\n"
+	           "^r♦^.                                  ^B♣^.\n"
+	           "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^."},
 	{INVALID_SUITE, "Du must Farbe geben"},
 	{MUST_TRICK_WITH_SUITE, "Du must mit Farbe stechen"},
 	{MUST_TRICK_WITH_TRUMP, "Du must mit Atout stechen"},
@@ -184,6 +204,24 @@ std::map<Message, std::string> messages_en = {
 	          "^B♣^.                                  ^r♥^.\n"
 	          "^r♦^.                                  ^B♣^.\n"
 	          "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^."},
+	{YOU_WINX, "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^.\n"
+	           "^r♥^.                                  ^B♠^.\n"
+	           "^B♣^.      Oh, how nice from you:      ^r♥^.\n"
+	           "^r♦^.                                  ^B♣^.\n"
+	           "^B♠^.                                  ^r♦^.\n"
+	           "^r♥^.   You didn't let me make even    ^B♠^.\n"
+	           "^B♣^.         a single point!          ^r♥^.\n"
+	           "^r♦^.                                  ^B♣^.\n"
+	           "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^."},
+	{YOU_LOSTX,"^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^.\n"
+	           "^r♥^.                                  ^B♠^.\n"
+	           "^B♣^.              Huh!                ^r♥^.\n"
+	           "^r♦^.    I am very sad to say this:    ^B♣^.\n"
+	           "^B♠^.                                  ^r♦^.\n"
+	           "^r♥^.   You lost and didn't score a    ^B♠^.\n"
+	           "^B♣^.          single point!           ^r♥^.\n"
+	           "^r♦^.                                  ^B♣^.\n"
+	           "^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^B♠^r♥^B♣^r♦^."},
 	{INVALID_SUITE, "You must give suite"},
 	{MUST_TRICK_WITH_SUITE, "You must trick with suite"},
 	{MUST_TRICK_WITH_TRUMP, "You must trick with trump"},

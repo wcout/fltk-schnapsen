@@ -48,7 +48,18 @@ Click on the gameboard to see the last 10 match results.
 
 Press `F1` to see the "About" screen which also displays the statistics summary of all played games.
 
+Press `F8` to select the card style.
+
 Move the mouse over your played pack to see the tricks. You can also see the first trick of the computer by hoovering the mouse over its pack.
+
+Other keys:
+
+	`t`	Sort cards by trump
+	`a`	Change animation level
+	`v`	Change sound volume (Use with `Ctrl` to lower volume)
+	`+`	Increase card scale
+	`-`	Decrease card scale
+	`0`	Reset card scale to 1.
 
 ## Status
 

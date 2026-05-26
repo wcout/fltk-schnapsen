@@ -94,6 +94,18 @@ std::string Util::rsc_dir()
 }
 
 /*static*/
+std::string Util::cfg_file()
+{
+	return home_dir() + APPLICATION + ".cfg";
+};
+
+/*static*/
+std::string Util::sta_file()
+{
+	return home_dir() + APPLICATION + ".sta";
+};
+
+/*static*/
 std::string Util::cardset_dir(std::string name_/* = "*/)
 {
 	std::string dir = home_dir() + Card::cardDir + "/";
@@ -178,13 +190,13 @@ void Util::load_values_from_file(std::ifstream &if_, string_map &values_, const 
 
 void Util::load_config()
 {
-	std::ifstream cfg(home_dir() + APPLICATION + ".cfg");
+	std::ifstream cfg(cfg_file());
 	load_values_from_file(cfg, ::config, "cfg");
 }
 
 void Util::load_stats()
 {
-	std::ifstream stat(home_dir() + APPLICATION + ".sta");
+	std::ifstream stat(sta_file());
 	load_values_from_file(stat, ::stats, "stat");
 }
 
@@ -201,13 +213,13 @@ void Util::save_values_to_file(std::ofstream &of_, const string_map &values_, co
 void Util::save_config()
 {
 	Util::config("cards", std::string()); // don't save cards string!
-	std::ofstream cfg(Util::home_dir() + APPLICATION + ".cfg", std::ios::binary);
+	std::ofstream cfg(cfg_file(), std::ios::binary);
 	save_values_to_file(cfg, ::config, "cfg");
 }
 
 void Util::save_stats()
 {
-	std::ofstream stat(home_dir() + APPLICATION + ".sta", std::ios::binary);
+	std::ofstream stat(sta_file(), std::ios::binary);
 	save_values_to_file(stat, ::stats, "stat");
 }
 
@@ -235,6 +247,7 @@ const std::string& Util::message(const Message m_)
 			DBG("locale_name: '" << locale_name << "'\n");
 		}
 		lang = locale_name;
+		config("lang", lang);
 	}
 	auto &m = lang.empty() || lang == "de" ? messages_de : messages_en;
 	return m[m_];
@@ -481,6 +494,19 @@ int Util::run(Fl_Window &win_)
 	}
 	delete &win_;
 	return 0;
+}
+
+/*static*/
+std::string_view Util::trim(std::string_view str_)
+{
+	const std::string_view whitespace = " \t\n\r\f\v";
+	// trim begin
+	const auto start = str_.find_first_not_of(whitespace);
+	if (start == std::string_view::npos) return {}; // all whitespace
+	// trim end
+	const auto end = str_.find_last_not_of(whitespace);
+	// return [begin, end]
+	return str_.substr(start, end - start + 1);
 }
 
 #ifdef STANDALONE

@@ -13,7 +13,7 @@ public:
 	virtual void animate_shuffle() {}
 	virtual void animate_trick() {}
 	virtual void animate_close() {}
-	virtual void animate_deal([[maybe_unused]] Player player_) {}
+	virtual void animate_deal([[maybe_unused]] Player player_, [[maybe_unused]] size_t cards_ = 1) {}
 	virtual void animate_change([[maybe_unused]]bool from_hand_ = false) {}
 	virtual void wait([[maybe_unused]]double s_) {}
 	virtual void message([[maybe_unused]]Message m_, [[maybe_unused]]bool bell_ = false) {}
