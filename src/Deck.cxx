@@ -1151,7 +1151,7 @@ public:
 	{
 		if (_animation_level == 0) return;
 
-		_anim_params = { &Deck::draw_animated_move };
+		_anim_params = CardAnimParams(&Deck::draw_animated_move);
 		_anim_params.src_X = cards_rect(_game.move).x + _CW / 2;
 		_anim_params.src_Y = cards_rect(_game.move).center().y;
 
@@ -1165,7 +1165,7 @@ public:
 	{
 		if (_animation_level < 2) return;
 
-		_anim_params = { &Deck::draw_animated_trick };
+		_anim_params = CardAnimParams(&Deck::draw_animated_trick);
 		_anim_params.src_X = pack_rect().center().x;
 		_anim_params.src_Y = pack_rect().center().y;
 
@@ -1191,7 +1191,7 @@ public:
 		Cards save = _game.cards;
 		_game.cards.clear();
 
-		_anim_params = { &Deck::draw_animated_trick };
+		_anim_params = CardAnimParams(&Deck::draw_animated_trick);
 
 		_anim_params.src_X = pack_rect().x;
 		_anim_params.src_Y = pack_rect().y;
@@ -1219,7 +1219,7 @@ public:
 	{
 		if (_animation_level == 0) return;
 
-		_anim_params = { &Deck::draw_animated_trick };
+		_anim_params = CardAnimParams(&Deck::draw_animated_trick);
 		_anim_params.src_X = move_rect(_game.move).center().x;
 		_anim_params.src_Y = move_rect(_game.move).center().y;
 
@@ -1233,7 +1233,7 @@ public:
 	{
 		if (_animation_level == 0) return;
 
-		_anim_params = { &Deck::draw_animated_change };
+		_anim_params = CardAnimParams(&Deck::draw_animated_change);
 		_anim_params.src_X = change_rect().center().x;
 		_anim_params.src_Y = change_rect().center().y;
 
@@ -1253,7 +1253,7 @@ public:
 	{
 		if (_animation_level == 0) return;
 
-		_anim_params = { &Deck::draw_closing };
+		_anim_params = CardAnimParams(&Deck::draw_closing);
 
 		for (_closing = 1; _closing <= 4; _closing++)
 		{
