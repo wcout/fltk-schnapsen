@@ -51,12 +51,12 @@ int main(int argc_, char *argv_[])
 	Fl::get_system_colors();
 	Fl::background(240, 240, 240); // brighter color for message background
 	srand(time(nullptr));
+	Util::load_config();
+	Util::load_stats();
 	if (Args::parse(argc_, argv_) == false)
 	{
 		exit(EXIT_FAILURE);
 	}
-	Util::load_config();
-	Util::load_stats();
 	LOG(Args::arg0 << " " << VERSION << " [" << Util::home_dir() << "]\n");
 	fl_message_title_default(Util::message(TITLE).c_str()); // redo ... maybe language changed
 	try
@@ -65,9 +65,15 @@ int main(int argc_, char *argv_[])
 		deck.xclass(APPLICATION); // otherwise Wayland/Gnome displays an 'FLTK' icon in sidebar
 		deck.show();
 		deck.wait_for_expose();
+		if (Fl::get_key(FL_Control_L)) // reset config file by pressing 'Ctrl' key at startup
+		{
+			Util::config().clear();
+			WNG("configuration reset\n");
+		}
 		if (Fl::screen_scale(deck.screen_num()) != 1)
 			Fl::screen_scale(deck.screen_num(), 1);
-		if (Util::config_as_int("welcome") && game_to_load.empty())
+		std::optional welcome = Util::config_value("welcome");
+		if ((!welcome || atoi(welcome.value().c_str())) && game_to_load.empty())
 		{
 			deck.welcome();
 		}

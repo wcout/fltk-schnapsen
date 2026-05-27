@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <map>
 #include <fstream>
+#include <optional>
 
 typedef std::unordered_map<std::string, std::string> string_map;
 
@@ -40,6 +41,7 @@ public:
 	static string_map& stats();
 
 	static const std::string& config(const std::string &id_);
+	static std::optional<const std::string> config_value(const std::string &id_);
 	static int config_as_int(const std::string &id_);
 	static void config(const std::string &id_, const std::string &value_);
 	static const std::string& stats(const std::string &id_);

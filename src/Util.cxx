@@ -131,14 +131,24 @@ string_map& Util::stats()
 	return ::stats;
 }
 
+/*static*/
 const std::string& Util::config(const std::string &id_)
 {
 	return config()[id_];
 }
 
+/*static*/
 int Util::config_as_int(const std::string &id_)
 {
 	return atoi(config()[id_].c_str());
+}
+
+/*static*/
+std::optional<const std::string> Util::config_value(const std::string &id_)
+{
+	if (config(id_).empty())
+		return {};
+	return config(id_);
 }
 
 void Util::config(const std::string &id_, const std::string &value_)

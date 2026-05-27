@@ -121,7 +121,7 @@ bool process(const std::string &arg_, const std::string &value_)
 		{ "s", "slower response (more time to read messages)" },
 		{ "r", "start with AI move" },
 		{ "t", "sort trumps to begin" },
-		{ "w", "show welcome screen" },
+		{ "w", "disable welcome screen" },
 		{ "f", "run fullscreen" },
 		{ "d", "enable debug" },
 		{ "C", "default config values" }
@@ -187,7 +187,7 @@ bool process(const std::string &arg_, const std::string &value_)
 				Util::config("trump-sort", "1");
 				break;
 			case 'w':
-				Util::config("welcome", "1");
+				Util::config("welcome", "0");
 				break;
 			case 'h':
 				OUT(make_help(long_args, short_args));
