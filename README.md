@@ -68,8 +68,6 @@ Single game wins/losses count 1 to 3 points depending on the final score. The fi
 The computer player (AI) of course *does not* use any "illegal" knowledge of the players hand, it just
 uses the available hints (cards already played, or not played).
 
-See: [Schnapsen card game on Wikipedia](https://en.wikipedia.org/wiki/Schnapsen)
-
 **NOTE:** There is one rule I probably implemented somewhat different, than used elsewhere: When the game
 is "closed down" by one of the players, it must be played till the last card and only the
 score of the player, who closed is taken into account (it must suffice). If the other player
