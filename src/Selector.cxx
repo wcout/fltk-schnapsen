@@ -26,11 +26,11 @@ using enum CardSuite;
 using enum CardFace;
 
 static const std::vector<CardSuite> suites = { HEART, SPADE, DIAMOND, CLUB };
-static const std::vector<CardFace> faces = { KING, QUEEN, JACK, TEN, ACE };
+static const std::vector<CardFace> faces = { JACK, QUEEN, KING, TEN, ACE };
 
 Selector::Selector(int w_, int h_) : Fl_Double_Window(w_, h_),
 	_card_index(0), _back_index(0), _cardsets(Card::cardsets()), _cardbacks(Card::cardbacks()),
-	_face(0), _suite(0)
+	_face(2), _suite(0)
 {
 	clear_border();
 	set_modal();
@@ -60,6 +60,28 @@ Selector::Selector(int w_, int h_) : Fl_Double_Window(w_, h_),
 int Selector::handle(int e_)
 {
 	if (e_ == FL_NO_EVENT) return 1;
+	if (e_ == FL_MOUSEWHEEL)
+	{
+		if (_card_rect.includes(Fl::event_x(), Fl::event_y()))
+		{
+			if (_cardsets.size() == 0) return 1;
+			if (Fl::event_dy() > 0 && _card_index + 1 < _cardsets.size())
+				_card_index++;
+			else if (Fl::event_dy() < 0 && _card_index > 0)
+				_card_index--;
+			redraw();
+		}
+		else if (_back_rect.includes(Fl::event_x(), Fl::event_y()))
+		{
+			if (_cardbacks.size() == 0) return 1;
+			if (Fl::event_dy() > 0 && _back_index + 1 < _cardbacks.size())
+				_back_index++;
+			else if (Fl::event_dy() < 0 && _back_index > 0)
+				_back_index--;
+			redraw();
+		}
+		return 1;
+	}
 	if (e_ == FL_PUSH)
 	{
 		if (_card_rect.includes(Fl::event_x(), Fl::event_y()))
@@ -81,42 +103,29 @@ int Selector::handle(int e_)
 	if (e_ == FL_KEYDOWN)
 	{
 		int key = Fl::event_key();
-
-		// Switch card style with left/right
-		if (key == FL_Right && _card_index + 1 != _cardsets.size())
+		// Switch suite/face with left/right
+		if (key == FL_Left)
 		{
-			_card_index++;
+			if (_face > 0)
+				_face--;
 			redraw();
 		}
-		if (key == FL_Left && _card_index > 0)
+		if (key == FL_Right)
 		{
-			_card_index--;
+			if (_face + 1 < (int)faces.size())
+				_face++;
 			redraw();
 		}
-		// Switch back style with up/down
-		if (key == FL_Down && _back_index + 1 != _cardbacks.size())
+		if (key == FL_Up)
 		{
-			_back_index++;
+			if (_suite + 1 < (int)suites.size())
+				_suite++;
 			redraw();
 		}
-		if (key == FL_Up && _back_index > 0)
+		if (key == FL_Down)
 		{
-			_back_index--;
-			redraw();
-		}
-		// Switch suite/face with page up/page down
-		if (key == FL_Page_Up)
-		{
-			_suite++;
-			if (_suite >= (int)suites.size())
-				_suite = 0;
-			redraw();
-		}
-		if (key == FL_Page_Down)
-		{
-			_face++;
-			if (_face >= (int)faces.size())
-				_face = 0;
+			if (_suite > 0)
+				_suite--;
 			redraw();
 		}
 		if (key == FL_Enter || key == ' ')

@@ -1226,6 +1226,8 @@ public:
 		_anim_params.dest_X = deck_rect(_game.move).center().x;
 		_anim_params.dest_Y = deck_rect(_game.move).center().y;
 
+//		_anim_params.cards = 2; // would be correct, but not really visible
+
 		do_animate();
 	}
 
@@ -1842,22 +1844,22 @@ public:
 	{
 		LOG("dealer is " << (_game.move == PLAYER ? "AI" : "PLAYER") << "\n");
 		// 3 cards to player
+		animate_deal(_game.move == PLAYER ? PLAYER : AI, 3);
 		for (size_t i = 0; i < 3; i++)
 		{
 			Card c = _game.cards.front();
 			_game.cards.pop_front();
 			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
 		}
-		animate_deal(_game.move == PLAYER ? PLAYER : AI, 3);
 
 		// 3 cards to ai
+		animate_deal(_game.move == PLAYER ? AI : PLAYER, 3);
 		for (size_t i = 0; i < 3; i++)
 		{
 			Card c = _game.cards.front();
 			_game.cards.pop_front();
 			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
 		}
-		animate_deal(_game.move == PLAYER ? AI : PLAYER, 3);
 
 		// trump card
 		Card trump = _game.cards.front();
@@ -1868,22 +1870,22 @@ public:
 		redraw();
 
 		// 2 cards to player
+		animate_deal(_game.move == PLAYER ? PLAYER : AI, 2);
 		for (size_t i = 0; i < 2; i++)
 		{
 			Card c = _game.cards.front();
 			_game.cards.pop_front();
 			_game.move == PLAYER ? _player.cards.push_front(c) : _ai.cards.push_front(c);
 		}
-		animate_deal(_game.move == PLAYER ? PLAYER : AI, 2);
 
 		// 2 cards to ai
+		animate_deal(_game.move == PLAYER ? AI : PLAYER, 2);
 		for (size_t i = 0; i < 2; i++)
 		{
 			Card c = _game.cards.front();
 			_game.cards.pop_front();
 			_game.move == PLAYER ? _ai.cards.push_front(c) : _player.cards.push_front(c);
 		}
-		animate_deal(_game.move == PLAYER ? AI : PLAYER, 2);
 
 		if (::debug)
 		{
