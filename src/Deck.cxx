@@ -1371,7 +1371,7 @@ public:
 		if (_player.deck.size())
 		{
 			// click region for deck display ("tooltip")
-			_player.deck.front().rect(deck_rect(PLAYER));;
+			_player.deck.front().rect(deck_rect(PLAYER));
 		}
 		if (_ai.deck.size())
 		{
@@ -1452,7 +1452,7 @@ public:
 		int Y = change_rect().center().y;
 		if (_closing >= 1 && _closing <= 4)
 		{
-			Fl_RGB_Image *image = _closing <= 2 ? _game.cards.back().rot90_image() : _back.rot90_image();;
+			Fl_RGB_Image *image = _closing <= 2 ? _game.cards.back().rot90_image() : _back.rot90_image();
 			int W = (_closing == 1 || _closing == 4) ? (image->w() / 3) * 2 : image->w() / 2;
 			Fl_Image *temp = image->copy(W, image->h());
 			// NOTE: shadow should be from rotated image, but it is not noticable..
@@ -1687,6 +1687,7 @@ public:
 		std::string cardback = Util::config("cardback");
 		_selector = new Selector(w() / 2, h() / 4 * 3);
 		_selector->position(x() + (w() - _selector->w()) / 2, y() + (h() - _selector->h()) / 2);
+		bell(ANIMATION);
 		Util::run(*_selector);
 		if (cardset != Util::config("cardset") || cardback != Util::config("cardback"))
 		{

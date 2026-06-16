@@ -235,6 +235,22 @@ void Util::save_stats()
 
 const std::string& Util::message(const Message m_)
 {
+#ifdef _WIN32
+	auto getWin32LocaleName = [&]() -> std::string
+	{
+		std::string res;
+		wchar_t localeName[100];
+		// Get locale name of user (e.g. L"de-DE" oder L"en-US")
+		if (GetUserDefaultLocaleName(localeName, sizeof(localeName)) > 0)
+		{
+			// Convert to std::string
+			std::wstring wstr(localeName);
+			res = std::string(wstr.begin(), wstr.end());
+		}
+		return res;
+	};
+#endif
+
 	std::string lang = ::config["lang"];
 	if (lang.empty())
 	{
@@ -243,13 +259,23 @@ const std::string& Util::message(const Message m_)
 		{
 			try
 			{
-				std::locale system_locale("");
+#ifdef _WIN32
+				// NOTE: std::locale("") always returns "C" on Windows (11)
+				// => need to use WIN32 API, that does that job correctly...
+				locale_name = getWin32LocaleName();
+#else
+				std::locale::global(std::locale(""));
+				std::locale system_locale = std::locale();
 				locale_name = system_locale.name();
+#endif
+				DBG("full locale_name: " << locale_name << "\n");
 				if (locale_name.size() >= 2)
 					locale_name.erase(2);
 			}
 			catch (std::runtime_error &e_)
 			{
+				// NOTE: This catch was initially required for wine
+				// (which is now also handled above, but lets keep it...)
 				locale_name = "de";
 				std::cerr << e_.what() << "\n";
 				WNG("system locale not found - default to 'de'!");
@@ -455,17 +481,8 @@ int Util::string_width(const std::string &text_)
 /*static*/
 std::ostream& Util::logstream()
 {
-	auto temp_dir = [&]() -> std::string
-	{
-#ifdef _WIN32
-		char *temp_dir = std::getenv("TEMP");
-		return temp_dir ? temp_dir : ".";
-#else
-		return "/tmp";
-#endif
-	};
-
-	static std::ofstream ofs((temp_dir() + "/fltk-schnapsen.log").c_str(), std::ios::binary);
+	static std::ofstream ofs((std::filesystem::temp_directory_path().string() +
+	                          "/fltk-schnapsen.log").c_str(), std::ios::binary);
 	return ofs;
 }
 

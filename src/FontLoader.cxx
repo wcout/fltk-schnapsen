@@ -71,7 +71,7 @@ Fl_Font FontLoader::load(const unsigned char* data_, unsigned int len_, const ch
 	int fd = mkstemp(path);
 	if (fd != -1)
 	{
-		success = write(fd, data_, len_) == len_;
+		success = write(fd, data_, len_) == static_cast<ssize_t>(len_);
 		close(fd);
 		success = success && FcConfigAppFontAddFile(NULL, reinterpret_cast<const FcChar8*>(path));
 	}
@@ -86,16 +86,23 @@ Fl_Font FontLoader::load(const unsigned char* data_, unsigned int len_, const ch
 /*static*/
 int FontLoader::load_dir(const char* dir_path_, const char *ext_/* = ".ttf"*/)
 {
+	DBG("FontLoader::load_dir(" << dir_path_ << ")\n");
 	std::filesystem::path fonts(dir_path_);
 	int n = 0;
 	for (auto const &dir_entry : std::filesystem::directory_iterator(fonts))
 	{
 		if (dir_entry.is_regular_file() && dir_entry.path().extension().string() == ext_)
 		{
-			n += (int)load(dir_path_, dir_entry.path().filename().string().c_str(), (Fl_Font)-1);
+			std::string path = (std::string)dir_path_ + dir_entry.path().filename().string();
+			std::string name = convertToFontName(dir_entry.path().filename().string());
+			n += (int)load(path.c_str(), name.c_str(), (Fl_Font)-1);
 		}
 	}
-	DBG("FontLoader::load_dir(" << dir_path_ << "): added " << n << " fonts\n");
+	LOG("FontLoader::load_dir(" << dir_path_ << "): added " << n << " fonts\n");
+#ifdef _WIN32
+	if (n > 0)
+		SendMessage(HWND_BROADCAST, WM_FONTCHANGE, 0, 0); // required for WIN to update fonts??
+#endif
 	return n;
 }
 
@@ -125,13 +132,13 @@ Fl_Font FontLoader::setupFont(bool success_, const char* fontName_, Fl_Font defa
 	int n = Fl::set_fonts();
 	DBG(n << " fonts in FLTK font table\n");
 	int use_font = -1;
-	DEV("---------\t");
+	DEV(std::string(80, '-') << "\n");
 	for (int i = 0; i < n; i++)
 	{
 		std::string fn = Fl::get_font_name(i);
 		DEV(i << "\t" << fn << "\n");
 	}
-	DEV("---------\n");
+	DEV(std::string(80, '-') << "\n");
 
 	for (int i = FL_FREE_FONT; i < n; i++)
 	{

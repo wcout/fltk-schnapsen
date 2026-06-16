@@ -14,7 +14,7 @@
 #include "system.h"
 
 constexpr char APPLICATION[] = "fltk-schnapsen";
-constexpr char VERSION[] = "1.0.8";
+constexpr char VERSION[] = "1.0.9";
 
 #include "Deck.h"
 namespace Schnapsen
@@ -42,9 +42,17 @@ using namespace Schnapsen;
 #include "Args.cxx"
 #include "FontLoader.cxx"
 #include "AnimText.cxx"
+#ifdef WIN32
+// needed for mingw 4.6 to accept AttachConsole()
+//#define _WIN32_WINNT 0x0501
+#include "win32_console.h"
+#endif
 
 int main(int argc_, char *argv_[])
 {
+#ifdef _WIN32
+	Console console;	// output goes to command window (if started from there)
+#endif
 	Fl::keyboard_screen_scaling(0); // disable keyboard scaling - we do that ourselves
 	fl_message_title_default(Util::message(TITLE).c_str());
 	fl_message_hotspot(0);

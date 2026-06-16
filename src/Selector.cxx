@@ -166,12 +166,12 @@ void Selector::draw()
 		H = h() - Y - dh - 4;
 	}
 	_card.image("card", Util::cardset_dir(_cardsets[_card_index]) + c.filename());
-	int X = w() / 40;
+	int X = w() / 20;
 	_card.image("card", W, H)->draw(X, Y);
 	_card_rect = Rect(X, Y, W, H);
 
 	_back.image("back", Util::home_dir() + Card::cardDir + "/back/" + _cardbacks[_back_index]);
-	X = w() - W - w() / 40;
+	X = w() - W - w() / 20;
 	_back.image("back", W, H)->draw(X, Y);
 	_back_rect = Rect(X, Y, W, H);
 

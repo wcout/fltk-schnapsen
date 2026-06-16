@@ -161,7 +161,8 @@ void Welcome::draw()
 		for (Fl_Font ft = FL_FREE_FONT; ft < Fl::set_fonts(); ft++)
 		{
 			std::string name = Fl::get_font_name(ft);
-			if (name == "Caveat Bold")
+//			if (name.find("Caveat Bold") != std::string::npos)
+			if (name.find("Caveat") != std::string::npos) // NOTE: WIN11 lists font without "Bold"???
 			{
 				fl_font(ft, fl_size());
 				break;

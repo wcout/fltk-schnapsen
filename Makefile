@@ -35,6 +35,7 @@ $(APPLICATION): $(APPLICATION).cxx include/system.h \
                                    include/Args.h src/Args.cxx \
                                    include/Selector.h src/Selector.cxx \
                                    include/AnimText.h src/AnimText.cxx \
+                                   include/win32_console.h \
                                    include/Unittest.h src/Unittest.cxx
 
 	$(FLTK)$(FLTK_CONFIG) --use-images --compile $(APPLICATION).cxx $(cxxflags)

@@ -116,19 +116,25 @@ void GameBook::draw(Rect r_)
 		fl_line(floor(x) + W, floor(y) + H , floor(x), floor(y) + H);
 		fl_color(FL_BLACK);
 		fl_line_style(FL_SOLID);
-		fl_point(floor(x) + W, floor(y) + H ); // draw manually the edge
+		fl_point(floor(x) + W, floor(y) + H ); // draw manually the edge point
 	}
+
+	// draw background
 	fl_line_style(0);
 	fl_color(_current == 0 ? fl_lighter(fl_lighter(FL_YELLOW)) : GRAY);
 	fl_rectf(X, Y, W, H);
 	fl_color(_current == 0 ? GRAY : FL_BLACK);
 	fl_rect(X, Y, W, H);
+
 	if (_current < _history.size())
 	{
+		// draw "turn page" indicator
 		int D = W / 12;
 		fl_rect(X + W - D, Y + H - D, D, D);
 		fl_line(X + W - D, Y + H - 1, X + W - 1, Y + H - D);
 	}
+
+	// draw title
 	fl_color(FL_BLACK);
 	fl_font(FL_COURIER, H / 14);
 	X += W / 20;
@@ -138,6 +144,8 @@ void GameBook::draw(Rect r_)
 	fl_line(X, Y + fl_descent(), X + W - W / 10, Y + fl_descent());
 	Y += H / 10;
 	Util::draw_color_text(Util::message(GB_HEADLINE), X, Y);
+
+	// draw separation lines
 	int h = H - H / 5;
 	fl_line_style(0);
 	int w = W - W / 10;
@@ -145,6 +153,7 @@ void GameBook::draw(Rect r_)
 	fl_line(X + w / 2, Y - fl_height(), X + w / 2, Y + h - fl_descent());
 	Y += fl_descent();
 
+	// draw scores
 	int player_score = 0;
 	int ai_score = 0;
 

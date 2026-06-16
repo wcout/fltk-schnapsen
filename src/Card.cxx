@@ -178,7 +178,7 @@ std::vector<std::string> Card::cardsets()
 		if (dir_entry.is_directory() &&
 			(std::filesystem::exists(card) || std::filesystem::exists(card_png)))
 		{
-			res.push_back(dir_entry.path().filename().string());
+			res.push_back(dir_entry.path().filename().string()); // NOTE: string() to get name unquoted
 		}
 	}
 	return res;
@@ -193,7 +193,8 @@ std::vector<std::string> Card::cardbacks()
 	{
 		if (dir_entry.is_regular_file())
 		{
-			res.push_back(dir_entry.path().filename().string());
+			res.push_back(dir_entry.path().filename().string()); // NOTE: string() to get name unquoted
+
 		}
 	}
 	return res;
