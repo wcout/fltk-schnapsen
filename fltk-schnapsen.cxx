@@ -14,7 +14,7 @@
 #include "system.h"
 
 constexpr char APPLICATION[] = "fltk-schnapsen";
-constexpr char VERSION[] = "1.0.9";
+constexpr char VERSION[] = "1.1.0";
 
 #include "Deck.h"
 namespace Schnapsen

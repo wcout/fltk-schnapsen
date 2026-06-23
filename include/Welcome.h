@@ -1,5 +1,7 @@
 #pragma once
 
+#include "UI.h"
+
 #include <FL/Fl_Double_Window.H>
 #include <string>
 
@@ -18,4 +20,5 @@ private:
 	static void redraw_timer(void *d_);
 	std::string _stats;
 	AnimText *_saying;
+	std::string _welcome;
 };

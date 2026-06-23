@@ -7,7 +7,7 @@
 //
 
 #ifdef STANDALONE
-constexpr char APPLICATION[] = "Selector";
+constexpr char APPLICATION[] = "fltk-schnapsen";
 #include <FL/Enumerations.H>
 Fl_Font CustomFont = FL_HELVETICA;
 #endif
@@ -153,7 +153,7 @@ void Selector::draw()
 	fl_font(CustomFont != FL_HELVETICA ? CustomFont : FL_HELVETICA_BOLD, w() / 16);
 	fl_color(FL_BLACK);
 	std::string title = Util::message(SELECTION);
-	Util::draw_string(title, (w() - Util::string_width(title)) / 2, h() / 7, true);
+	Util::draw_string(w(), title, 0, h() / 8, true);
 
 	fl_font(FL_COURIER, w() / 40);
 	int dh = fl_height() / 2 + fl_height(); // space for bottom line
@@ -165,18 +165,22 @@ void Selector::draw()
 	{
 		H = h() - Y - dh - 4;
 	}
+	std::string accept = Util::message(ACCEPT);
+	Util::draw_string(w(), accept, 0, h() - 4 - fl_height() / 2);
+
+	fl_font(FL_COURIER, w() / 60);
+	fl_color(FL_BLUE);
 	_card.image("card", Util::cardset_dir(_cardsets[_card_index]) + c.filename());
 	int X = w() / 20;
 	_card.image("card", W, H)->draw(X, Y);
 	_card_rect = Rect(X, Y, W, H);
+	Util::draw_string(W, _cardsets[_card_index], X, Y - fl_height() / 2);
 
 	_back.image("back", Util::home_dir() + Card::cardDir + "/back/" + _cardbacks[_back_index]);
 	X = w() - W - w() / 20;
 	_back.image("back", W, H)->draw(X, Y);
 	_back_rect = Rect(X, Y, W, H);
-
-	std::string accept = Util::message(ACCEPT);
-	Util::draw_string(accept, (w() - Util::string_width(accept)) / 2, h() - 4 - fl_height() / 2);
+	Util::draw_string(W, _cardbacks[_back_index], X, Y - fl_height() / 2);
 	fl_pop_clip();
 }
 
@@ -187,8 +191,10 @@ void Selector::draw()
 #include "Util.cxx"
 int main()
 {
+	Util::load_config();
 	Selector *s = new Selector(800, 800);
 	s->border(1);
+	s->resizable(s);
 	Util::run(*s);
 }
 #endif

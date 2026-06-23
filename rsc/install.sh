@@ -10,3 +10,4 @@ cp -v *.svg ~/.$APPLICATION/rsc/.
 cp -v *.gif ~/.$APPLICATION/rsc/.
 cp -v *.ttf ~/.$APPLICATION/rsc/.
 cp -v *sayings*.txt ~/.$APPLICATION/rsc/.
+cp -v *welcomes*.txt ~/.$APPLICATION/rsc/.

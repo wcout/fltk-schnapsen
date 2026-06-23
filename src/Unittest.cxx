@@ -173,6 +173,10 @@ bool Unittest::run()
 
 #ifdef STANDALONE
 #undef STANDALONE
+namespace Schnapsen
+{
+	int debug = 0;
+};
 #include "Util.cxx"
 #include "Card.cxx"
 #include "CardImage.cxx"

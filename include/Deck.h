@@ -1,8 +1,5 @@
 #pragma once
 
-// for readability of std::vector/dequeu index results
-constexpr size_t NO_MOVE = (size_t)-1;
-
 enum class Player
 {
 	PLAYER,

@@ -6,6 +6,12 @@
 // Display the "welcome/copyright/status" screen.
 //
 
+#ifdef STANDALONE
+constexpr char APPLICATION[] = "fltk-schnapsen";
+#include <FL/Enumerations.H>
+Fl_Font CustomFont = FL_HELVETICA;
+#endif
+#include "debug.h"
 #include "Welcome.h"
 #include "Util.h"
 #include "Card.h"
@@ -14,19 +20,31 @@
 #include <FL/Fl.H>
 #include <FL/fl_draw.H>
 #include <FL/Fl_Box.H>
+#include <FL/Fl_Shared_Image.H>
 
-static std::vector<std::string> load_sayings()
+using enum CardSuite;
+using enum CardFace;
+extern std::map<CardSuite, std::string> suite_symbols;
+
+static std::vector<std::string> load_texts(const std::string& name_)
 {
-	std::vector<std::string> sayings;
-	std::ifstream ifs(Util::rsc_dir() + "sayings_" + Util::config("lang") + ".txt");
-	std::string saying;
-	while (std::getline(ifs, saying))
+	std::vector<std::string> texts;
+	std::ifstream ifs(Util::rsc_dir() + name_ + "_" + Util::config("lang") + ".txt", std::ios::binary);
+	std::string text;
+	while (std::getline(ifs, text))
 	{
-    	std::string_view s = Util::trim(saying);
-    	if (s.empty()) continue;
-		sayings.push_back(std::string(s));
+		size_t count = 0;
+		for (unsigned int c : text) if (c > 128) count++;
+		if (count > text.size() / 2)
+		{
+			for (size_t i = 0; i < text.size(); i++)
+				text[i] = text[i] - 64;
+		}
+		std::string_view t = Util::trim(text);
+		if (t.empty()) continue;
+		texts.push_back(std::string(t));
 	}
-	return sayings;
+	return texts;
 };
 
 Welcome::Welcome(int w_, int h_, bool saying_/* = true_*/) : Fl_Double_Window(w_, h_),
@@ -38,9 +56,13 @@ Welcome::Welcome(int w_, int h_, bool saying_/* = true_*/) : Fl_Double_Window(w_
 	color(FL_WHITE);
 	redraw_timer(this);
 
-	static std::vector<std::string> sayings{load_sayings()};
+	static std::vector<std::string> sayings{load_texts("sayings")};
 	if (sayings.size() && saying_)
 		_saying = new AnimText(sayings[random() % sayings.size()], *this, 1./20);
+
+	static std::vector<std::string> welcomes{load_texts("welcomes")};
+	if (welcomes.size())
+		_welcome = welcomes[random() % welcomes.size()];
 }
 
 Welcome::~Welcome()
@@ -136,19 +158,19 @@ void Welcome::draw()
 	fl_font(CustomFont != FL_HELVETICA ? CustomFont : FL_HELVETICA_BOLD, w() / 10);
 	fl_color(FL_BLACK);
 	static constexpr char title[] = "^rF^BL^rT^BK^r S^BC^rH^BN^rA^BP^rS^BE^rN^B";
-	Util::draw_string(title, (w() - Util::string_width(title)) / 2, h() / 7, true);
+	Util::draw_string(w(), title, 0, h() / 7, true);
 
 	Y = h() / 7 + h() / 14;
 	fl_color(FL_BLUE);
 	fl_font(FL_HELVETICA_BOLD, w() / 26);
 	static constexpr char cr[] = "^r(c) 2025-2026^B Christian Grabner^. <wcout@gmx.net>";
-	Util::draw_string(cr, (w() - Util::string_width(cr)) / 2, Y);
+	Util::draw_string(w(), cr, 0, Y);
 
 	// draw message box
 	fl_color(FL_BLACK);
 	fl_font(FL_HELVETICA_BOLD, h() / 16);
 	int X = w() / 40 + W;
-	std::string welcome = Util::message(WELCOME);
+	std::string welcome = _welcome.size() ? _welcome : Util::message(WELCOME);
 	class Formatter : public Fl_Box
 	{
 	public:
@@ -181,6 +203,24 @@ void Welcome::draw()
 	fl_font(FL_COURIER_BOLD, h() / 42);
 	fl_draw_box(FL_FLAT_BOX, 0, h() - stat_h, w(), stat_h, fl_lighter(fl_lighter(FL_YELLOW)));
 	fl_color(FL_BLACK);
-	Util::draw_string(_stats, (w() - Util::string_width(_stats)) / 2, h() - stat_h + fl_height() - 2);
+	Util::draw_string(w(), _stats, 0, h() - stat_h + fl_height() - 2);
 	fl_pop_clip();
 }
+
+#ifdef STANDALONE
+#undef STANDALONE
+#include "CardImage.cxx"
+#include "Card.cxx"
+#include "Util.cxx"
+#include "AnimText.cxx"
+int main(int argc_, char *argv_[])
+{
+	fl_register_images();
+	Util::load_config();
+	Welcome *w = new Welcome(800, 800, argc_ > 1);
+	w->border(1);
+	w->resizable(w);
+	w->stats("Game statistics...");
+	Util::run(*w);
+}
+#endif

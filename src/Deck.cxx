@@ -147,10 +147,11 @@ private:
 	struct CardAnimParams
 	{
 		CardAnimParams(DeckMemberFn func_ = nullptr) :
-			func(func_), cards(1), steps(5) {}
+			func(func_), cards(1), steps(5), closing(0) {}
 		DeckMemberFn func;
 		size_t cards;
 		int steps;
+		int closing;
 		int src_X;
 		int src_Y;
 		int dest_X;
@@ -184,7 +185,6 @@ public:
 		_strictness(Util::config_as_int("strict")),
 		_animation_level(Util::config("animate").empty() ? 2 : Util::config_as_int("animate")),
 		_show_ai_cards(false),
-		_closing(0),
 		_restart(false),
 		_card_scale(1.0),
 		_player_anim_text(nullptr),
@@ -1144,7 +1144,7 @@ public:
 			redraw();
 		}
 		if (delete_)
-			_anim_params.func = nullptr;
+			_anim_params = {};
 	}
 
 	void animate_move() override
@@ -1212,7 +1212,7 @@ public:
 		}
 		assert(_game.cards == save);
 		_game.cards = save;
-		_anim_params.func = nullptr;
+		_anim_params = {};
 	}
 
 	void animate_trick() override
@@ -1257,13 +1257,12 @@ public:
 
 		_anim_params = { &Deck::draw_closing };
 
-		for (_closing = 1; _closing <= 4; _closing++)
+		for (_anim_params.closing = 1; _anim_params.closing <= 4; _anim_params.closing++)
 		{
 			redraw();
 			wait(1./30);
 		}
-		_anim_params.func = nullptr;
-		_closing = 0;
+		_anim_params = {};
 	}
 
 	void draw_pack()
@@ -1289,7 +1288,7 @@ public:
 		{
 			int X = change_rect().x;
 			int Y = change_rect().y;
-			if (_game.closed == NOT && _game.cards.size() != 20 && _player.cards.size() > 3 && !_closing)
+			if (_game.closed == NOT && _game.cards.size() != 20 && _player.cards.size() > 3 && !_anim_params.closing)
 			{
 				_game.cards.back().rot90_image()->draw(X, Y);
 				_game.cards.back().rect(Rect(X, Y, _game.cards.back().image()->h(), _game.cards.back().image()->w()));
@@ -1329,7 +1328,7 @@ public:
 			_outline.image()->draw(X, Y);
 		}
 
-		if (_game.closed != NOT && _game.cards.size() && !_closing)
+		if (_game.closed != NOT && _game.cards.size() && !_anim_params.closing)
 		{
 			int SW = card_stack_pos(_game.cards.size() - 1); // TEST: shadow size depends on stack size
 			int X = pack_rect().x;
@@ -1450,10 +1449,11 @@ public:
 	{
 		int X = pack_rect().x + pack_rect().w;
 		int Y = change_rect().center().y;
-		if (_closing >= 1 && _closing <= 4)
+		int closing = _anim_params.closing;
+		if (closing >= 1 && closing <= 4)
 		{
-			Fl_RGB_Image *image = _closing <= 2 ? _game.cards.back().rot90_image() : _back.rot90_image();
-			int W = (_closing == 1 || _closing == 4) ? (image->w() / 3) * 2 : image->w() / 2;
+			Fl_RGB_Image *image = closing <= 2 ? _game.cards.back().rot90_image() : _back.rot90_image();
+			int W = (closing == 1 || closing == 4) ? (image->w() / 3) * 2 : image->w() / 2;
 			Fl_Image *temp = image->copy(W, image->h());
 			// NOTE: shadow should be from rotated image, but it is not noticable..
 			Fl_Image *stemp = _shadow.image()->copy(W, image->h());
@@ -1904,11 +1904,11 @@ public:
 			res = _engine.have_20(_ai.cards);
 			if (res.size())
 				DBG("AI cards contain " << res.size() << "x20!\n")
-			size_t i = _engine.find(Card(JACK, _game.cards.back().suite()), _player.cards);
-			if (i != NO_MOVE)
+			Move i = _engine.find(Card(JACK, _game.cards.back().suite()), _player.cards);
+			if (i)
 				DBG("player cards can change Jack!\n")
 			i = _engine.find(Card(JACK, _game.cards.back().suite()), _ai.cards);
-			if (i != NO_MOVE)
+			if (i)
 				DBG("AI cards can change Jack!\n")
 		}
 	}
@@ -2503,7 +2503,7 @@ public:
 
 	bool idle() const
 	{
-		return _player.move_state == NONE && _ai.move_state == NONE;
+		return _player.move_state == NONE && _ai.move_state == NONE &&	_anim_params.func == nullptr;
 	}
 
 	void wait(double s_) override
@@ -2596,7 +2596,6 @@ private:
 	int _strictness;
 	int _animation_level;
 	bool _show_ai_cards;
-	int _closing;			// used for closing animation
 	bool _restart;
 	std::vector<GameState> _history;
 	double _card_scale;

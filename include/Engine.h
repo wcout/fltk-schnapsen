@@ -41,21 +41,23 @@ struct GameData
 	bool      trump_sort;
 };
 
+typedef std::optional<size_t> Move;
+
 class Engine
 {
 public:
 	explicit Engine(GameData &game_, PlayerData &player_, PlayerData &ai_, UI &ui_) :
-		_game(game_), _player(player_), _ai(ai_), _ui(ui_), _move(NO_MOVE)
+		_game(game_), _player(player_), _ai(ai_), _ui(ui_), _move{}
 	{
 	}
-	size_t ai_move();
+	Move ai_move();
 	void ai_move_follow();
 	void ai_move_lead();
 	void ai_move_closed_follow();
 	void ai_move_closed_lead();
 
-	size_t ai_play_for_last_trick_lead();
-	size_t ai_play_for_closed_lead();
+	Move ai_play_for_last_trick_lead();
+	Move ai_play_for_closed_lead();
 
 	Suites have_20(const Cards &cards_);
 	Suites have_40(const Cards &cards_);
@@ -63,10 +65,10 @@ public:
 	Suites have_40() { return have_40(_ai.cards); } // shortcut
 	bool check_40(const Cards &cards_) { return have_40(cards_).size(); }
 	bool check_20(const Cards &cards_) { return have_20(cards_).size(); }
-	size_t find(const Card &c_, const Cards &cards_) const;
-	size_t lowest_card(const Cards &cards_, bool no_trump_ = true) const;
-	size_t lowest_card_that_tricks(const Card &c_, const Cards &cards_) const;
-	size_t highest_card_that_tricks(const Card &c_, const Cards &cards_) const;
+	Move find(const Card &c_, const Cards &cards_) const;
+	Move lowest_card(const Cards &cards_, bool no_trump_ = true) const;
+	Move lowest_card_that_tricks(const Card &c_, const Cards &cards_) const;
+	Move highest_card_that_tricks(const Card &c_, const Cards &cards_) const;
 	Cards assumed_player_cards() const;
 	Cards all_cards_that_trick(const Card &c_, const Cards &cards_) const;
 #if 0
@@ -76,12 +78,12 @@ public:
 	bool can_trick(const Card &c_, const Cards &cards_) const;
 	bool can_trick_with_suite(const Card &c_, const Cards &cards_) const;
 	bool card_tricks(const Card &c1_, const Card &c2_) const;
-	size_t best_trick_card(const Card &c_, Cards &tricks_) const;
-	size_t best_trick_card_or_no_move(const Card &c_, Cards &tricks_) const;
+	Move best_trick_card(const Card &c_, Cards &tricks_) const;
+	Move best_trick_card_or_no_move(const Card &c_, Cards &tricks_) const;
 	bool test_change(PlayerData &player_, bool change_ = false);
-	size_t ai_play_20_40();
-	size_t ai_play_20_40(const Card& c_);
-	size_t ai_declare_marriage(CardSuite suite_);
+	Move ai_play_20_40();
+	Move ai_play_20_40(const Card& c_);
+	Move ai_declare_marriage(CardSuite suite_);
 	bool ai_test_close();
 	Cards highest_cards_of_suite_in_hand(const Cards &cards_, CardSuite suite_);
 	Cards highest_trumps_in_hand() { return highest_cards_of_suite_in_hand(_ai.cards, _game.trump); }
@@ -91,7 +93,7 @@ public:
 	Cards suites_in_hand(CardSuite suite_, const Cards &cards_) const;
 	Cards trumps_in_hand(const Cards &cards_) const;
 	Cards trumps_in_hand() const { return trumps_in_hand(_ai.cards); }
-	size_t must_give_color_or_trick(const Card &c_, Cards &cards_) const;
+	Move must_give_color_or_trick(const Card &c_, Cards &cards_) const;
 	Cards cards_to_claim(const Cards& lead_, const Cards& follow_, CardSuite suite_ = CardSuite::ANY_SUITE, int *gain_ = nullptr) const;
 	Cards cards_to_claim(CardSuite suite_ = CardSuite::ANY_SUITE, int *gain_ = nullptr) const;
 	Cards trumps_to_claim() const;
@@ -106,11 +108,11 @@ public:
 	Cards pull_trump_cards(Cards cards_, Cards from_) const;
 	Cards give_trump_cards(Cards cards_, Cards from_) const;
 	Cards closed_lead_no_trick(Cards leader_, Cards follower_);
-	size_t winning_move() const;
-	size_t winning_move_follow() const;
+	Move winning_move() const;
+	Move winning_move_follow() const;
 	Cards hinder_20_40();
-	size_t default_move(const Cards &cards_) const;
-	size_t default_move() const { return default_move(_ai.cards); }
+	Move default_move(const Cards &cards_) const;
+	Move default_move() const { return default_move(_ai.cards); }
 	Engine& sort_cards(Cards &cards_);
 	Player check_trick(Player move_);
 	void do_close(PlayerData &player_);
@@ -124,6 +126,6 @@ private:
 	PlayerData &_player;
 	PlayerData &_ai;
 	UI &_ui;
-	size_t _move;
+	Move _move;
 	Cards _exclude_cards;
 };

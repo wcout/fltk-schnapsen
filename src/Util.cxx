@@ -355,6 +355,12 @@ static int is_mono_font()
 }
 
 /*static*/
+void Util::draw_string(int w_, const std::string &text_, int x_, int y_, bool shadow_/*= false*/)
+{
+	draw_string(text_, x_ + (w_ - string_width(text_)) / 2, y_, shadow_);
+}
+
+/*static*/
 void Util::draw_string(const std::string &text_, int x_, int y_, bool shadow_/*= false*/)
 {
 	// NOTE: fl_draw(str, x, y) does not handle control characters under WIN32

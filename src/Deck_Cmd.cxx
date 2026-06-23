@@ -42,6 +42,18 @@ static Suites suites_from_string(std::string s_)
 
 bool Deck::load_game(const std::string &name_)
 {
+	std::string line;
+	std::string value;
+	auto parse = [&](const std::string &id_) -> bool
+	{
+		if (line.starts_with(id_ + ":"))
+		{
+			value = line.substr(id_.size() + 1);
+			value.erase(std::remove_if(value.begin(), value.end(), ::isspace), value.end());
+			return true;
+		}
+		return false;
+	};
 	std::string name(name_);
 	if (name.empty() || std::filesystem::exists(name) == false)
 	{
@@ -56,7 +68,6 @@ bool Deck::load_game(const std::string &name_)
 		bell();
 		return false;
 	}
-	std::string line;
 	// TODO: better way to clear cards/state
 	// NOTE: can't use {} initialization, because games_won, matches_won in PlayerData!
 	init2();
@@ -67,42 +78,42 @@ bool Deck::load_game(const std::string &name_)
 	_game.cards.clear();
 	_game.trump = NO_SUITE;
 	bool bad_file(false);
-	while (getline(ifs, line))
+	while (std::getline(ifs, line))
 	{
 		std::string orig_line = line;
-    	line.erase(std::remove_if(line.begin(), line.end(), ::isspace), line.end());
-    	if (line.empty()) continue; // all whitespace
+		line.erase(std::remove_if(line.begin(), line.end(), ::isspace), line.end());
+		if (line.empty()) continue; // all whitespace
 		else if (line[0] == '#' || line[0] == '/') // comment
 		{
 			IMP(orig_line);
 			continue;
 		}
-		else if (line.starts_with("player_cards:")) _player.cards = line.substr(13);
-		else if (line.starts_with("player_20_40:")) _player.s20_40 = suites_from_string(line.substr(13));
-		else if (line.starts_with("player_card:"))
+		else if (parse("player_cards")) _player.cards = value;
+		else if (parse("player_20_40")) _player.s20_40 = suites_from_string(value);
+		else if (parse("player_card"))
 		{
-			_player.card = Cards("|" + line.substr(12) + "|")[0];
+			_player.card = Cards("|" + value + "|")[0];
 			_player.move_state = ON_TABLE;
 		}
-		else if (line.starts_with("player_deck:")) _player.deck = line.substr(12);
-		else if (line.starts_with("player_score:")) _player.score = atoi(line.substr(13).c_str());
-		else if (line.starts_with("player_pending:")) _player.pending = atoi(line.substr(15).c_str());
-		else if (line.starts_with("ai_cards:")) _ai.cards = line.substr(9);
-		else if (line.starts_with("ai_20_40:")) _ai.s20_40 = suites_from_string(line.substr(9));
-		else if (line.starts_with("ai_card:"))
+		else if (parse("player_deck")) _player.deck = value;
+		else if (parse("player_score")) _player.score = atoi(value.c_str());
+		else if (parse("player_pending")) _player.pending = atoi(value.c_str());
+		else if (parse("ai_cards")) _ai.cards = value;
+		else if (parse("ai_20_40")) _ai.s20_40 = suites_from_string(value);
+		else if (parse("ai_card"))
 		{
-			_ai.card = Cards("|" + line.substr(8) + "|")[0];
+			_ai.card = Cards("|" + value + "|")[0];
 			_ai.move_state = ON_TABLE;
 		}
-		else if (line.starts_with("ai_deck:")) _ai.deck = line.substr(8);
-		else if (line.starts_with("ai_score:")) _ai.score = atoi(line.substr(9).c_str());
-		else if (line.starts_with("ai_pending:")) _ai.pending = atoi(line.substr(11).c_str());
-		else if (line.starts_with("cards:")) _game.cards = line.substr(6);
-		else if (line.starts_with("closed:")) _game.closed = static_cast<Closed>(atoi(line.substr(7).c_str()));
-		else if (line.starts_with("ai_score_closed:")) _ai.score_closed = atoi(line.substr(16).c_str());
-		else if (line.starts_with("player_score_closed:")) _player.score_closed = atoi(line.substr(20).c_str());
-		else if (line.starts_with("trump:")) _game.trump = Cards("|A" + line.substr(6) + "|")[0].suite();
-		else if (line.starts_with("move:")) _game.move = static_cast<Player>(atoi(line.substr(5).c_str()));
+		else if (parse("ai_deck")) _ai.deck = value;
+		else if (parse("ai_score")) _ai.score = atoi(value.c_str());
+		else if (parse("ai_pending")) _ai.pending = atoi(value.c_str());
+		else if (parse("cards")) _game.cards = value;
+		else if (parse("closed")) _game.closed = static_cast<Closed>(atoi(value.c_str()));
+		else if (parse("ai_score_closed")) _ai.score_closed = atoi(value.c_str());
+		else if (parse("player_score_closed")) _player.score_closed = atoi(value.c_str());
+		else if (parse("trump")) _game.trump = Cards("|A" + value + "|")[0].suite();
+		else if (parse("move")) _game.move = static_cast<Player>(atoi(value.c_str()));
 		else { bad_file = true; break; }
 	}
 #if 0

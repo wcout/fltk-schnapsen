@@ -62,6 +62,7 @@ public:
 	                            [[maybe_unused]]bool shadow_ = false,
 	                            const std::map<char, Fl_Color> &colors_ = text_colors);
 	static void draw_string(const std::string &text, int x_, int y_, bool shadow_ = false);
+	static void draw_string(int w_, const std::string &text, int x_, int y_, bool shadow_ = false);
 	static int string_size(const std::string &text_, int &w_, int &h_);
 	static int string_width(const std::string &text_);
 
